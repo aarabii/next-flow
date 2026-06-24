@@ -12,7 +12,7 @@ const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
   {
     id: "ai-racing-car",
     title: "AI Racing Car Generator",
-    href: "/app/workflows/ai-racing-car",
+    href: "/workflows/ai-racing-car",
     gradient: "from-red-500/20 via-orange-500/20 to-yellow-500/10",
     icon: (
       <svg
@@ -38,7 +38,7 @@ const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
   {
     id: "slack-dispatcher",
     title: "Slack Alert Dispatcher",
-    href: "/app/workflows/slack-dispatcher",
+    href: "/workflows/slack-dispatcher",
     gradient: "from-indigo-500/20 via-purple-500/20 to-pink-500/10",
     icon: (
       <svg
@@ -59,7 +59,7 @@ const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
   {
     id: "db-backup-sync",
     title: "Database Backup Sync",
-    href: "/app/workflows/db-backup-sync",
+    href: "/workflows/db-backup-sync",
     gradient: "from-emerald-500/20 via-teal-500/20 to-cyan-500/10",
     icon: (
       <svg
