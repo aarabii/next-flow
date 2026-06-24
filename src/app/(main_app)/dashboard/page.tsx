@@ -1,10 +1,12 @@
-import { Upload, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { SystemFlowCard } from "./_components/SystemFlowCard";
 import { SearchBar } from "./_components/SearchBar";
 import { UserFlowCard } from "./_components/UserFlowCard";
+import { ImportButton } from "./_components/ImportButton";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { createWorkflowAction } from "./actions";
+
 
 const timeAgo = (date: Date) => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -62,14 +64,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center justify-end gap-space-03">
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-space-03 rounded-radius-l bg-surface-primary px-space-04 text-button text-text-primary transition-colors hover:bg-surface-secondary disabled:opacity-40"
-            title="Import workflow JSON"
-          >
-            <Upload className="w-4 h-4 text-icon-primary" aria-hidden="true" />
-            Import
-          </button>
+          <ImportButton />
           <form action={createWorkflowAction}>
             <button
               type="submit"

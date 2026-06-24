@@ -73,3 +73,20 @@ export async function deleteWorkflowAction(id: string) {
 
   revalidatePath("/dashboard");
 }
+
+export async function importWorkflowAction(name: string, nodes: any[], edges: any[]) {
+  const user = await checkAndSyncUser();
+
+  const workflow = await db.workflow.create({
+    data: {
+      userId: user.id,
+      name: name || "Imported Workflow",
+      nodes: nodes || [],
+      edges: edges || [],
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/workflows/${workflow.id}`);
+}
+
