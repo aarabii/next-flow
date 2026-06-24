@@ -40,8 +40,16 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
   // Helper to check if a specific input handle is connected
   const isConnected = (handleId: string) => connectedInputs.includes(handleId);
 
+  const onRunNode = (data as any).onRunNode;
+  const running = (data as any).running;
+
   return (
-    <div className="w-80 bg-white border border-zinc-200 rounded-xl shadow-md overflow-visible font-sans text-zinc-800">
+    <div className={cn(
+      "w-80 bg-white border rounded-xl shadow-md overflow-visible font-sans text-zinc-800 transition-all duration-300",
+      running 
+        ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] animate-pulse" 
+        : "border-zinc-200"
+    )}>
       {/* Node Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
         <div className="flex items-center gap-1.5">
@@ -54,9 +62,18 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
           </button>
           
           {/* Run Button */}
-          <button className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100/80 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer">
-            <Play className="w-3 h-3 fill-emerald-600 stroke-none" />
-            <span>Run</span>
+          <button 
+            onClick={onRunNode}
+            disabled={running}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50",
+              running 
+                ? "bg-purple-50 text-purple-600 border border-purple-200"
+                : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100/80"
+            )}
+          >
+            <Play className={cn("w-3 h-3 stroke-none", running ? "fill-purple-600 animate-spin" : "fill-emerald-600")} />
+            <span>{running ? "Running..." : "Run"}</span>
           </button>
 
           <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400">
@@ -107,11 +124,8 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
             ) : (
               <UploadButton
                 variant="image"
-                onChange={(file) => {
-                  if (file) {
-                    const url = URL.createObjectURL(file);
-                    updateData({ inputImage: url });
-                  }
+                onChange={(url) => {
+                  updateData({ inputImage: url });
                 }}
               />
             )}

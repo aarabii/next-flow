@@ -11,7 +11,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock } from "lucide-react";
+import { Plus, Clock, Play } from "lucide-react";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { GeminiNode } from "./GeminiNode";
@@ -20,7 +20,7 @@ import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "../_store/useWorkflowStore";
-import { saveWorkflowAction } from "../actions";
+import { saveWorkflowAction, executeWorkflowAction, getWorkflowRunStatusAction, getWorkflowAction } from "../actions";
 
 // Declare custom node types outside the component to avoid re-renders
 const nodeTypes = {
@@ -53,6 +53,71 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
 
   const [showPicker, setShowPicker] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
+  const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
+
+  const handleRunWorkflow = React.useCallback(async (scope: "FULL" | "PARTIAL" | "SINGLE", targetNodeIds?: string[]) => {
+    try {
+      // Save canvas first
+      await saveWorkflowAction(workflowId, nodes, edges);
+      
+      const res = await executeWorkflowAction(workflowId, scope, targetNodeIds);
+      if (res.success) {
+        setActiveRunId(res.runId);
+        setHistoryOpen(true); // Auto-open history panel to show run progress
+      }
+    } catch (err: any) {
+      alert(`Failed to trigger execution: ${err.message}`);
+    }
+  }, [workflowId, nodes, edges]);
+
+  React.useEffect(() => {
+    if (!activeRunId) return;
+
+    let active = true;
+    let timerId: NodeJS.Timeout;
+
+    const pollStatus = async () => {
+      try {
+        const data = await getWorkflowRunStatusAction(activeRunId);
+        if (!active) return;
+
+        if (data) {
+          // Find running/pending nodes
+          const running = data.nodeRuns
+            .filter((nr) => nr.status === "RUNNING" || nr.status === "PENDING")
+            .map((nr) => nr.nodeId);
+          setRunningNodeIds(running);
+
+          if (data.status === "RUNNING" || data.status === "PENDING") {
+            timerId = setTimeout(pollStatus, 1200);
+          } else {
+            // Run completed (SUCCESS or FAILED or PARTIAL)
+            setActiveRunId(null);
+            setRunningNodeIds([]);
+            
+            // Reload the updated nodes/edges from DB to render outputs on canvas
+            const updated = await getWorkflowAction(workflowId);
+            if (updated && updated.nodes && active) {
+              initializeWorkflow(updated.nodes as any[], updated.edges as any[]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error polling run status:", err);
+        if (active) {
+          timerId = setTimeout(pollStatus, 3000);
+        }
+      }
+    };
+
+    pollStatus();
+
+    return () => {
+      active = false;
+      clearTimeout(timerId);
+    };
+  }, [activeRunId, workflowId, initializeWorkflow]);
 
   // Initialize store with loaded database state on mount or workflowId change
   React.useEffect(() => {
@@ -181,11 +246,13 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
           ...resolvedData,
           connectedInputs,
           onChange: onNodeDataChange,
+          onRunNode: () => handleRunWorkflow("SINGLE", [node.id]),
+          running: runningNodeIds.includes(node.id),
           ...additionalData,
         },
       };
     });
-  }, [nodes, edges, onNodeDataChange, deleteEdge]);
+  }, [nodes, edges, onNodeDataChange, deleteEdge, runningNodeIds, handleRunWorkflow]);
 
   // Validates connections: prevents cycles, self-connections, and mismatched types
   const isValidConnection = React.useCallback((connection: any) => {
@@ -317,6 +384,16 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
           >
             <Clock className="w-3.5 h-3.5" />
             <span>History</span>
+          </button>
+
+          <button
+            onClick={() => handleRunWorkflow("FULL")}
+            disabled={activeRunId !== null}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+            title="Execute the full workflow DAG"
+          >
+            <Play className="w-3 h-3 fill-white stroke-none" />
+            <span>{activeRunId !== null ? "Running..." : "Run"}</span>
           </button>
 
           <button className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer">

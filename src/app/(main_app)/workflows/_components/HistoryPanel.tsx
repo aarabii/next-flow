@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { X, CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layers, HelpCircle } from "lucide-react";
+import { X, CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layers, HelpCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getWorkflowRunsAction } from "../actions";
 
 export interface NodeRunItem {
   id: string;
@@ -146,8 +147,45 @@ const MOCK_RUNS: WorkflowRunItem[] = [
 ];
 
 export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
-  const [runs, setRuns] = React.useState<WorkflowRunItem[]>(MOCK_RUNS);
+  const [runs, setRuns] = React.useState<WorkflowRunItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [expandedRunId, setExpandedRunId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    let timerId: NodeJS.Timeout;
+
+    const fetchRuns = async () => {
+      try {
+        const data = await getWorkflowRunsAction(workflowId);
+        if (active) {
+          setRuns(data as any);
+          setLoading(false);
+
+          // Poll every 1.5s if a run is running, otherwise every 3.5s
+          const hasRunning = data.some(r => r.status === "RUNNING");
+          if (hasRunning) {
+            timerId = setTimeout(fetchRuns, 1500);
+          } else {
+            timerId = setTimeout(fetchRuns, 3500);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch runs:", err);
+        if (active) {
+          setLoading(false);
+          timerId = setTimeout(fetchRuns, 5000);
+        }
+      }
+    };
+
+    fetchRuns();
+
+    return () => {
+      active = false;
+      clearTimeout(timerId);
+    };
+  }, [workflowId]);
 
   const toggleExpand = (runId: string) => {
     setExpandedRunId(expandedRunId === runId ? null : runId);
@@ -219,7 +257,12 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
 
       {/* Runs List */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
-        {runs.length === 0 ? (
+        {loading && runs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Loader2 className="w-6 h-6 text-purple-600 animate-spin mb-2" />
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Loading history...</span>
+          </div>
+        ) : runs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Layers className="w-10 h-10 text-zinc-200 mb-2" />
             <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">No Runs Yet</span>

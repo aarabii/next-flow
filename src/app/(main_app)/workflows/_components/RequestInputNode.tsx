@@ -199,11 +199,8 @@ export function RequestInputNode({ id, data: rawData }: NodeProps) {
                 ) : (
                   <UploadButton
                     variant="image"
-                    onChange={(file) => {
-                      if (file) {
-                        const url = URL.createObjectURL(file);
-                        handleValueChange(field.id, url, file.name);
-                      }
+                    onChange={(url, name) => {
+                      handleValueChange(field.id, url, name);
                     }}
                   />
                 )}
