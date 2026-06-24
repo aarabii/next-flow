@@ -2,8 +2,49 @@ import { Upload, Plus } from "lucide-react";
 import { SystemFlowCard } from "./_components/SystemFlowCard";
 import { SearchBar } from "./_components/SearchBar";
 import { UserFlowCard } from "./_components/UserFlowCard";
+import { checkAndSyncUser } from "@/lib/auth";
+import { db } from "@/lib/prisma";
+import { createWorkflowAction } from "./actions";
+
+const timeAgo = (date: Date) => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "Edited just now";
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return `Edited ${interval}y ago`;
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return `Edited ${interval}mo ago`;
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return `Edited ${interval}d ago`;
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return `Edited ${interval}h ago`;
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return `Edited ${interval}m ago`;
+  return "Edited just now";
+};
+
+const GRADIENTS = [
+  "from-red-500/10 via-orange-500/10 to-yellow-500/5",
+  "from-indigo-500/10 via-purple-500/10 to-pink-500/5",
+  "from-emerald-500/10 via-teal-500/10 to-cyan-500/5",
+  "from-blue-500/10 via-sky-500/10 to-indigo-500/5",
+];
 
 export default async function DashboardPage() {
+  const user = await checkAndSyncUser();
+
+  const dbWorkflows = await db.workflow.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const workflows = dbWorkflows.map((w, idx) => ({
+    id: w.id,
+    title: w.name,
+    href: `/workflows/${w.id}`,
+    editedAt: timeAgo(w.updatedAt),
+    gradient: GRADIENTS[idx % GRADIENTS.length],
+  }));
+
   return (
     <div className="w-full pb-space-08 pl-15 pr-15 pt-space-08">
       {/* Header */}
@@ -29,14 +70,16 @@ export default async function DashboardPage() {
             <Upload className="w-4 h-4 text-icon-primary" aria-hidden="true" />
             Import
           </button>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-radius-l bg-surface-on-action text-icon-on-action transition-colors hover:opacity-90 disabled:opacity-40"
-            title="Create a new workflow"
-            aria-label="New workflow"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-          </button>
+          <form action={createWorkflowAction}>
+            <button
+              type="submit"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-radius-l bg-surface-on-action text-icon-on-action transition-colors hover:opacity-90 disabled:opacity-40 cursor-pointer"
+              title="Create a new workflow"
+              aria-label="New workflow"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </form>
         </div>
       </div>
 
@@ -70,7 +113,7 @@ export default async function DashboardPage() {
           </div>
           <SearchBar />
         </div>
-        <UserFlowCard />
+        <UserFlowCard initialWorkflows={workflows} />
       </div>
     </div>
   );
