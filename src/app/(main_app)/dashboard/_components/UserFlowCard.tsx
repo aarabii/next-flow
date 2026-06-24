@@ -40,31 +40,106 @@ export const UserFlowCard = () => {
   return (
     <div className="mt-space-06 grid grid-cols-1 gap-space-07 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
       {USER_WORKFLOWS.map((workflow) => (
-        <div key={workflow.id} className="group/card relative max-w-[250px] w-full">
+        <div key={workflow.id} className="group/card relative max-w-62 w-full">
           <div className="relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
             <Link
-              className="block aspect-[250/162] bg-surface-main-background-3 dark:bg-card relative bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:12px_12px] overflow-hidden"
+              className="block aspect-250/162 bg-surface-main-background-3 dark:bg-card relative bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[12px_12px] overflow-hidden"
               href={workflow.href}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${workflow.gradient} opacity-50`} />
-              
+              <div
+                className={`absolute inset-0 bg-linear-to-br ${workflow.gradient} opacity-50`}
+              />
+
               {/* Premium abstract mini-workflow nodes placeholder */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-75">
-                <svg className="w-full h-full text-foreground/20" viewBox="0 0 100 60" fill="none">
+                <svg
+                  className="w-full h-full text-foreground/20"
+                  viewBox="0 0 100 60"
+                  fill="none"
+                >
                   {/* Connection lines */}
-                  <path d="M25 30 L50 18 M25 30 L50 42 M50 18 L75 30 M50 42 L75 30" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+                  <path
+                    d="M25 30 L50 18 M25 30 L50 42 M50 18 L75 30 M50 42 L75 30"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                  />
                   {/* Start Node */}
-                  <rect x="15" y="24" width="12" height="12" rx="3" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeWidth="1" />
-                  <circle cx="21" cy="30" r="2" fill="currentColor" fillOpacity="0.4" />
+                  <rect
+                    x="15"
+                    y="24"
+                    width="12"
+                    height="12"
+                    rx="3"
+                    fill="currentColor"
+                    fillOpacity="0.05"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx="21"
+                    cy="30"
+                    r="2"
+                    fill="currentColor"
+                    fillOpacity="0.4"
+                  />
                   {/* Upper Middle Node */}
-                  <rect x="44" y="12" width="12" height="12" rx="3" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeWidth="1" />
-                  <circle cx="50" cy="18" r="2" fill="currentColor" fillOpacity="0.4" />
+                  <rect
+                    x="44"
+                    y="12"
+                    width="12"
+                    height="12"
+                    rx="3"
+                    fill="currentColor"
+                    fillOpacity="0.05"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx="50"
+                    cy="18"
+                    r="2"
+                    fill="currentColor"
+                    fillOpacity="0.4"
+                  />
                   {/* Lower Middle Node */}
-                  <rect x="44" y="36" width="12" height="12" rx="3" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeWidth="1" />
-                  <circle cx="50" cy="42" r="2" fill="currentColor" fillOpacity="0.4" />
+                  <rect
+                    x="44"
+                    y="36"
+                    width="12"
+                    height="12"
+                    rx="3"
+                    fill="currentColor"
+                    fillOpacity="0.05"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx="50"
+                    cy="42"
+                    r="2"
+                    fill="currentColor"
+                    fillOpacity="0.4"
+                  />
                   {/* End Node */}
-                  <rect x="73" y="24" width="12" height="12" rx="3" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeWidth="1" />
-                  <circle cx="79" cy="30" r="2" fill="currentColor" fillOpacity="0.4" />
+                  <rect
+                    x="73"
+                    y="24"
+                    width="12"
+                    height="12"
+                    rx="3"
+                    fill="currentColor"
+                    fillOpacity="0.05"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx="79"
+                    cy="30"
+                    r="2"
+                    fill="currentColor"
+                    fillOpacity="0.4"
+                  />
                 </svg>
               </div>
             </Link>
@@ -100,7 +175,10 @@ export const UserFlowCard = () => {
 
           {/* Card Info */}
           <div className="mt-2 px-1">
-            <div className="truncate text-sm font-medium text-foreground" title={workflow.title}>
+            <div
+              className="truncate text-sm font-medium text-foreground"
+              title={workflow.title}
+            >
               {workflow.title}
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">

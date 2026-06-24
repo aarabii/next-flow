@@ -92,9 +92,9 @@ export const SystemFlowCard = () => {
           href={workflow.href}
           style={{ scrollSnapAlign: "start" }}
         >
-          <div className="relative aspect-[288/196] bg-surface-main-background-3 flex items-center justify-center bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:16px_16px] overflow-hidden">
+          <div className="relative aspect-288/196 bg-surface-main-background-3 flex items-center justify-center bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] overflow-hidden bg-size-[16px_16px]">
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${workflow.gradient} opacity-60`}
+              className={`absolute inset-0 bg-linear-to-br ${workflow.gradient} opacity-60`}
             />
             <div className="relative transition-transform duration-300 group-hover:scale-110">
               {workflow.icon}
