@@ -6,13 +6,9 @@ import {
   Background,
   Controls,
   MiniMap,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   BackgroundVariant,
   type Node,
   type Edge,
-  type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Plus } from "lucide-react";
@@ -22,6 +18,8 @@ import { GeminiNode } from "./GeminiNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { cn } from "@/lib/utils";
+import { useWorkflowStore } from "../_store/useWorkflowStore";
+import { saveWorkflowAction } from "../actions";
 
 // Declare custom node types outside the component to avoid re-renders
 const nodeTypes = {
@@ -31,63 +29,53 @@ const nodeTypes = {
   response: ResponseNode,
 };
 
-const initialNodes: Node[] = [
-  {
-    id: "request_inputs",
-    type: "requestInput",
-    position: { x: 50, y: 150 },
-    data: {
-      fields: [
-        { id: "text_field", type: "text_field", label: "Text Field", value: "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design." },
-        { id: "image_field", type: "image_field", label: "Image Field", value: "" }
-      ]
-    },
-    deletable: false,
-  },
-  {
-    id: "response",
-    type: "response",
-    position: { x: 900, y: 250 },
-    data: {
-      results: []
-    },
-    deletable: false,
-  }
-];
-
-const initialEdges: Edge[] = [];
-
 interface WorkflowCanvasProps {
   workflowId: string;
+  initialNodes: Node[];
+  initialEdges: Edge[];
 }
 
-export function WorkflowCanvas({ workflowId }: WorkflowCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+export function WorkflowCanvas({ workflowId, initialNodes, initialEdges }: WorkflowCanvasProps) {
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeDataChange,
+    addNode,
+    deleteEdge,
+    resetStore,
+    initializeWorkflow,
+  } = useWorkflowStore();
+
   const [showPicker, setShowPicker] = React.useState(false);
 
-  // Candidate attribution console log on initial render
+  // Initialize store with loaded database state on mount or workflowId change
   React.useEffect(() => {
+    if (initialNodes.length > 0) {
+      initializeWorkflow(initialNodes, initialEdges);
+    }
     console.log("[Py] Candidate LinkedIn: https://www.linkedin.com/in/arv95");
-  }, []);
+    return () => {
+      resetStore();
+    };
+  }, [workflowId, initialNodes, initialEdges, initializeWorkflow, resetStore]);
 
-  // Callback when node fields/sliders/inputs update
-  const onNodeDataChange = React.useCallback((nodeId: string, updatedData: any) => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              ...updatedData,
-            },
-          };
-        }
-        return node;
-      })
-    );
-  }, [setNodes]);
+  // Debounced auto-save to PostgreSQL database
+  React.useEffect(() => {
+    if (nodes.length === 0) return;
+    
+    const handler = setTimeout(async () => {
+      try {
+        await saveWorkflowAction(workflowId, nodes, edges);
+      } catch (error) {
+        console.error("Auto-save error:", error);
+      }
+    }, 1000);
+
+    return () => clearTimeout(handler);
+  }, [nodes, edges, workflowId]);
 
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
@@ -179,7 +167,7 @@ export function WorkflowCanvas({ workflowId }: WorkflowCanvasProps) {
         additionalData = {
           results: responseResults,
           onDeleteConnection: (edgeId: string) => {
-            setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+            deleteEdge(edgeId);
           },
         };
       }
@@ -194,7 +182,7 @@ export function WorkflowCanvas({ workflowId }: WorkflowCanvasProps) {
         },
       };
     });
-  }, [nodes, edges, onNodeDataChange, setEdges]);
+  }, [nodes, edges, onNodeDataChange, deleteEdge]);
 
   // Validates connections: prevents cycles, self-connections, and mismatched types
   const isValidConnection = React.useCallback((connection: any) => {
@@ -268,68 +256,13 @@ export function WorkflowCanvas({ workflowId }: WorkflowCanvasProps) {
     return sourceType === targetType;
   }, [edges, nodes]);
 
-  const onConnect = React.useCallback(
-    (params: Connection) => {
-      const edgeId = `edge_${params.source}_${params.sourceHandle || "default"}_to_${params.target}_${params.targetHandle || "default"}`;
-      const newEdge: Edge = {
-        ...params,
-        id: edgeId,
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#a855f7", strokeWidth: 2 },
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
-    },
-    [setEdges]
-  );
-
   // Double-click on an edge to delete the connection
   const onEdgeDoubleClick = React.useCallback(
     (event: React.MouseEvent, edge: Edge) => {
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      deleteEdge(edge.id);
     },
-    [setEdges]
+    [deleteEdge]
   );
-
-  const handleAddNode = (nodeType: "cropImage" | "gemini") => {
-    const id = `${nodeType}_${Date.now()}`;
-    let data: any = {};
-
-    if (nodeType === "cropImage") {
-      data = {
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        inputImage: "",
-        outputImage: "",
-      };
-    } else if (nodeType === "gemini") {
-      data = {
-        model: "Gemini 3.1 Pro",
-        prompt: "",
-        systemPrompt: "",
-        systemPromptEnabled: true,
-        images: [{ id: "image_0", value: "", fileName: "" }],
-        video: "",
-        audio: "",
-        response: "",
-        temperature: 1.0,
-        topP: 0.95,
-        maxTokens: 2048,
-      };
-    }
-
-    const newNode: Node = {
-      id,
-      type: nodeType,
-      position: { x: 480, y: 150 + nodes.length * 40 },
-      data,
-    };
-
-    setNodes((nds) => [...nds, newNode]);
-    setShowPicker(false);
-  };
 
   return (
     <div className="relative w-full h-[calc(100vh-64px)] bg-zinc-50 flex overflow-hidden">
@@ -363,7 +296,7 @@ export function WorkflowCanvas({ workflowId }: WorkflowCanvasProps) {
         </button>
 
         {showPicker && (
-          <NodePicker onSelect={handleAddNode} onClose={() => setShowPicker(false)} />
+          <NodePicker onSelect={(type) => addNode(type)} onClose={() => setShowPicker(false)} />
         )}
       </div>
     </div>

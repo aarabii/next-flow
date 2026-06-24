@@ -22,6 +22,7 @@ interface WorkflowState {
   addNode: (nodeType: "cropImage" | "gemini") => void;
   deleteEdge: (edgeId: string) => void;
   resetStore: () => void;
+  initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
 }
 
 const initialNodes: Node[] = [
@@ -150,6 +151,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     set({
       nodes: initialNodes,
       edges: [],
+    });
+  },
+  initializeWorkflow: (nodes, edges) => {
+    set({
+      nodes,
+      edges,
     });
   },
 }));
