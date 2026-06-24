@@ -1,0 +1,44 @@
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { db } from "./prisma";
+
+export async function checkAndSyncUser() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/");
+  }
+
+  // Check if user exists in the database
+  let dbUser = await db.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!dbUser) {
+    // Fetch detailed user profile from Clerk
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
+      redirect("/");
+    }
+
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!email) {
+      throw new Error("Clerk user has no associated email address");
+    }
+
+    const fullName = [clerkUser.firstName, clerkUser.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    dbUser = await db.user.create({
+      data: {
+        clerkId: userId,
+        email: email,
+        name: fullName || null,
+        imageUrl: clerkUser.imageUrl || null,
+      },
+    });
+  }
+
+  return dbUser;
+}

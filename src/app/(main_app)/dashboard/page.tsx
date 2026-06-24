@@ -2,8 +2,11 @@ import { Upload, Plus } from "lucide-react";
 import { SystemFlowCard } from "./_components/SystemFlowCard";
 import { SearchBar } from "./_components/SearchBar";
 import { UserFlowCard } from "./_components/UserFlowCard";
+import { checkAndSyncUser } from "@/lib/auth";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await checkAndSyncUser();
+
   return (
     <div className="w-full pb-space-08 pl-[60px] pr-[60px] pt-space-08">
       {/* Header */}

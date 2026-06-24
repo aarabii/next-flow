@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflows    Workflow[]
+  workflowRuns WorkflowRun[]
+}
+
+enum WorkflowStatus {
+  IDLE
+  RUNNING
+  ERROR
+}
+
+model Workflow {
+  id          String         @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  status      WorkflowStatus @default(IDLE)
+  nodes       Json
+  edges       Json
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflowRuns WorkflowRun[]
+
+  @@index([userId])
+}
+
+enum WorkflowRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+enum WorkflowRunScope {
+  FULL
+  PARTIAL
+  SINGLE
+}
+
+model WorkflowRun {
+  id          String            @id @default(uuid())
+  workflowId  String
+  userId      String
+  status      WorkflowRunStatus @default(PENDING)
+  scope       WorkflowRunScope
+  targetNodes String[]
+  duration    Float?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  workflow Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeRuns NodeRun[]
+
+  @@index([workflowId])
+  @@index([userId])
+}
+
+enum NodeRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model NodeRun {
+  id            String        @id @default(uuid())
+  workflowRunId String
+  nodeId        String
+  nodeType      String
+  nodeLabel     String
+  status        NodeRunStatus @default(PENDING)
+  inputs        Json?
+  output        Json?
+  duration      Float?
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId])
+}
