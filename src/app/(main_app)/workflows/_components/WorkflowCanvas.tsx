@@ -11,12 +11,13 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus } from "lucide-react";
+import { Plus, Clock } from "lucide-react";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { GeminiNode } from "./GeminiNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
+import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "../_store/useWorkflowStore";
 import { saveWorkflowAction } from "../actions";
@@ -31,11 +32,12 @@ const nodeTypes = {
 
 interface WorkflowCanvasProps {
   workflowId: string;
+  workflowName: string;
   initialNodes: Node[];
   initialEdges: Edge[];
 }
 
-export function WorkflowCanvas({ workflowId, initialNodes, initialEdges }: WorkflowCanvasProps) {
+export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initialEdges }: WorkflowCanvasProps) {
   const {
     nodes,
     edges,
@@ -50,6 +52,7 @@ export function WorkflowCanvas({ workflowId, initialNodes, initialEdges }: Workf
   } = useWorkflowStore();
 
   const [showPicker, setShowPicker] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
 
   // Initialize store with loaded database state on mount or workflowId change
   React.useEffect(() => {
@@ -264,39 +267,105 @@ export function WorkflowCanvas({ workflowId, initialNodes, initialEdges }: Workf
     [deleteEdge]
   );
 
+  // Export current nodes and edges layout as a JSON file download
+  const handleExportJSON = React.useCallback(() => {
+    const cleanNodes = nodes.map((node) => {
+      const { onChange, onDeleteConnection, results, connectedInputs, ...restData } = node.data as any;
+      return {
+        ...node,
+        data: restData,
+      };
+    });
+
+    const dataStr = JSON.stringify({ nodes: cleanNodes, edges }, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${workflowName.toLowerCase().replace(/\s+/g, "-")}-workflow.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [nodes, edges, workflowName]);
+
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] bg-zinc-50 flex overflow-hidden">
-      <ReactFlow
-        nodes={resolvedNodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onEdgeDoubleClick={onEdgeDoubleClick}
-        isValidConnection={isValidConnection}
-        nodeTypes={nodeTypes}
-        fitView
-      >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1.5} color="rgba(168, 85, 247, 0.12)" />
-        <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100" />
-        <MiniMap className="!bg-white !border-zinc-200 !shadow-md !rounded-xl !bottom-4 !right-4" />
-      </ReactFlow>
+    <div className="relative w-full h-screen bg-zinc-50 flex flex-col text-zinc-900 overflow-hidden">
+      {/* Workflow Header */}
+      <div className="h-16 px-6 border-b border-zinc-200 bg-white flex items-center justify-between z-10 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-zinc-700">Workflow</span>
+          <span className="text-zinc-300">/</span>
+          <span className="text-sm font-semibold text-zinc-800">{workflowName}</span>
+          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40">{workflowId}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportJSON}
+            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer"
+          >
+            Export JSON
+          </button>
+          
+          <button
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className={cn(
+              "px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5",
+              historyOpen 
+                ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100/50" 
+                : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
+            )}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>History</span>
+          </button>
 
-      {/* Floating Center Bottom Trigger button */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
-        <button
-          onClick={() => setShowPicker(!showPicker)}
-          className={cn(
-            "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
-            showPicker && "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45"
-          )}
-          title="Add New Node"
-        >
-          <Plus className="w-5 h-5 transition-transform" />
-        </button>
+          <button className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer">
+            Publish
+          </button>
+        </div>
+      </div>
 
-        {showPicker && (
-          <NodePicker onSelect={(type) => addNode(type)} onClose={() => setShowPicker(false)} />
+      {/* Main Canvas + Sidebar Area */}
+      <div className="flex-1 w-full relative overflow-hidden flex">
+        <div className="flex-1 h-full relative">
+          <ReactFlow
+            nodes={resolvedNodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onEdgeDoubleClick={onEdgeDoubleClick}
+            isValidConnection={isValidConnection}
+            nodeTypes={nodeTypes}
+            fitView
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1.5} color="rgba(168, 85, 247, 0.12)" />
+            <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100" />
+            <MiniMap className="!bg-white !border-zinc-200 !shadow-md !rounded-xl !bottom-4 !right-4" />
+          </ReactFlow>
+
+          {/* Floating Center Bottom Trigger button */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
+            <button
+              onClick={() => setShowPicker(!showPicker)}
+              className={cn(
+                "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
+                showPicker && "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45"
+              )}
+              title="Add New Node"
+            >
+              <Plus className="w-5 h-5 transition-transform" />
+            </button>
+
+            {showPicker && (
+              <NodePicker onSelect={(type) => addNode(type)} onClose={() => setShowPicker(false)} />
+            )}
+          </div>
+        </div>
+
+        {/* History Panel slide-out */}
+        {historyOpen && (
+          <HistoryPanel workflowId={workflowId} onClose={() => setHistoryOpen(false)} />
         )}
       </div>
     </div>
