@@ -15,6 +15,7 @@ export interface GeminiImageField {
 export type GeminiNodeData = {
   model?: string;
   prompt?: string;
+  promptEnabled?: boolean;
   systemPrompt?: string;
   systemPromptEnabled?: boolean;
   images?: GeminiImageField[];
@@ -37,9 +38,9 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
   // Node state initialization
   const model = data.model || "Gemini 3.1 Pro";
   const prompt = data.prompt || "";
+  const promptEnabled = data.promptEnabled ?? true;
   const systemPrompt = data.systemPrompt || "";
-  const systemPromptEnabled = data.systemPromptEnabled ?? true;
-  const images = data.images || [{ id: "image_0", value: "", fileName: "" }];
+  const images = data.images || [];
   const video = data.video || "";
   const videoFileName = data.videoFileName || "";
   const videoEnabled = data.videoEnabled ?? false;
@@ -54,6 +55,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
   const maxTokens = data.maxTokens ?? 2048;
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = React.useState(false);
 
   const connectedInputs = data.connectedInputs || [];
   const isConnected = (handleId: string) => connectedInputs.includes(handleId);
@@ -64,9 +66,9 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const handleAddField = (type: "system" | "image" | "video" | "audio") => {
-    if (type === "system") {
-      updateData({ systemPromptEnabled: true });
+  const handleAddField = (type: "prompt" | "image" | "video" | "audio") => {
+    if (type === "prompt") {
+      updateData({ promptEnabled: true });
     } else if (type === "video") {
       updateData({ videoEnabled: true });
     } else if (type === "audio") {
@@ -80,9 +82,9 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
     setShowAddMenu(false);
   };
 
-  const handleRemoveField = (type: "system" | "video" | "audio" | string) => {
-    if (type === "system") {
-      updateData({ systemPromptEnabled: false, systemPrompt: "" });
+  const handleRemoveField = (type: "prompt" | "video" | "audio" | string) => {
+    if (type === "prompt") {
+      updateData({ promptEnabled: false, prompt: "" });
     } else if (type === "video") {
       updateData({ videoEnabled: false, video: "", videoFileName: "" });
     } else if (type === "audio") {
@@ -101,10 +103,9 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
     updateData({ images: updatedImages });
   };
 
-  const canAddSystem = !systemPromptEnabled;
+  const canAddPrompt = !promptEnabled;
   const canAddVideo = !videoEnabled;
   const canAddAudio = !audioEnabled;
-  const canAddAnything = canAddSystem || canAddVideo || canAddAudio || true; // Image can always be added
 
   const onRunNode = (data as any).onRunNode;
   const running = (data as any).running;
@@ -132,7 +133,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Add Option Trigger */}
-          <div className="relative">
+          <div className="relative" onMouseLeave={() => setShowAddMenu(false)}>
             <button
               onClick={() => setShowAddMenu(!showAddMenu)}
               className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-500"
@@ -142,24 +143,24 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             </button>
             {showAddMenu && (
               <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
-                {canAddSystem && (
+                {canAddPrompt && (
                   <button
-                    onClick={() => handleAddField("system")}
-                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                    onClick={() => handleAddField("prompt")}
+                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
                   >
-                    Add System Prompt
+                    Add Text Prompt
                   </button>
                 )}
                 <button
                   onClick={() => handleAddField("image")}
-                  className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                  className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
                 >
                   Add Image field (Vision)
                 </button>
                 {canAddVideo && (
                   <button
                     onClick={() => handleAddField("video")}
-                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
                   >
                     Add Video field
                   </button>
@@ -167,7 +168,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
                 {canAddAudio && (
                   <button
                     onClick={() => handleAddField("audio")}
-                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                    className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
                   >
                     Add Audio field
                   </button>
@@ -191,68 +192,90 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             <span>{running ? "Running..." : "Run"}</span>
           </button>
 
-          <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
+          {/* Delete Menu Trigger */}
+          <div className="relative" onMouseLeave={() => setShowDeleteMenu(false)}>
+            <button 
+              onClick={() => setShowDeleteMenu(!showDeleteMenu)}
+              className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {showDeleteMenu && (
+              <div className="absolute right-0 mt-1 w-28 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
+                <button
+                  onClick={() => {
+                    if ((data as any).onDeleteNode) {
+                      (data as any).onDeleteNode();
+                    }
+                    setShowDeleteMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Node</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Inputs Section */}
       <div className="p-4 flex flex-col gap-4">
         
-        {/* 1. Prompt (Required) */}
+        {/* 1. System Prompt (Required) */}
         <div className="relative flex flex-col gap-1.5">
           <Handle
             type="target"
             position={Position.Left}
-            id="prompt"
+            id="systemPrompt"
             className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
           />
           <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            Prompt <span className="text-red-500">*</span>
+            System Prompt <span className="text-red-500">*</span>
           </span>
           <textarea
-            value={prompt}
-            onChange={(e) => updateData({ prompt: e.target.value })}
-            disabled={isConnected("prompt")}
-            placeholder={isConnected("prompt") ? "Linked to upstream source..." : "Enter your prompt..."}
+            value={systemPrompt}
+            onChange={(e) => updateData({ systemPrompt: e.target.value })}
+            disabled={isConnected("systemPrompt")}
+            placeholder={isConnected("systemPrompt") ? "Linked to upstream source..." : "System instructions..."}
             className={cn(
               "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-              isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
+              isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
             )}
           />
         </div>
 
-        {/* 2. System Prompt (Optional) */}
-        {systemPromptEnabled && (
+        {/* 2. Text Prompt (Optional) */}
+        {promptEnabled && (
           <div className="relative flex flex-col gap-1.5 group/field">
             <Handle
               type="target"
               position={Position.Left}
-              id="systemPrompt"
+              id="prompt"
               className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
             />
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                System Prompt
+                Text Prompt
               </span>
               <button
-                onClick={() => handleRemoveField("system")}
+                onClick={() => handleRemoveField("prompt")}
                 className="p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer opacity-0 group-hover/field:opacity-100 transition-opacity"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
             <textarea
-              value={systemPrompt}
-              onChange={(e) => updateData({ systemPrompt: e.target.value })}
-              disabled={isConnected("systemPrompt")}
-              placeholder={isConnected("systemPrompt") ? "Linked to upstream source..." : "System instructions..."}
+              value={prompt}
+              onChange={(e) => updateData({ prompt: e.target.value })}
+              disabled={isConnected("prompt")}
+              placeholder={isConnected("prompt") ? "Linked to upstream source..." : "Enter text prompt..."}
               className={cn(
                 "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-12 text-zinc-700 bg-zinc-50/20",
-                isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
+                isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
               )}
             />
           </div>

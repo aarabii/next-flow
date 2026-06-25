@@ -21,6 +21,7 @@ interface WorkflowState {
   onNodeDataChange: (nodeId: string, updatedData: any) => void;
   addNode: (nodeType: "cropImage" | "gemini") => void;
   deleteEdge: (edgeId: string) => void;
+  deleteNode: (nodeId: string) => void;
   resetStore: () => void;
   initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
 }
@@ -119,9 +120,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       data = {
         model: "Gemini 3.1 Pro",
         prompt: "",
+        promptEnabled: true,
         systemPrompt: "",
-        systemPromptEnabled: true,
-        images: [{ id: "image_0", value: "", fileName: "" }],
+        images: [],
         video: "",
         audio: "",
         response: "",
@@ -145,6 +146,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   deleteEdge: (edgeId) => {
     set({
       edges: get().edges.filter((e) => e.id !== edgeId),
+    });
+  },
+  deleteNode: (nodeId) => {
+    if (nodeId === "request_inputs" || nodeId === "response") return;
+    set({
+      nodes: get().nodes.filter((n) => n.id !== nodeId),
+      edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
     });
   },
   resetStore: () => {

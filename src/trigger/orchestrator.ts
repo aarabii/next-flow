@@ -60,12 +60,14 @@ export const workflowOrchestratorTask = task({
         resolved.height = node.data.height !== undefined ? Number(node.data.height) : 100;
         resolved.imageUrl = node.data.inputImage || "";
       } else if (node.type === "gemini") {
-        resolved.prompt = node.data.prompt || "";
+        resolved.prompt = node.data.promptEnabled !== false ? (node.data.prompt || "") : "";
         resolved.systemPrompt = node.data.systemPrompt || "";
         resolved.temperature = node.data.temperature !== undefined ? Number(node.data.temperature) : 0.7;
         resolved.topP = node.data.topP !== undefined ? Number(node.data.topP) : 0.9;
         resolved.maxTokens = node.data.maxTokens !== undefined ? Number(node.data.maxTokens) : 2048;
         resolved.images = [];
+        resolved.video = node.data.video || "";
+        resolved.audio = node.data.audio || "";
       }
 
       // 2. Map connected inputs
@@ -108,14 +110,13 @@ export const workflowOrchestratorTask = task({
           if (targetHandle === "height") resolved.height = Number(sourceVal);
         } else if (node.type === "gemini") {
           if (targetHandle === "prompt") resolved.prompt = sourceVal;
-          if (targetHandle === "system") resolved.systemPrompt = sourceVal;
-          if (targetHandle === "image") {
+          if (targetHandle === "system" || targetHandle === "systemPrompt") resolved.systemPrompt = sourceVal;
+          if (targetHandle === "image" || targetHandle?.startsWith("image_")) {
             // Multimodal Image (Vision) accepts multiple connections
             if (sourceVal) resolved.images.push(sourceVal);
           }
           if (targetHandle === "video") resolved.video = sourceVal;
           if (targetHandle === "audio") resolved.audio = sourceVal;
-          if (targetHandle === "file") resolved.file = sourceVal;
         }
       }
 
@@ -173,6 +174,8 @@ export const workflowOrchestratorTask = task({
           prompt: inputs.prompt,
           systemPrompt: inputs.systemPrompt,
           images: inputs.images,
+          video: inputs.video,
+          audio: inputs.audio,
           temperature: inputs.temperature,
           topP: inputs.topP,
           maxTokens: inputs.maxTokens,

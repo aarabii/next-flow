@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { RotateCcw, Play, MoreHorizontal, Image as ImageIcon } from "lucide-react";
+import { RotateCcw, Play, MoreHorizontal, Image as ImageIcon, Trash2 } from "lucide-react";
 import { UploadButton } from "./UploadButton";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export type CropImageNodeData = {
 
 export function CropImageNode({ id, data: rawData }: NodeProps) {
   const data = rawData as unknown as CropImageNodeData;
+  const [showDeleteMenu, setShowDeleteMenu] = React.useState(false);
   const x = data.x ?? 0;
   const y = data.y ?? 0;
   const width = data.width ?? 100;
@@ -76,9 +77,30 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
             <span>{running ? "Running..." : "Run"}</span>
           </button>
 
-          <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
+          <div className="relative" onMouseLeave={() => setShowDeleteMenu(false)}>
+            <button
+              onClick={() => setShowDeleteMenu(!showDeleteMenu)}
+              className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {showDeleteMenu && (
+              <div className="absolute right-0 mt-1 w-28 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
+                <button
+                  onClick={() => {
+                    if ((data as any).onDeleteNode) {
+                      (data as any).onDeleteNode();
+                    }
+                    setShowDeleteMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Node</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

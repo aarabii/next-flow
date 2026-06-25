@@ -27,7 +27,12 @@ export function NodePicker({ onSelect, onClose }: NodePickerProps) {
   // Close when clicking outside
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(target) &&
+        !target.closest("#add-node-button")
+      ) {
         onClose();
       }
     };

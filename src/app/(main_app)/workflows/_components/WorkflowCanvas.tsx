@@ -47,6 +47,7 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
     onNodeDataChange,
     addNode,
     deleteEdge,
+    deleteNode,
     resetStore,
     initializeWorkflow,
   } = useWorkflowStore();
@@ -248,11 +249,12 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
           onChange: onNodeDataChange,
           onRunNode: () => handleRunWorkflow("SINGLE", [node.id]),
           running: runningNodeIds.includes(node.id),
+          onDeleteNode: () => deleteNode(node.id),
           ...additionalData,
         },
       };
     });
-  }, [nodes, edges, onNodeDataChange, deleteEdge, runningNodeIds, handleRunWorkflow]);
+  }, [nodes, edges, onNodeDataChange, deleteEdge, deleteNode, runningNodeIds, handleRunWorkflow]);
 
   // Validates connections: prevents cycles, self-connections, and mismatched types
   const isValidConnection = React.useCallback((connection: any) => {
@@ -424,6 +426,7 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
           {/* Floating Center Bottom Trigger button */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
             <button
+              id="add-node-button"
               onClick={() => setShowPicker(!showPicker)}
               className={cn(
                 "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
