@@ -17,9 +17,13 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
   const imageInputFileName = data.imageInputFileName || "";
   const response = data.response || "";
 
-  const temperature = data.temperature ?? 0.7;
-  const topP = data.topP ?? 0.95;
-  const maxTokens = data.maxTokens ?? 2048;
+  const model = data.model || GEMINI_MODEL_CONFIG.imageNode.defaultModelId;
+  const temperature = data.temperature ?? GEMINI_MODEL_CONFIG.imageNode.defaultTemperature;
+  const topP = data.topP ?? GEMINI_MODEL_CONFIG.imageNode.defaultTopP;
+  const maxTokens = data.maxTokens ?? GEMINI_MODEL_CONFIG.imageNode.defaultMaxTokens;
+
+  const selectedModelName =
+    GEMINI_MODEL_CONFIG.imageNode.models.find((m) => m.id === model)?.name || model;
 
   const connectedInputs = data.connectedInputs || [];
   const isConnected = (handleId: string) => connectedInputs.includes(handleId);
@@ -92,7 +96,7 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
     <NodeWrapper
       id={id}
       title="Image Node"
-      badge={GEMINI_MODEL_CONFIG.name}
+      badge={selectedModelName}
       running={running}
       isValid={isValid}
       validationError="At least one prompt or input source is required."
@@ -140,6 +144,25 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
         </>
       )}
     >
+      {/* Model Selector */}
+      <div className="relative flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+          Model
+        </span>
+        <select
+          value={model}
+          onChange={(e) => updateData({ model: e.target.value })}
+          className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 text-zinc-700 bg-white nodrag"
+        >
+          {GEMINI_MODEL_CONFIG.imageNode.models.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
         <Handle
