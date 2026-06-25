@@ -4,20 +4,8 @@ import * as React from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Trash2, Download, HelpCircle, FileText, Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface ResponseResultItem {
-  nodeId: string;
-  edgeId: string;
-  sourceHandleId?: string | null;
-  label: string;
-  value?: string;
-  type?: "image" | "video" | "audio" | "text";
-}
-
-export type ResponseNodeData = {
-  results?: ResponseResultItem[];
-  onDeleteConnection?: (edgeId: string) => void;
-};
+import { ResponseNodeData, ResponseResultItem } from "@/types/node.type";
+import { NodeWrapper } from "./NodeWrapper";
 
 export function ResponseNode({ id, data: rawData }: NodeProps) {
   const data = rawData as unknown as ResponseNodeData;
@@ -29,7 +17,6 @@ export function ResponseNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  // Helper to determine output type from value or label
   const detectType = (item: ResponseResultItem): "image" | "video" | "audio" | "text" => {
     if (item.type) return item.type;
     const val = item.value || "";
@@ -66,33 +53,27 @@ export function ResponseNode({ id, data: rawData }: NodeProps) {
     }
   };
 
+  const headerRight = (
+    <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400">
+      <HelpCircle className="w-4 h-4" />
+    </button>
+  );
+
   return (
-    <div className="w-80 bg-white border border-zinc-200 rounded-xl shadow-md overflow-visible font-sans text-zinc-800">
+    <NodeWrapper
+      id={id}
+      title="Response"
+      headerRightExtra={headerRight}
+    >
       {/* Target Handle on the left */}
-      <div className="relative">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="result"
-          className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
-        />
-      </div>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="result"
+        className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+      />
 
-      {/* Node Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
-        <div className="flex items-center gap-1.5">
-          <Download className="w-4 h-4 text-purple-500" />
-          <span className="font-semibold text-xs text-zinc-700 tracking-wide uppercase">Response</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400">
-            <HelpCircle className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Content / Results List */}
-      <div className="p-4 flex flex-col gap-3 min-h-[100px]">
+      <div className="flex flex-col gap-3 min-h-[100px]">
         {results.length === 0 ? (
           <div className="flex flex-col items-center justify-center border border-dashed border-zinc-200 rounded-xl py-8 px-4 text-center bg-zinc-50/20 h-full">
             <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Result Area</span>
@@ -118,7 +99,7 @@ export function ResponseNode({ id, data: rawData }: NodeProps) {
                     </span>
                     <button
                       onClick={() => handleDelete(item.edgeId)}
-                      className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer opacity-0 group-hover/result:opacity-100 transition-opacity"
+                      className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer opacity-0 group/result:opacity-100 transition-opacity"
                       title="Remove output"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -200,6 +181,6 @@ export function ResponseNode({ id, data: rawData }: NodeProps) {
           </div>
         )}
       </div>
-    </div>
+    </NodeWrapper>
   );
 }
