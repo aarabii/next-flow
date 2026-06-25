@@ -5,7 +5,10 @@ import { WorkflowCanvas } from "../_components/WorkflowCanvas";
 import type { Node, Edge } from "@xyflow/react";
 import { CustomNodeData } from "@/types/node.type";
 import { Prisma } from "../../../../../generated/prisma/client";
-import { SYSTEM_WORKFLOWS, SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
+import {
+  SYSTEM_WORKFLOWS,
+  SYSTEM_WORKFLOW_IDS,
+} from "@/config/systemWorkflows";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,9 +21,20 @@ const SAMPLE_NODES: Node<CustomNodeData>[] = [
     position: { x: 50, y: 150 },
     data: {
       fields: [
-        { id: "text_field", type: "text_field", label: "Text Field", value: "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design." },
-        { id: "image_field", type: "image_field", label: "Image Field", value: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800", fileName: "headphones.jpg" }
-      ]
+        {
+          id: "text_field",
+          type: "text_field",
+          label: "Text Field",
+          value: "",
+        },
+        {
+          id: "image_field",
+          type: "image_field",
+          label: "Image Field",
+          value: "",
+          fileName: "",
+        },
+      ],
     },
     deletable: false,
   },
@@ -56,7 +70,8 @@ const SAMPLE_NODES: Node<CustomNodeData>[] = [
     position: { x: 450, y: 650 },
     data: {
       model: "Gemini 3.1 Pro",
-      systemPrompt: "You are a marketing copywriter. Write a one-paragraph product description.",
+      systemPrompt:
+        "You are a marketing copywriter. Write a one-paragraph product description.",
       prompt: "",
       temperature: 0.7,
       topP: 0.95,
@@ -69,7 +84,8 @@ const SAMPLE_NODES: Node<CustomNodeData>[] = [
     position: { x: 900, y: 650 },
     data: {
       model: "Gemini 3.1 Pro",
-      systemPrompt: "Condense the following product description into a tweet-length hook (under 240 characters).",
+      systemPrompt:
+        "Condense the following product description into a tweet-length hook (under 240 characters).",
       prompt: "",
       temperature: 0.7,
       topP: 0.95,
@@ -82,7 +98,8 @@ const SAMPLE_NODES: Node<CustomNodeData>[] = [
     position: { x: 1350, y: 350 },
     data: {
       model: "Gemini 3.1 Pro",
-      systemPrompt: "You are a social media manager. Combine the tweet hook and the two product crops into a final marketing post.",
+      systemPrompt:
+        "You are a social media manager. Combine the tweet hook and the two product crops into a final marketing post.",
       prompt: "",
       images: [],
       temperature: 0.7,
@@ -95,10 +112,10 @@ const SAMPLE_NODES: Node<CustomNodeData>[] = [
     type: "response",
     position: { x: 1800, y: 250 },
     data: {
-      results: []
+      results: [],
     },
     deletable: false,
-  }
+  },
 ];
 
 const SAMPLE_EDGES: Edge[] = [
@@ -182,7 +199,7 @@ const SAMPLE_EDGES: Edge[] = [
     targetHandle: "result",
     animated: true,
     style: { stroke: "#a855f7", strokeWidth: 2 },
-  }
+  },
 ];
 
 export default async function WorkflowCanvasPage({ params }: PageProps) {
@@ -236,4 +253,3 @@ export default async function WorkflowCanvasPage({ params }: PageProps) {
     </div>
   );
 }
-

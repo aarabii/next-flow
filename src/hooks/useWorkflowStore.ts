@@ -31,8 +31,7 @@ const initialNodes: Node[] = [
           id: "text_field",
           type: "text_field",
           label: "Text Field",
-          value:
-            "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design.",
+          value: "",
         },
         { id: "image_field", type: "image_field", label: "Image Field", value: "" },
       ] as RequestInputField[],
