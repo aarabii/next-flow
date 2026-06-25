@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Copy, Trash2, Plus, Check, MoreHorizontal } from "lucide-react";
 import { UploadButton } from "./UploadButton";
 import { cn } from "@/lib/utils";
 import { RequestInputNodeData, RequestInputField } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 
-export function RequestInputNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as RequestInputNodeData;
+export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeData>>) {
   const fields = data.fields || [
     { id: "text_field", type: "text_field", label: "Text Field", value: "" },
     { id: "image_field", type: "image_field", label: "Image Field", value: "" },

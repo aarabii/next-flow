@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
+import type { Node } from "@xyflow/react";
+import { Prisma } from "../../../../../../generated/prisma/client";
 
 const ExecutePayloadSchema = z.object({
   scope: z.enum(["FULL", "PARTIAL", "SINGLE"]),
@@ -56,7 +58,7 @@ export async function POST(
     });
 
     // 3. Parse nodes to execute
-    const nodes = workflow.nodes as any[];
+    const nodes = workflow.nodes as unknown as Node[];
 
     // Define target executable nodes
     let nodesToExecute = nodes.filter(
@@ -86,11 +88,11 @@ export async function POST(
         data: {
           workflowRunId: run.id,
           nodeId: node.id,
-          nodeType: node.type,
+          nodeType: node.type || "",
           nodeLabel: label,
           status: "SUCCESS",
           inputs: {},
-          output: node.data,
+          output: node.data as Prisma.InputJsonValue,
           duration: 0.1,
           startedAt: new Date(),
           completedAt: new Date(),
@@ -110,14 +112,14 @@ export async function POST(
           ? "Video Generation"
           : node.type === "audioNode"
           ? "Audio Generation"
-          : `${node.data.model || "Gemini"} LLM`;
-      
+          : "Gemini LLM";
+      const nodeModel = (node.data as { model?: string }).model || "Gemini";
       await db.nodeRun.create({
         data: {
           workflowRunId: run.id,
           nodeId: node.id,
-          nodeType: node.type,
-          nodeLabel: label,
+          nodeType: node.type || "",
+          nodeLabel: label === "Gemini LLM" ? `${nodeModel} LLM` : label,
           status: "PENDING",
         },
       });
@@ -130,10 +132,11 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, runId: run.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/workflows/[id]/execute error:", error);
+    const message = error instanceof Error ? error.message : "Failed to execute workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to execute workflow" },
+      { error: message },
       { status: 500 }
     );
   }

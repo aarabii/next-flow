@@ -27,7 +27,15 @@ import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
-import { RequestInputField, ResponseResultItem } from "@/types/node.type";
+import { RequestInputField, ResponseResultItem, GeminiImageField } from "@/types/node.type";
+
+interface RunStatusResponse {
+  status: string;
+  nodeRuns: {
+    nodeId: string;
+    status: string;
+  }[];
+}
 
 const nodeTypes = {
   requestInput: RequestInputNode,
@@ -97,8 +105,9 @@ export function WorkflowCanvas({
       }
 
       setIsEditingName(false);
-    } catch (err: any) {
-      alert(`Failed to rename workflow: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Failed to rename workflow: ${message}`);
       setLocalName(workflowName);
       setIsEditingName(false);
     }
@@ -134,8 +143,9 @@ export function WorkflowCanvas({
           setActiveRunId(res.runId);
           setHistoryOpen(true); // Auto-open history panel to show run progress
         }
-      } catch (err: any) {
-        alert(`Failed to trigger execution: ${err.message}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert(`Failed to trigger execution: ${message}`);
       }
     },
     [workflowId, nodes, edges]
@@ -155,22 +165,30 @@ export function WorkflowCanvas({
         }
         const data = await res.json();
 
+        // Real-time canvas outputs update
+        let updatedNodes: Node[] | null = null;
+        let updatedEdges: Edge[] | null = null;
+        const workflowRes = await fetch(`/api/workflows/${workflowId}`);
+        if (workflowRes.ok) {
+          const updated = await workflowRes.json();
+          if (updated && updated.nodes) {
+            updatedNodes = updated.nodes as Node[];
+            updatedEdges = updated.edges as Edge[];
+          }
+        }
+
         if (!active) return;
 
         if (data) {
+          const statusData = data as RunStatusResponse;
           // Find running/pending nodes
-          const running = data.nodeRuns
-            .filter((nr: any) => nr.status === "RUNNING" || nr.status === "PENDING")
-            .map((nr: any) => nr.nodeId);
+          const running = statusData.nodeRuns
+            .filter((nr) => nr.status === "RUNNING" || nr.status === "PENDING")
+            .map((nr) => nr.nodeId);
           setRunningNodeIds(running);
 
-          // Real-time canvas outputs update
-          const workflowRes = await fetch(`/api/workflows/${workflowId}`);
-          if (workflowRes.ok) {
-            const updated = await workflowRes.json();
-            if (updated && updated.nodes && active) {
-              initializeWorkflow(updated.nodes as Node[], updated.edges as Edge[]);
-            }
+          if (updatedNodes && updatedEdges) {
+            initializeWorkflow(updatedNodes, updatedEdges);
           }
 
           if (data.status === "RUNNING" || data.status === "PENDING") {
@@ -276,23 +294,24 @@ export function WorkflowCanvas({
 
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
-    const resolveValue = (nodeId: string, handleId: string): any => {
+    const resolveValue = (nodeId: string, handleId: string): string | null => {
       const edge = edges.find((e: Edge) => e.target === nodeId && e.targetHandle === handleId);
       if (!edge) return null;
 
       const sourceNode = nodes.find((n: Node) => n.id === edge.source);
       if (!sourceNode) return null;
 
-      const sourceData = sourceNode.data as Record<string, any>;
+      const sourceData = sourceNode.data as Record<string, unknown>;
 
       if (sourceNode.type === "requestInput") {
-        const field = sourceData.fields?.find(
+        const fields = sourceData.fields as RequestInputField[] | undefined;
+        const field = fields?.find(
           (f: RequestInputField) => f.id === edge.sourceHandle
         );
-        return field?.value;
+        return field?.value ?? null;
       }
       if (sourceNode.type === "cropImage") {
-        return sourceData.outputImage;
+        return (sourceData.outputImage as string) ?? null;
       }
       if (
         sourceNode.type === "gemini" ||
@@ -301,7 +320,7 @@ export function WorkflowCanvas({
         sourceNode.type === "videoNode" ||
         sourceNode.type === "audioNode"
       ) {
-        return sourceData.response;
+        return (sourceData.response as string) ?? null;
       }
       return null;
     };
@@ -312,7 +331,7 @@ export function WorkflowCanvas({
         .map((edge: Edge) => edge.targetHandle || "")
         .filter(Boolean);
 
-      const resolvedData: Record<string, any> = { ...node.data };
+      const resolvedData: Record<string, unknown> = { ...node.data };
       connectedInputs.forEach((handleId: string) => {
         const val = resolveValue(node.id, handleId);
         if (val !== null && val !== undefined) {
@@ -329,9 +348,12 @@ export function WorkflowCanvas({
           if (handleId === "systemPrompt") resolvedData.systemPrompt = val;
 
           if (handleId.startsWith("image_")) {
-            resolvedData.images = resolvedData.images?.map((img: any) =>
-              img.id === handleId ? { ...img, value: val } : img
-            );
+            const images = resolvedData.images as GeminiImageField[] | undefined;
+            if (images) {
+              resolvedData.images = images.map((img) =>
+                img.id === handleId ? { ...img, value: val } : img
+              );
+            }
           }
           if (handleId === "image_input") resolvedData.imageInput = val;
           if (handleId === "video") resolvedData.video = val;
@@ -340,7 +362,7 @@ export function WorkflowCanvas({
       });
 
       // Special case: Response node results
-      let additionalData: Record<string, any> = {};
+      let additionalData: Record<string, unknown> = {};
       if (node.id === "response") {
         const responseResults = nodeEdges.map((edge: Edge) => {
           const srcNode = nodes.find((n: Node) => n.id === edge.source);
@@ -349,9 +371,10 @@ export function WorkflowCanvas({
           let type: "image" | "video" | "audio" | "text" = "text";
 
           if (srcNode) {
-            const srcData = srcNode.data as Record<string, any>;
+            const srcData = srcNode.data as Record<string, unknown>;
             if (srcNode.type === "requestInput") {
-              const field = srcData.fields?.find(
+              const fields = srcData.fields as RequestInputField[] | undefined;
+              const field = fields?.find(
                 (f: RequestInputField) => f.id === edge.sourceHandle
               );
               label = field?.label || "Input Field";
@@ -359,27 +382,27 @@ export function WorkflowCanvas({
               type = field?.type === "image_field" ? "image" : "text";
             } else if (srcNode.type === "cropImage") {
               label = "Crop Image Output";
-              val = srcData.outputImage || "";
+              val = (srcData.outputImage as string) || "";
               type = "image";
             } else if (srcNode.type === "textNode") {
               label = "Text Output";
-              val = srcData.response || "";
+              val = (srcData.response as string) || "";
               type = "text";
             } else if (srcNode.type === "imageNode") {
               label = "Image Output";
-              val = srcData.response || "";
+              val = (srcData.response as string) || "";
               type = "image";
             } else if (srcNode.type === "videoNode") {
               label = "Video Output";
-              val = srcData.response || "";
+              val = (srcData.response as string) || "";
               type = "video";
             } else if (srcNode.type === "audioNode") {
               label = "Audio Output";
-              val = srcData.response || "";
+              val = (srcData.response as string) || "";
               type = "audio";
             } else if (srcNode.type === "gemini") {
-              label = `${srcData.model || "Gemini"} Response`;
-              val = srcData.response || "";
+              label = `${(srcData.model as string) || "Gemini"} Response`;
+              val = (srcData.response as string) || "";
               type = "text";
             }
           }
@@ -489,6 +512,7 @@ export function WorkflowCanvas({
         if (type === "textNode") {
           if (isSource) return "text";
           if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+          if (handleId === "image_input") return "image";
         }
         if (type === "imageNode") {
           if (isSource) return "image";
@@ -548,7 +572,7 @@ export function WorkflowCanvas({
         results,
         connectedInputs,
         ...restData
-      } = node.data as any;
+      } = node.data as Record<string, unknown>;
       return {
         ...node,
         data: restData,

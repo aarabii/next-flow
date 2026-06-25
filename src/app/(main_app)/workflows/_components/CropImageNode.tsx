@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CropImageNodeData } from "@/types/node.type";
 import { UploadButton } from "./UploadButton";
 import { NodeWrapper } from "./NodeWrapper";
 
-export function CropImageNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as CropImageNodeData;
+export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) {
   const x = data.x ?? 0;
   const y = data.y ?? 0;
   const width = data.width ?? 100;
@@ -24,14 +23,18 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const handleSliderChange = (field: "x" | "y" | "width" | "height", value: number) => {
+  const handleSliderChange = (
+    field: "x" | "y" | "width" | "height",
+    value: number,
+  ) => {
     updateData({ [field]: value });
   };
 
   const isConnected = (handleId: string) => connectedInputs.includes(handleId);
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running ?? false;
+  const onDeleteNode = data.onDeleteNode;
 
   // Validation: input image must be present (or connected)
   const isValid = inputImage !== "" || isConnected("inputImage");
@@ -51,7 +54,7 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
       validationError="Input Image is required."
       headerRightExtra={headerRight}
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={onDeleteNode}
     >
       {/* Input Image */}
       <div className="relative flex flex-col gap-1.5 group/field">
@@ -59,7 +62,7 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
           type="target"
           position={Position.Left}
           id="inputImage"
-          className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+          className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:!scale-125! transition-transform! -ml-1.5!"
         />
 
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
@@ -70,7 +73,7 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
         <div
           className={cn(
             "w-full transition-opacity duration-200",
-            isConnected("inputImage") && "opacity-60 pointer-events-none"
+            isConnected("inputImage") && "opacity-60 pointer-events-none",
           )}
         >
           {isConnected("inputImage") ? (
@@ -80,14 +83,14 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
           ) : inputImage ? (
             <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
               <div className="flex items-center gap-2 overflow-hidden">
-                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
                   <img
                     src={inputImage}
                     alt="input preview"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
+                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
                   Attached Image
                 </span>
               </div>
@@ -111,20 +114,25 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
 
       {/* Sliders */}
       <div className="flex flex-col gap-3">
-        {([
-          { id: "x", label: "X Position (%)", val: x, defaultVal: 0 },
-          { id: "y", label: "Y Position (%)", val: y, defaultVal: 0 },
-          { id: "width", label: "Width (%)", val: width, defaultVal: 100 },
-          { id: "height", label: "Height (%)", val: height, defaultVal: 100 },
-        ] as const).map((slider) => {
+        {(
+          [
+            { id: "x", label: "X Position (%)", val: x, defaultVal: 0 },
+            { id: "y", label: "Y Position (%)", val: y, defaultVal: 0 },
+            { id: "width", label: "Width (%)", val: width, defaultVal: 100 },
+            { id: "height", label: "Height (%)", val: height, defaultVal: 100 },
+          ] as const
+        ).map((slider) => {
           const connected = isConnected(slider.id);
           return (
-            <div key={slider.id} className="relative flex flex-col gap-1 group/field">
+            <div
+              key={slider.id}
+              className="relative flex flex-col gap-1 group/field"
+            >
               <Handle
                 type="target"
                 position={Position.Left}
                 id={slider.id}
-                className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+                className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
               />
 
               <div className="flex items-center justify-between text-xs font-medium text-zinc-500">
@@ -137,13 +145,20 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
                 </span>
               </div>
 
-              <div className={cn("w-full mt-1.5", connected && "opacity-50 pointer-events-none")}>
+              <div
+                className={cn(
+                  "w-full mt-1.5",
+                  connected && "opacity-50 pointer-events-none",
+                )}
+              >
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={slider.val}
-                  onChange={(e) => handleSliderChange(slider.id, parseInt(e.target.value))}
+                  onChange={(e) =>
+                    handleSliderChange(slider.id, parseInt(e.target.value))
+                  }
                   disabled={connected}
                   className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
                 />
@@ -163,7 +178,7 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
           Output
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-50/50 min-h-[80px]">
+        <div className="border border-zinc-100 rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-50/50 min-h-20">
           {outputImage ? (
             <div className="relative w-full h-20 rounded overflow-hidden border border-zinc-200">
               <img
@@ -182,7 +197,7 @@ export function CropImageNode({ id, data: rawData }: NodeProps) {
           type="source"
           position={Position.Right}
           id="outputImage"
-          className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
+          className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5"
         />
       </div>
     </NodeWrapper>

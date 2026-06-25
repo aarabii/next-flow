@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Plus, Trash2 } from "lucide-react";
 import { UploadButton } from "./UploadButton";
 import { cn } from "@/lib/utils";
-import { GeminiNodeData, GeminiImageField } from "@/types/node.type";
+import { GeminiNodeData } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
-export function GeminiNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as GeminiNodeData;
+export function GeminiNode({ id, data }: NodeProps<Node<GeminiNodeData>>) {
   const model = data.model || "Gemini 3 Flash Preview";
   const prompt = data.prompt || "";
   const promptEnabled = data.promptEnabled ?? true;
@@ -28,7 +27,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
   const temperature = data.temperature ?? 1.0;
   const topP = data.topP ?? 0.95;
   const maxTokens = data.maxTokens ?? 2048;
-  
+
   const [showAddMenu, setShowAddMenu] = React.useState(false);
 
   const connectedInputs = data.connectedInputs || [];
@@ -69,9 +68,13 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const handleImageChange = (imgId: string, value: string, fileName?: string) => {
+  const handleImageChange = (
+    imgId: string,
+    value: string,
+    fileName?: string,
+  ) => {
     const updatedImages = images.map((img) =>
-      img.id === imgId ? { ...img, value, fileName } : img
+      img.id === imgId ? { ...img, value, fileName } : img,
     );
     updateData({ images: updatedImages });
   };
@@ -80,22 +83,25 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
   const canAddVideo = !videoEnabled;
   const canAddAudio = !audioEnabled;
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running;
 
   // Validation: prompt is required if enabled
-  const isValid = !promptEnabled || prompt.trim() !== "" || isConnected("prompt");
+  const isValid =
+    !promptEnabled || prompt.trim() !== "" || isConnected("prompt");
 
   // Custom Model Dropdown for the Left side of header
   const headerLeftExtra = (
     <select
       value={model}
       onChange={(e) => updateData({ model: e.target.value })}
-      className="font-semibold text-xs text-zinc-700 tracking-wide bg-transparent border-none outline-none cursor-pointer uppercase py-0.5 pr-4 truncate max-w-[170px]"
+      className="font-semibold text-xs text-zinc-700 tracking-wide bg-transparent border-none outline-none cursor-pointer uppercase py-0.5 pr-4 truncate max-w-42"
     >
       <option value="Gemini 3 Flash Preview">Gemini 3 Flash Preview</option>
       <option value="Gemini 3 Pro Preview">Gemini 3 Pro Preview</option>
-      <option value="Gemini 3 Pro Image Preview">Gemini 3 Pro Image Preview</option>
+      <option value="Gemini 3 Pro Image Preview">
+        Gemini 3 Pro Image Preview
+      </option>
     </select>
   );
 
@@ -156,7 +162,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
       isValid={isValid}
       validationError="Prompt is enabled but empty."
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={data.onDeleteNode}
     >
       {/* 1. System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
@@ -164,7 +170,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
           type="target"
           position={Position.Left}
           id="systemPrompt"
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -181,7 +187,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
           }
           className={cn(
             "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
+            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic",
           )}
         />
       </div>
@@ -193,7 +199,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             type="target"
             position={Position.Left}
             id="prompt"
-            className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+            className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
@@ -218,7 +224,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             }
             className={cn(
               "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-20 text-zinc-700 bg-zinc-50/20",
-              isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
+              isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic",
             )}
           />
         </div>
@@ -226,12 +232,15 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
 
       {/* 3. Images List (Vision) */}
       {images.map((img) => (
-        <div key={img.id} className="relative flex flex-col gap-1.5 group/field">
+        <div
+          key={img.id}
+          className="relative flex flex-col gap-1.5 group/field"
+        >
           <Handle
             type="target"
             position={Position.Left}
             id={img.id}
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
@@ -248,7 +257,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
           <div
             className={cn(
               "w-full",
-              isConnected(img.id) && "opacity-60 pointer-events-none"
+              isConnected(img.id) && "opacity-60 pointer-events-none",
             )}
           >
             {isConnected(img.id) ? (
@@ -258,14 +267,14 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             ) : img.value ? (
               <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
                     <img
                       src={img.value}
                       alt="preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
+                  <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
                     {img.fileName || "Vision Image"}
                   </span>
                 </div>
@@ -295,7 +304,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             type="target"
             position={Position.Left}
             id="video"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
@@ -309,14 +318,19 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className={cn("w-full", isConnected("video") && "opacity-60 pointer-events-none")}>
+          <div
+            className={cn(
+              "w-full",
+              isConnected("video") && "opacity-60 pointer-events-none",
+            )}
+          >
             {isConnected("video") ? (
               <div className="border border-zinc-100 rounded-lg p-2.5 bg-zinc-50 text-xs text-zinc-400 italic">
                 Linked to upstream video
               </div>
             ) : video ? (
               <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
-                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[200px]">
+                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
                   {videoFileName || "Video File"}
                 </span>
                 <button
@@ -345,7 +359,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
             type="target"
             position={Position.Left}
             id="audio"
-            className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+            className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5"
           />
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
@@ -359,14 +373,19 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className={cn("w-full", isConnected("audio") && "opacity-60 pointer-events-none")}>
+          <div
+            className={cn(
+              "w-full",
+              isConnected("audio") && "opacity-60 pointer-events-none",
+            )}
+          >
             {isConnected("audio") ? (
               <div className="border border-zinc-100 rounded-lg p-2.5 bg-zinc-50 text-xs text-zinc-400 italic">
                 Linked to upstream audio
               </div>
             ) : audio ? (
               <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
-                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[200px]">
+                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-50">
                   {audioFileName || "Audio File"}
                 </span>
                 <button
@@ -403,7 +422,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
           Response
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[60px] text-xs text-zinc-600">
+        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-15 text-xs text-zinc-600">
           {response ? (
             <p className="whitespace-pre-wrap">{response}</p>
           ) : (
@@ -415,7 +434,7 @@ export function GeminiNode({ id, data: rawData }: NodeProps) {
           type="source"
           position={Position.Right}
           id="response"
-          className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
+          className="w-3! h-3! bg-blue-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5"
         />
       </div>
     </NodeWrapper>

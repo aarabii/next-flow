@@ -57,8 +57,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ url: fileUrl });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Transloadit upload error:", error);
-    return NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

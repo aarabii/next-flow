@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Trash2, Download, HelpCircle, FileText, Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponseNodeData, ResponseResultItem } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 
-export function ResponseNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as ResponseNodeData;
+export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
   const results = data.results || [];
 
   const handleDelete = (edgeId: string) => {

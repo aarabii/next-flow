@@ -52,10 +52,11 @@ export async function GET() {
     });
 
     return NextResponse.json(workflows);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/workflows error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch workflows";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch workflows" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -97,10 +98,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(workflow);
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/workflows error:", error);
+    const message = error instanceof Error ? error.message : "Failed to create workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to create workflow" },
+      { error: message },
       { status: 500 }
     );
   }

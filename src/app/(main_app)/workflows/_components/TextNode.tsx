@@ -1,19 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 import { TextNodeData } from "@/types/node.type";
+import { UploadButton } from "./UploadButton";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
-export function TextNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as TextNodeData;
+export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
   const prompt = data.prompt || "";
   const systemPrompt =
     data.systemPrompt ??
     "You are a helpful text generator assistant. Provide concise and accurate text responses.";
+  const imageInput = data.imageInput || "";
+  const imageInputFileName = data.imageInputFileName || "";
   const response = data.response || "";
 
   const temperature = data.temperature ?? 0.7;
@@ -29,11 +31,15 @@ export function TextNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running;
 
-  // Prompt is mandatory unless connected to an upstream source.
-  const isValid = prompt.trim() !== "" || isConnected("prompt");
+  // Prompt or Image Input must be present (or connected to upstream sources).
+  const isValid =
+    prompt.trim() !== "" ||
+    imageInput !== "" ||
+    isConnected("prompt") ||
+    isConnected("image_input");
 
   return (
     <NodeWrapper
@@ -42,9 +48,9 @@ export function TextNode({ id, data: rawData }: NodeProps) {
       badge={GEMINI_MODEL_CONFIG.name}
       running={running}
       isValid={isValid}
-      validationError="Prompt is required."
+      validationError="Either Prompt or Input Image is required."
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={data.onDeleteNode}
     >
       {/* System Prompt (Required, default provided) */}
       <div className="relative flex flex-col gap-1.5">
@@ -84,7 +90,7 @@ export function TextNode({ id, data: rawData }: NodeProps) {
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-          Prompt <span className="text-red-500">*</span>
+          Prompt
         </span>
         <textarea
           value={prompt}
@@ -98,6 +104,60 @@ export function TextNode({ id, data: rawData }: NodeProps) {
             isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
           )}
         />
+      </div>
+
+      {/* Input Image (Optional) */}
+      <div className="relative flex flex-col gap-1.5 group/field">
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="image_input"
+          className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+        />
+        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          Input Image (Multimodal)
+        </span>
+        <div
+          className={cn(
+            "w-full",
+            isConnected("image_input") && "opacity-60 pointer-events-none"
+          )}
+        >
+          {isConnected("image_input") ? (
+            <div className="border border-zinc-100 rounded-lg p-2.5 bg-zinc-50 text-xs text-zinc-400 italic">
+              Linked to upstream image
+            </div>
+          ) : imageInput ? (
+            <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <img
+                    src={imageInput}
+                    alt="preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
+                  {imageInputFileName || "Uploaded Image"}
+                </span>
+              </div>
+              <button
+                onClick={() => updateData({ imageInput: "", imageInputFileName: "" })}
+                className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            <UploadButton
+              variant="image"
+              onChange={(url, name) => {
+                updateData({ imageInput: url, imageInputFileName: name });
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Collapsible Settings */}

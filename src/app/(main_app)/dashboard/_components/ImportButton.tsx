@@ -13,7 +13,9 @@ export function ImportButton() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -36,8 +38,11 @@ export function ImportButton() {
 
           // Strip file extension to get default workflow name
           const baseName =
-            file.name.substring(0, file.name.lastIndexOf(".")) || "Imported Workflow";
-          const workflowName = baseName.replace(/-workflow$/, "").replace(/[-_]+/g, " ");
+            file.name.substring(0, file.name.lastIndexOf(".")) ||
+            "Imported Workflow";
+          const workflowName = baseName
+            .replace(/-workflow$/, "")
+            .replace(/[-_]+/g, " ");
           const capitalizedName =
             workflowName.charAt(0).toUpperCase() + workflowName.slice(1);
 
@@ -61,8 +66,10 @@ export function ImportButton() {
 
           const workflow = await response.json();
           router.push(`/workflows/${workflow.id}`);
-        } catch (err: any) {
-          alert(`Failed to import workflow: ${err.message}`);
+        } catch (err) {
+          alert(
+            `Failed to import workflow: ${err instanceof Error ? err.message : "Unknown error"}`,
+          );
           setIsImporting(false);
         }
       };
@@ -71,8 +78,10 @@ export function ImportButton() {
         setIsImporting(false);
       };
       reader.readAsText(file);
-    } catch (err: any) {
-      alert(`Import error: ${err.message}`);
+    } catch (err) {
+      alert(
+        `Import error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
       setIsImporting(false);
     }
   };

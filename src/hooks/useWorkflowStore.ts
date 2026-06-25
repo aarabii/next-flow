@@ -98,7 +98,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     });
   },
 
-  onNodeDataChange: (nodeId: string, updatedData: Record<string, any>) => {
+  onNodeDataChange: (nodeId: string, updatedData: Record<string, unknown>) => {
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
@@ -118,7 +118,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   addNode: (nodeType) => {
     const nodes = get().nodes;
     const id = `${nodeType}_${Date.now()}`;
-    let data: Record<string, any> = {};
+    let data: Record<string, unknown> = {};
 
     if (nodeType === "cropImage") {
       data = {
@@ -148,6 +148,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         prompt: "",
         systemPrompt:
           "You are a helpful text generator assistant. Provide concise and accurate text responses.",
+        imageInput: "",
+        imageInputFileName: "",
         response: "",
         temperature: 0.7,
         topP: 0.95,
@@ -233,8 +235,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       const localNode = currentNodes.find((n) => n.id === incomingNode.id);
       if (!localNode) return incomingNode;
       
-      const incomingData = incomingNode.data as Record<string, any>;
-      const localData = localNode.data as Record<string, any>;
+      const incomingData = incomingNode.data as Record<string, unknown>;
+      const localData = localNode.data as Record<string, unknown>;
 
       return {
         ...localNode,

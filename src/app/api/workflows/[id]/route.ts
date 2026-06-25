@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
+import { Prisma } from "../../../../../generated/prisma/client";
 
 const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name cannot be empty").optional(),
   description: z.string().nullable().optional(),
   backgroundImage: z.string().nullable().optional(),
-  nodes: z.array(z.any()).optional(),
-  edges: z.array(z.any()).optional(),
+  nodes: z.array(z.unknown()).optional(),
+  edges: z.array(z.unknown()).optional(),
 });
 
 export async function GET(
@@ -35,10 +36,11 @@ export async function GET(
     }
 
     return NextResponse.json(workflow);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/workflows/[id] error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch workflow" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -82,16 +84,17 @@ export async function PUT(
         ...(result.data.name !== undefined && { name: result.data.name }),
         ...(result.data.description !== undefined && { description: result.data.description }),
         ...(result.data.backgroundImage !== undefined && { backgroundImage: result.data.backgroundImage }),
-        ...(result.data.nodes !== undefined && { nodes: result.data.nodes }),
-        ...(result.data.edges !== undefined && { edges: result.data.edges }),
+        ...(result.data.nodes !== undefined && { nodes: result.data.nodes as unknown as Prisma.InputJsonValue }),
+        ...(result.data.edges !== undefined && { edges: result.data.edges as unknown as Prisma.InputJsonValue }),
       },
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/workflows/[id] error:", error);
+    const message = error instanceof Error ? error.message : "Failed to update workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to update workflow" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -124,10 +127,11 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/workflows/[id] error:", error);
+    const message = error instanceof Error ? error.message : "Failed to delete workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to delete workflow" },
+      { error: message },
       { status: 500 }
     );
   }

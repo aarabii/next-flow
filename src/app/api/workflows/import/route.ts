@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
+import { Prisma } from "../../../../../generated/prisma/client";
 
 const ImportWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  nodes: z.array(z.any()).nonempty("Nodes list is required"),
-  edges: z.array(z.any()).optional().default([]),
+  nodes: z.array(z.unknown()).nonempty("Nodes list is required"),
+  edges: z.array(z.unknown()).optional().default([]),
 });
 
 export async function POST(req: Request) {
@@ -32,16 +33,17 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         name,
-        nodes,
-        edges,
+        nodes: nodes as unknown as Prisma.InputJsonValue,
+        edges: edges as unknown as Prisma.InputJsonValue,
       },
     });
 
     return NextResponse.json(workflow);
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/workflows/import error:", error);
+    const message = error instanceof Error ? error.message : "Failed to import workflow";
     return NextResponse.json(
-      { error: error.message || "Failed to import workflow" },
+      { error: message },
       { status: 500 }
     );
   }

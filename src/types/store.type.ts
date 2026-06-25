@@ -8,7 +8,7 @@ export interface WorkflowState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  onNodeDataChange: (nodeId: string, updatedData: Record<string, any>) => void;
+  onNodeDataChange: (nodeId: string, updatedData: Record<string, unknown>) => void;
   addNode: (
     nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode"
   ) => void;
@@ -16,9 +16,9 @@ export interface WorkflowState {
   deleteNode: (nodeId: string) => void;
   resetStore: () => void;
   initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
-  lastRunOutputs: Record<string, any>;
+  lastRunOutputs: Record<string, unknown>;
   lastRunPrompts: Record<string, string>;
-  setLastRunOutputs: (outputs: Record<string, any>) => void;
+  setLastRunOutputs: (outputs: Record<string, unknown>) => void;
   setLastRunPrompts: (prompts: Record<string, string>) => void;
 }
 

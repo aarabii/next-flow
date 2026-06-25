@@ -1,3 +1,5 @@
+import type { Node } from "@xyflow/react";
+
 export interface RequestInputField {
   id: string;
   type: "text_field" | "image_field";
@@ -5,21 +7,25 @@ export interface RequestInputField {
   value: string;
   fileName?: string;
 }
-
-export interface RequestInputNodeData {
+export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
+  connectedInputs?: string[];
+  onChange?: (id: string, updatedData: Partial<T>) => void;
+  onRunNode?: () => void;
+  running?: boolean;
+  onDeleteNode?: () => void;
+  [key: string]: unknown;
+}
+export interface RequestInputNodeData extends BaseWorkflowNodeData<RequestInputNodeData> {
   fields?: RequestInputField[];
-  onChange?: (id: string, updatedData: Partial<RequestInputNodeData>) => void;
 }
 
-export interface CropImageNodeData {
+export interface CropImageNodeData extends BaseWorkflowNodeData<CropImageNodeData> {
   inputImage?: string;
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   outputImage?: string;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<CropImageNodeData>) => void;
 }
 
 export interface GeminiImageField {
@@ -28,7 +34,7 @@ export interface GeminiImageField {
   fileName?: string;
 }
 
-export interface GeminiNodeData {
+export interface GeminiNodeData extends BaseWorkflowNodeData<GeminiNodeData> {
   model?: string;
   prompt?: string;
   promptEnabled?: boolean;
@@ -45,22 +51,9 @@ export interface GeminiNodeData {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<GeminiNodeData>) => void;
 }
 
-export interface TextNodeData {
-  prompt?: string;
-  systemPrompt?: string;
-  response?: string;
-  temperature?: number;
-  topP?: number;
-  maxTokens?: number;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<TextNodeData>) => void;
-}
-
-export interface ImageNodeData {
+export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -69,11 +62,9 @@ export interface ImageNodeData {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<ImageNodeData>) => void;
 }
 
-export interface VideoNodeData {
+export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -82,19 +73,26 @@ export interface VideoNodeData {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<VideoNodeData>) => void;
 }
 
-export interface AudioNodeData {
+export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
+  prompt?: string;
+  systemPrompt?: string;
+  imageInput?: string;
+  imageInputFileName?: string;
+  response?: string;
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+}
+
+export interface AudioNodeData extends BaseWorkflowNodeData<AudioNodeData> {
   prompt?: string;
   systemPrompt?: string;
   response?: string;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  connectedInputs?: string[];
-  onChange?: (id: string, updatedData: Partial<AudioNodeData>) => void;
 }
 
 export interface ResponseResultItem {
@@ -106,7 +104,7 @@ export interface ResponseResultItem {
   type?: "image" | "video" | "audio" | "text";
 }
 
-export interface ResponseNodeData {
+export interface ResponseNodeData extends BaseWorkflowNodeData<ResponseNodeData> {
   results?: ResponseResultItem[];
   onDeleteConnection?: (edgeId: string) => void;
 }
@@ -120,3 +118,22 @@ export type CustomNodeData =
   | VideoNodeData
   | AudioNodeData
   | ResponseNodeData;
+
+export type RequestInputNode = Node<RequestInputNodeData, "requestInput">;
+export type CropImageNode = Node<CropImageNodeData, "cropImage">;
+export type GeminiNode = Node<GeminiNodeData, "gemini">;
+export type TextNode = Node<TextNodeData, "textNode">;
+export type ImageNode = Node<ImageNodeData, "imageNode">;
+export type VideoNode = Node<VideoNodeData, "videoNode">;
+export type AudioNode = Node<AudioNodeData, "audioNode">;
+export type ResponseNode = Node<ResponseNodeData, "response">;
+
+export type AppNode =
+  | RequestInputNode
+  | CropImageNode
+  | GeminiNode
+  | TextNode
+  | ImageNode
+  | VideoNode
+  | AudioNode
+  | ResponseNode;

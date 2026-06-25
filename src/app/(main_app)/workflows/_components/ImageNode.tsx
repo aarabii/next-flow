@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 import { ImageNodeData } from "@/types/node.type";
@@ -9,8 +9,7 @@ import { UploadButton } from "./UploadButton";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
-export function ImageNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as ImageNodeData;
+export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
   const prompt = data.prompt || "";
   const systemPrompt =
     data.systemPrompt ?? "Describe a detailed visual scene based on the input.";
@@ -31,8 +30,8 @@ export function ImageNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running;
 
   // Validation: at least one of prompt or imageInput must be present (or connected)
   const isValid =
@@ -50,7 +49,7 @@ export function ImageNode({ id, data: rawData }: NodeProps) {
       isValid={isValid}
       validationError="Either Text Prompt or Input Image is required."
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={data.onDeleteNode}
     >
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">

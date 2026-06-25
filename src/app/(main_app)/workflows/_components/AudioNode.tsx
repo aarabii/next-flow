@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Music as MusicIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
@@ -9,8 +9,7 @@ import { AudioNodeData } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
-export function AudioNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as AudioNodeData;
+export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
   const prompt = data.prompt || "";
   const systemPrompt =
     data.systemPrompt ??
@@ -30,8 +29,8 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running;
 
   // Validation: prompt must be present (or connected)
   const isValid = prompt.trim() !== "" || isConnected("prompt");
@@ -45,7 +44,7 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
       isValid={isValid}
       validationError="Prompt is required."
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={data.onDeleteNode}
     >
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
@@ -53,7 +52,7 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           type="target"
           position={Position.Left}
           id="systemPrompt"
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5!"
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -70,7 +69,7 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           }
           className={cn(
             "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
+            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic",
           )}
         />
       </div>
@@ -81,7 +80,7 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           type="target"
           position={Position.Left}
           id="prompt"
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5!"
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -92,11 +91,13 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           onChange={(e) => updateData({ prompt: e.target.value })}
           disabled={isConnected("prompt")}
           placeholder={
-            isConnected("prompt") ? "Linked to upstream source..." : "Enter text prompt..."
+            isConnected("prompt")
+              ? "Linked to upstream source..."
+              : "Enter text prompt..."
           }
           className={cn(
             "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-20 text-zinc-700 bg-zinc-50/20",
-            isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
+            isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic",
           )}
         />
       </div>
@@ -116,10 +117,10 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           Output Audio
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[80px] flex items-center justify-center text-xs text-zinc-600">
+        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-20 flex items-center justify-center text-xs text-zinc-600">
           {response ? (
             <div className="border border-zinc-200 rounded-lg p-2.5 bg-white flex items-center gap-2 w-full">
-              <MusicIcon className="w-5 h-5 text-rose-500 flex-shrink-0" />
+              <MusicIcon className="w-5 h-5 text-rose-500 shrink-0" />
               <span className="font-semibold text-[11px] text-zinc-700 truncate flex-1 font-mono">
                 {response.split("/").pop() || "Audio output"}
               </span>
@@ -133,7 +134,7 @@ export function AudioNode({ id, data: rawData }: NodeProps) {
           type="source"
           position={Position.Right}
           id="response"
-          className="!w-3 !h-3 !bg-rose-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
+          className="w-3! h-3! bg-rose-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5"
         />
       </div>
     </NodeWrapper>

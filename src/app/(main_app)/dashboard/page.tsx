@@ -1,11 +1,9 @@
-import { Plus } from "lucide-react";
 import { SystemFlowCard } from "./_components/SystemFlowCard";
 import { UserWorkflowsContainer } from "./_components/UserWorkflowsContainer";
 import { ImportButton } from "./_components/ImportButton";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { NewWorkflowButton } from "./_components/NewWorkflowButton";
-
 
 const timeAgo = (date: Date) => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -54,7 +52,7 @@ export default async function DashboardPage() {
         <div className="min-w-0">
           <div className="flex min-w-0 items-start gap-space-03">
             <div className="min-w-0">
-              <div className="font-body text-heading-lg-google font-semibold text-text-primary">
+              <div className="font-body text-heading-lg-google font-semibold text-text-primary --font-mono">
                 Flow
               </div>
               <div className="text-small text-text-secondary">

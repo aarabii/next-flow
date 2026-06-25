@@ -37,10 +37,11 @@ export async function GET(
     };
 
     return NextResponse.json(runStatus);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/runs/[id]/status error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch run status";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch run status" },
+      { error: message },
       { status: 500 }
     );
   }

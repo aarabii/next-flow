@@ -55,10 +55,11 @@ export async function GET(
     });
 
     return NextResponse.json(formattedRuns);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/workflows/[id]/runs error:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch runs history";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch runs history" },
+      { error: message },
       { status: 500 }
     );
   }

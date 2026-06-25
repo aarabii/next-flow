@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Video as VideoIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
@@ -10,8 +10,7 @@ import { UploadButton } from "./UploadButton";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
-export function VideoNode({ id, data: rawData }: NodeProps) {
-  const data = rawData as unknown as VideoNodeData;
+export function VideoNode({ id, data }: NodeProps<Node<VideoNodeData>>) {
   const prompt = data.prompt || "";
   const systemPrompt =
     data.systemPrompt ??
@@ -33,8 +32,8 @@ export function VideoNode({ id, data: rawData }: NodeProps) {
     }
   };
 
-  const onRunNode = (data as any).onRunNode;
-  const running = (data as any).running;
+  const onRunNode = data.onRunNode;
+  const running = data.running;
 
   // Validation: at least one of prompt or imageInput must be present (or connected)
   const isValid =
@@ -52,7 +51,7 @@ export function VideoNode({ id, data: rawData }: NodeProps) {
       isValid={isValid}
       validationError="Either Text Prompt or Input Image is required."
       onRunNode={onRunNode}
-      onDeleteNode={(data as any).onDeleteNode}
+      onDeleteNode={data.onDeleteNode}
     >
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
