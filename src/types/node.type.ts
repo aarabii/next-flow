@@ -54,6 +54,7 @@ export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
   topP?: number;
   maxTokens?: number;
   fields?: RequestInputField[];
+  aspectRatio?: string;
 }
 
 export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
