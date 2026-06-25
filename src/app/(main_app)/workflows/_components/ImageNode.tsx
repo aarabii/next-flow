@@ -4,8 +4,8 @@ import * as React from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
-import { ImageNodeData } from "@/types/node.type";
-import { UploadButton } from "./UploadButton";
+import { ImageNodeData, RequestInputField } from "@/types/node.type";
+import { DynamicFieldsList } from "./DynamicFieldsList";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
@@ -33,12 +33,60 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
   const onRunNode = data.onRunNode;
   const running = data.running;
 
-  // Validation: at least one of prompt or imageInput must be present (or connected)
-  const isValid =
-    prompt.trim() !== "" ||
-    imageInput !== "" ||
-    isConnected("prompt") ||
-    isConnected("image_input");
+  // Backward-compatible fields setup
+  const fields = React.useMemo<RequestInputField[]>(() => {
+    if (data.fields) return data.fields;
+    const initial: RequestInputField[] = [
+      { id: "prompt", type: "text_field", label: "Prompt", value: prompt },
+    ];
+    if (imageInput) {
+      initial.push({
+        id: "image_input",
+        type: "image_field",
+        label: "Input Image",
+        value: imageInput,
+        fileName: imageInputFileName,
+      });
+    }
+    return initial;
+  }, [data.fields, prompt, imageInput, imageInputFileName]);
+
+  const handleValueChange = (fieldId: string, value: string, fileName?: string) => {
+    const updated = fields.map((f) =>
+      f.id === fieldId ? { ...f, value, fileName } : f
+    );
+    updateData({ fields: updated });
+  };
+
+  const handleAddField = (type: "text_field" | "image_field" | "video_field" | "audio_field") => {
+    const timestamp = Date.now();
+    const newId = `${type}_${timestamp}`;
+    
+    let label = "Text Field";
+    if (type === "image_field") label = "Image Field";
+    if (type === "video_field") label = "Video Field";
+    if (type === "audio_field") label = "Audio Field";
+
+    const typeCount = fields.filter((f) => f.type === type).length;
+    const finalLabel = typeCount > 0 ? `${label} ${typeCount + 1}` : label;
+
+    const newField = {
+      id: newId,
+      type,
+      label: finalLabel,
+      value: "",
+    };
+
+    updateData({ fields: [...fields, newField] });
+  };
+
+  const handleDeleteField = (fieldId: string) => {
+    const updated = fields.filter((f) => f.id !== fieldId);
+    updateData({ fields: updated });
+  };
+
+  // Validation: at least one field must have a value or be connected
+  const isValid = fields.some((f) => f.value.trim() !== "" || isConnected(f.id));
 
   return (
     <NodeWrapper
@@ -47,9 +95,50 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
       badge={GEMINI_MODEL_CONFIG.name}
       running={running}
       isValid={isValid}
-      validationError="Either Text Prompt or Input Image is required."
+      validationError="At least one prompt or input source is required."
       onRunNode={onRunNode}
       onDeleteNode={data.onDeleteNode}
+      menuItems={(closeMenu) => (
+        <>
+          <button
+            onClick={() => {
+              handleAddField("text_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Text Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("image_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Image Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("video_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Video Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("audio_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Audio Field
+          </button>
+          <div className="border-b border-zinc-100 my-1"></div>
+        </>
+      )}
     >
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
@@ -79,85 +168,13 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
         />
       </div>
 
-      {/* Text Prompt (Optional) */}
-      <div className="relative flex flex-col gap-1.5 group/field">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="prompt"
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
-        />
-        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-          Text Prompt
-        </span>
-        <textarea
-          value={prompt}
-          onChange={(e) => updateData({ prompt: e.target.value })}
-          disabled={isConnected("prompt")}
-          placeholder={
-            isConnected("prompt") ? "Linked to upstream source..." : "Enter text prompt..."
-          }
-          className={cn(
-            "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-            isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic"
-          )}
-        />
-      </div>
-
-      {/* Input Image (Optional) */}
-      <div className="relative flex flex-col gap-1.5 group/field">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="image_input"
-          className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
-        />
-        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-          Input Image
-        </span>
-        <div
-          className={cn(
-            "w-full",
-            isConnected("image_input") && "opacity-60 pointer-events-none"
-          )}
-        >
-          {isConnected("image_input") ? (
-            <div className="border border-zinc-100 rounded-lg p-2.5 bg-zinc-50 text-xs text-zinc-400 italic">
-              Linked to upstream image
-            </div>
-          ) : imageInput ? (
-            <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  <img
-                    src={imageInput}
-                    alt="preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
-                  {imageInputFileName || "Uploaded Image"}
-                </span>
-              </div>
-              <button
-                onClick={() => updateData({ imageInput: "", imageInputFileName: "" })}
-                className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer"
-              >
-                Clear
-              </button>
-            </div>
-          ) : (
-            <UploadButton
-              variant="image"
-              onChange={(url, name) => {
-                updateData({ imageInput: url, imageInputFileName: name });
-              }}
-            />
-          )}
-        </div>
-      </div>
+      {/* Dynamic Fields */}
+      <DynamicFieldsList
+        fields={fields}
+        isConnected={isConnected}
+        onValueChange={handleValueChange}
+        onDeleteField={handleDeleteField}
+      />
 
       {/* Collapsible Settings */}
       <NodeSettings
