@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { Upload } from "lucide-react";
-import { importWorkflowAction } from "../actions";
+import { useRouter } from "next/navigation";
 
 export function ImportButton() {
+  const router = useRouter();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = React.useState(false);
 
@@ -12,7 +13,9 @@ export function ImportButton() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -34,18 +37,39 @@ export function ImportButton() {
           }
 
           // Strip file extension to get default workflow name
-          const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || "Imported Workflow";
-          const workflowName = baseName.replace(/-workflow$/, "").replace(/[-_]+/g, " ");
-          const capitalizedName = workflowName.charAt(0).toUpperCase() + workflowName.slice(1);
+          const baseName =
+            file.name.substring(0, file.name.lastIndexOf(".")) ||
+            "Imported Workflow";
+          const workflowName = baseName
+            .replace(/-workflow$/, "")
+            .replace(/[-_]+/g, " ");
+          const capitalizedName =
+            workflowName.charAt(0).toUpperCase() + workflowName.slice(1);
 
-          // Invoke Server Action to save and redirect
-          await importWorkflowAction(
-            capitalizedName,
-            parsed.nodes,
-            parsed.edges || []
+          // Call the REST API endpoint instead of a Server Action
+          const response = await fetch("/api/workflows/import", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: capitalizedName,
+              nodes: parsed.nodes,
+              edges: parsed.edges || [],
+            }),
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Failed to import workflow");
+          }
+
+          const workflow = await response.json();
+          router.push(`/workflows/${workflow.id}`);
+        } catch (err) {
+          alert(
+            `Failed to import workflow: ${err instanceof Error ? err.message : "Unknown error"}`,
           );
-        } catch (err: any) {
-          alert(`Failed to import workflow: ${err.message}`);
           setIsImporting(false);
         }
       };
@@ -54,8 +78,10 @@ export function ImportButton() {
         setIsImporting(false);
       };
       reader.readAsText(file);
-    } catch (err: any) {
-      alert(`Import error: ${err.message}`);
+    } catch (err) {
+      alert(
+        `Import error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
       setIsImporting(false);
     }
   };

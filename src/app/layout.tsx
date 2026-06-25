@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+import { Inter, Google_Sans_Flex, JetBrains_Mono } from "next/font/google";
+
+const inter = Inter({
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const googleSansFlex = Google_Sans_Flex({
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-google-sans-flex",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
 });
 
 export const metadata: Metadata = {
@@ -24,10 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html
+      lang="en"
+      className={`${inter.variable} ${googleSansFlex.variable} ${jetBrainsMono.variable}`}
+    >
+      <body className="antialiased">
         <ClerkProvider>{children}</ClerkProvider>
       </body>
     </html>

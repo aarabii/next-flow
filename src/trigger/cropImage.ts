@@ -85,15 +85,16 @@ export const cropImageTask = task({
       });
 
       return { url: outputImageUrl };
-    } catch (error: any) {
+    } catch (error) {
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+      const message = error instanceof Error ? error.message : "An unknown error occurred during crop";
 
       await db.nodeRun.update({
         where: { id: nodeRunId },
         data: {
           status: "FAILED",
-          error: error.message || "An unknown error occurred during crop",
+          error: message,
           completedAt: endTime,
           duration,
         },

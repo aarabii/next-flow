@@ -37,7 +37,7 @@ async function fetchFileAsInlineData(url: string) {
   };
 }
 
-async function generateAndUploadImage(ai: any, promptText: string): Promise<string> {
+async function generateAndUploadImage(ai: GoogleGenAI, promptText: string): Promise<string> {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image",
     contents: promptText || "A beautiful abstract digital artwork",
@@ -139,7 +139,7 @@ export const geminiTask = task({
       const actualModel = model || "gemini-2.5-flash-lite";
 
       // Build contents array
-      const contents: any[] = [];
+      const contents: (string | { inlineData: { data: string; mimeType: string } })[] = [];
       if (prompt && prompt.trim()) {
         contents.push(prompt);
       }
@@ -182,7 +182,12 @@ export const geminiTask = task({
       }
 
       // Build config
-      const config: any = {};
+      const config: {
+        systemInstruction?: string;
+        temperature?: number;
+        topP?: number;
+        maxOutputTokens?: number;
+      } = {};
       if (systemPrompt && systemPrompt.trim()) {
         config.systemInstruction = systemPrompt;
       }
@@ -243,17 +248,16 @@ export const geminiTask = task({
       });
 
       return { response: outputResponse };
-    } catch (error: any) {
+    } catch (error) {
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+      const message = error instanceof Error ? error.message : "An unknown error occurred during Gemini generation";
 
       await db.nodeRun.update({
         where: { id: nodeRunId },
         data: {
           status: "FAILED",
-          error:
-            error.message ||
-            "An unknown error occurred during Gemini generation",
+          error: message,
           completedAt: endTime,
           duration,
         },

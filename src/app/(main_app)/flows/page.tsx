@@ -1,9 +1,8 @@
-import { SystemFlowCard } from "./_components/SystemFlowCard";
-import { UserWorkflowsContainer } from "./_components/UserWorkflowsContainer";
-import { ImportButton } from "./_components/ImportButton";
+import { NewWorkflowButton } from "../dashboard/_components/NewWorkflowButton";
+import { ImportButton } from "../dashboard/_components/ImportButton";
+import { UserWorkflowsContainer } from "../dashboard/_components/UserWorkflowsContainer";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
-import { NewWorkflowButton } from "./_components/NewWorkflowButton";
 
 const timeAgo = (date: Date) => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -28,7 +27,7 @@ const GRADIENTS = [
   "from-blue-500/10 via-sky-500/10 to-indigo-500/5",
 ];
 
-export default async function DashboardPage() {
+export default async function FlowsPage() {
   const user = await checkAndSyncUser();
 
   const dbWorkflows = await db.workflow.findMany({
@@ -52,11 +51,11 @@ export default async function DashboardPage() {
         <div className="min-w-0">
           <div className="flex min-w-0 items-start gap-space-03">
             <div className="min-w-0">
-              <div className="font-body text-heading-lg-google font-semibold text-text-primary --font-mono">
-                Flow
+              <div className="font-body text-heading-lg-google font-semibold text-text-primary">
+                Workflows
               </div>
               <div className="text-small text-text-secondary">
-                Build workflows or run models directly
+                Manage your created workflows
               </div>
             </div>
           </div>
@@ -64,23 +63,6 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-end gap-space-03">
           <ImportButton />
           <NewWorkflowButton />
-        </div>
-      </div>
-
-      {/* System Workflows Section */}
-      <div className="mt-space-09">
-        <div className="flex items-start justify-between gap-space-03 sm:items-center">
-          <div>
-            <div className="text-body text-text-primary font-medium">
-              System Workflows
-            </div>
-            <div className="text-small text-text-secondary">
-              Prebuilt workflow templates - click to open and start using.
-            </div>
-          </div>
-        </div>
-        <div className="mt-space-06">
-          <SystemFlowCard />
         </div>
       </div>
 

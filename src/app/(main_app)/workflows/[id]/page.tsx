@@ -3,12 +3,14 @@ import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { WorkflowCanvas } from "../_components/WorkflowCanvas";
 import type { Node, Edge } from "@xyflow/react";
+import { CustomNodeData } from "@/types/node.type";
+import { Prisma } from "../../../../../generated/prisma/client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const SAMPLE_NODES: Node[] = [
+const SAMPLE_NODES: Node<CustomNodeData>[] = [
   {
     id: "request_inputs",
     type: "requestInput",
@@ -32,7 +34,7 @@ const SAMPLE_NODES: Node[] = [
       height: 60,
       inputImage: "",
       outputImage: "",
-    } as any,
+    },
   },
   {
     id: "crop_image_2",
@@ -45,7 +47,7 @@ const SAMPLE_NODES: Node[] = [
       height: 50,
       inputImage: "",
       outputImage: "",
-    } as any,
+    },
   },
   {
     id: "gemini_1",
@@ -58,7 +60,7 @@ const SAMPLE_NODES: Node[] = [
       temperature: 0.7,
       topP: 0.95,
       maxTokens: 2048,
-    } as any,
+    },
   },
   {
     id: "gemini_2",
@@ -71,7 +73,7 @@ const SAMPLE_NODES: Node[] = [
       temperature: 0.7,
       topP: 0.95,
       maxTokens: 2048,
-    } as any,
+    },
   },
   {
     id: "gemini_3",
@@ -85,7 +87,7 @@ const SAMPLE_NODES: Node[] = [
       temperature: 0.7,
       topP: 0.95,
       maxTokens: 2048,
-    } as any,
+    },
   },
   {
     id: "response",
@@ -204,8 +206,8 @@ export default async function WorkflowCanvasPage({ params }: PageProps) {
           id: targetId,
           userId: user.id,
           name,
-          nodes: SAMPLE_NODES as any,
-          edges: SAMPLE_EDGES as any,
+          nodes: SAMPLE_NODES as unknown as Prisma.InputJsonValue,
+          edges: SAMPLE_EDGES as unknown as Prisma.InputJsonValue,
         },
       });
     } else {

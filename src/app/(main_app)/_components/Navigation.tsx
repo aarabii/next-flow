@@ -34,7 +34,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type NavigationItem = {
   title: string;
@@ -72,8 +72,36 @@ const navigationData: NavigationItem[] = [
 export const Navigation = () => {
   const { user } = useUser();
   const pathname = usePathname();
+  const router = useRouter();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const [isPending, setIsPending] = React.useState(false);
+
+  const handleCreate = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      const response = await fetch("/api/workflows", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create workflow");
+      }
+
+      const data = await response.json();
+      router.push(`/workflows/${data.id}`);
+    } catch (error) {
+      console.error("Error creating workflow:", error);
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -117,6 +145,25 @@ export const Navigation = () => {
             {navigationData.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.url;
+
+              if (item.title === "Create Flow") {
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      onClick={handleCreate}
+                      disabled={isPending}
+                      tooltip={item.title}
+                      className="group-data-[collapsible=icon]:justify-center cursor-pointer disabled:opacity-50"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden font-medium">
+                        {isPending ? "Creating..." : item.title}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              }
+
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton

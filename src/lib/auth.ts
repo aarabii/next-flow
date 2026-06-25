@@ -42,3 +42,36 @@ export async function checkAndSyncUser() {
 
   return dbUser;
 }
+
+export async function getAuthenticatedUser() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  let dbUser = await db.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!dbUser) {
+    const clerkUser = await currentUser();
+    if (!clerkUser) return null;
+
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!email) return null;
+
+    const fullName = [clerkUser.firstName, clerkUser.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    dbUser = await db.user.create({
+      data: {
+        clerkId: userId,
+        email: email,
+        name: fullName || null,
+        imageUrl: clerkUser.imageUrl || null,
+      },
+    });
+  }
+
+  return dbUser;
+}
+

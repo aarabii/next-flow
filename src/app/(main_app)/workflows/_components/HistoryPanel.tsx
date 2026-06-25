@@ -1,9 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { X, CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layers, HelpCircle, Loader2, Copy, Download } from "lucide-react";
+import {
+  X,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Loader2,
+  Copy,
+  Download,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getWorkflowRunsAction } from "../actions";
 
 export interface NodeRunItem {
   id: string;
@@ -12,8 +23,8 @@ export interface NodeRunItem {
   nodeType: string;
   status: "SUCCESS" | "FAILED" | "RUNNING" | "SKIPPED";
   duration: number;
-  inputs?: any;
-  output?: any;
+  inputs?: unknown;
+  output?: unknown;
   error?: string;
   startedAtIso?: string | null;
 }
@@ -36,126 +47,11 @@ interface HistoryPanelProps {
   onClose: () => void;
 }
 
-// Mock seed data matching the expected format from TEMP/po.md
-const MOCK_RUNS: WorkflowRunItem[] = [
-  {
-    id: "run-123",
-    runNumber: 123,
-    status: "SUCCESS",
-    scope: "FULL",
-    duration: 77.1,
-    createdAt: "Apr 25, 2026 3:45 PM",
-    nodeRuns: [
-      {
-        id: "nr-1",
-        nodeLabel: "Request-Inputs",
-        nodeType: "requestInput",
-        status: "SUCCESS",
-        duration: 0.1,
-        inputs: {},
-        output: { text_field: "Product: Wireless Bluetooth Headphones...", image_field: "uploaded_photo.jpg" }
-      },
-      {
-        id: "nr-2",
-        nodeLabel: "Crop Image #1",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 31.8,
-        output: "https://cdn.transloadit.com/cropped_headphones_1.jpg"
-      },
-      {
-        id: "nr-3",
-        nodeLabel: "Crop Image #2",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 32.1,
-        output: "https://cdn.transloadit.com/cropped_headphones_2.jpg"
-      },
-      {
-        id: "nr-4",
-        nodeLabel: "Gemini #1",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 4.2,
-        inputs: { Prompt: "Write a product description..." },
-        output: "Introducing our premium wireless bluetooth headphones..."
-      },
-      {
-        id: "nr-5",
-        nodeLabel: "Gemini #2",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 3.9,
-        inputs: { Prompt: "Condense this description..." },
-        output: "Silence the world. 30 hrs battery. Premium sound."
-      },
-      {
-        id: "nr-6",
-        nodeLabel: "Final Gemini",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 4.5,
-        inputs: { Prompt: "Combine hook and crops..." },
-        output: "Hear what matters. Silence the world. 30 hrs sound... [Image: Cropped 1] [Image: Cropped 2]"
-      },
-      {
-        id: "nr-7",
-        nodeLabel: "Response",
-        nodeType: "response",
-        status: "SUCCESS",
-        duration: 0.1,
-        output: "Final result captured."
-      }
-    ]
-  },
-  {
-    id: "run-122",
-    runNumber: 122,
-    status: "FAILED",
-    scope: "PARTIAL",
-    duration: 35.8,
-    createdAt: "Apr 25, 2026 2:10 PM",
-    nodeRuns: [
-      {
-        id: "nr-8",
-        nodeLabel: "Request-Inputs",
-        nodeType: "requestInput",
-        status: "SUCCESS",
-        duration: 0.1,
-        output: { text_field: "Product: Wireless Bluetooth Headphones..." }
-      },
-      {
-        id: "nr-9",
-        nodeLabel: "Crop Image #1",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 31.2,
-        output: "https://cdn.transloadit.com/cropped_headphones_1.jpg"
-      },
-      {
-        id: "nr-10",
-        nodeLabel: "Gemini #1",
-        nodeType: "gemini",
-        status: "FAILED",
-        duration: 4.5,
-        error: "Google AI API quota limit reached. Please try again."
-      },
-      {
-        id: "nr-11",
-        nodeLabel: "Gemini #2",
-        nodeType: "gemini",
-        status: "SKIPPED",
-        duration: 0
-      }
-    ]
-  }
-];
-
 export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   const [runs, setRuns] = React.useState<WorkflowRunItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [expandedRunId, setExpandedRunId] = React.useState<string | null>(null);
-  const [timeOffset, setTimeOffset] = React.useState<number>(Date.now());
+  const [timeOffset, setTimeOffset] = React.useState<number>(() => Date.now());
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -176,7 +72,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   };
 
   React.useEffect(() => {
-    const hasRunning = runs.some(r => r.status === "RUNNING");
+    const hasRunning = runs.some((r) => r.status === "RUNNING");
     if (!hasRunning) return;
 
     const intervalId = setInterval(() => {
@@ -192,13 +88,19 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
 
     const fetchRuns = async () => {
       try {
-        const data = await getWorkflowRunsAction(workflowId);
+        const res = await fetch(`/api/workflows/${workflowId}/runs`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch runs");
+        }
+        const data = await res.json();
+
         if (active) {
-          setRuns(data as any);
+          const runItems = data as WorkflowRunItem[];
+          setRuns(runItems);
           setLoading(false);
 
           // Poll every 1.5s if a run is running, otherwise every 3.5s
-          const hasRunning = data.some(r => r.status === "RUNNING");
+          const hasRunning = runItems.some((r) => r.status === "RUNNING");
           if (hasRunning) {
             timerId = setTimeout(fetchRuns, 1500);
           } else {
@@ -263,14 +165,20 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   const getNodeStatusIcon = (status: NodeRunItem["status"]) => {
     switch (status) {
       case "SUCCESS":
-        return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />;
+        return (
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+        );
       case "FAILED":
         return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />;
       case "RUNNING":
-        return <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin flex-shrink-0" />;
+        return (
+          <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin flex-shrink-0" />
+        );
       case "SKIPPED":
       default:
-        return <AlertCircle className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />;
+        return (
+          <AlertCircle className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
+        );
     }
   };
 
@@ -280,7 +188,9 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-zinc-50/50">
         <div className="flex items-center gap-1.5">
           <Clock className="w-4 h-4 text-purple-600" />
-          <span className="font-semibold text-xs tracking-wide uppercase text-zinc-700">Runs History</span>
+          <span className="font-semibold text-xs tracking-wide uppercase text-zinc-700">
+            Runs History
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -295,13 +205,19 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
         {loading && runs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Loader2 className="w-6 h-6 text-purple-600 animate-spin mb-2" />
-            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Loading history...</span>
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              Loading history...
+            </span>
           </div>
         ) : runs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Layers className="w-10 h-10 text-zinc-200 mb-2" />
-            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">No Runs Yet</span>
-            <p className="text-xs text-zinc-400 max-w-[180px] mt-0.5">Run the workflow to see execution logs here</p>
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              No Runs Yet
+            </span>
+            <p className="text-xs text-zinc-400 max-w-[180px] mt-0.5">
+              Run the workflow to see execution logs here
+            </p>
           </div>
         ) : (
           runs.map((run) => {
@@ -311,7 +227,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                 key={run.id}
                 className={cn(
                   "border border-zinc-200/80 rounded-xl transition-all duration-200 overflow-hidden bg-white shadow-2xs hover:border-zinc-300",
-                  isExpanded && "border-purple-300/80 ring-2 ring-purple-100"
+                  isExpanded && "border-purple-300/80 ring-2 ring-purple-100",
                 )}
               >
                 {/* Run Card Header (clickable to expand) */}
@@ -321,7 +237,10 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-xs font-bold text-zinc-700 block truncate max-w-[170px]" title={run.id}>
+                      <span
+                        className="text-xs font-bold text-zinc-700 block truncate max-w-[170px]"
+                        title={run.id}
+                      >
                         ID: {run.id.slice(0, 8)}...
                       </span>
                       <span className="text-[9px] font-semibold text-zinc-400 font-mono">
@@ -334,17 +253,25 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                     </div>
                     {getStatusBadge(run.status)}
                   </div>
-                  
+
                   <div className="flex items-center justify-between w-full text-[10px] text-zinc-400 font-medium">
                     <span>{run.createdAt}</span>
                     <span className="flex items-center gap-2">
-                      <span className="uppercase bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-500 font-semibold">{run.scope}</span>
+                      <span className="uppercase bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-500 font-semibold">
+                        {run.scope}
+                      </span>
                       <span className="font-semibold text-zinc-500 font-mono">
-                        {run.status === "RUNNING" && run.createdAtIso
-                          ? `${Math.max(0, (timeOffset - new Date(run.createdAtIso).getTime()) / 1000).toFixed(1)}s`
+                        {run.status === "RUNNING"
+                          ? run.startedAtIso
+                            ? `${Math.max(0, (timeOffset - new Date(run.startedAtIso).getTime()) / 1000).toFixed(1)}s`
+                            : "⏳"
                           : `${run.duration.toFixed(1)}s`}
                       </span>
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-zinc-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />}
+                      {isExpanded ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                      )}
                     </span>
                   </div>
                 </button>
@@ -352,84 +279,110 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                 {/* Expanded Node Runs Detail */}
                 {isExpanded && (
                   <div className="border-t border-zinc-100 bg-zinc-50/20 p-3.5 flex flex-col gap-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Node Executions</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      Node Executions
+                    </span>
                     <div className="flex flex-col gap-2.5">
                       {run.nodeRuns.map((node) => (
-                        <div key={node.id} className="flex items-start gap-2.5 text-xs">
+                        <div
+                          key={node.id}
+                          className="flex items-start gap-2.5 text-xs"
+                        >
                           {getNodeStatusIcon(node.status)}
                           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                            <div className={cn(
-                              "flex items-center justify-between w-full font-medium text-zinc-700",
-                              node.status === "RUNNING" && "text-purple-600 font-semibold"
-                            )}>
-                              <span className="truncate font-mono text-[10px] text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-150" title={node.nodeLabel}>
+                            <div
+                              className={cn(
+                                "flex items-center justify-between w-full font-medium text-zinc-700",
+                                node.status === "RUNNING" &&
+                                  "text-purple-600 font-semibold",
+                              )}
+                            >
+                              <span
+                                className="truncate font-mono text-[10px] text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-150"
+                                title={node.nodeLabel}
+                              >
                                 {node.nodeId || node.id}
                               </span>
                               <span className="text-[10px] font-mono text-zinc-400 flex-shrink-0">
-                                {node.status === "SKIPPED" 
-                                  ? "-" 
-                                  : node.status === "RUNNING" 
-                                    ? (node.startedAtIso 
-                                      ? `${Math.max(0, (timeOffset - new Date(node.startedAtIso).getTime()) / 1000).toFixed(1)}s` 
-                                      : "Running...") 
+                                {node.status === "SKIPPED"
+                                  ? "-"
+                                  : node.status === "RUNNING"
+                                    ? node.startedAtIso
+                                      ? `${Math.max(0, (timeOffset - new Date(node.startedAtIso).getTime()) / 1000).toFixed(1)}s`
+                                      : "Running..."
                                     : `${node.duration}s`}
                               </span>
                             </div>
-                            
-                            {/* Inputs / Output Preview if successful */}
-                            {node.status === "SUCCESS" && node.output && (() => {
-                              const value = typeof node.output === "object"
-                                ? (node.output.response || node.output.url || JSON.stringify(node.output))
-                                : node.output;
-                              const isMedia = typeof value === "string" && (
-                                value.startsWith("http://") || 
-                                value.startsWith("https://") || 
-                                value.startsWith("data:") || 
-                                value.startsWith("blob:")
-                              ) && (
-                                /\.(jpg|jpeg|png|webp|gif|mp4|webm|mov|mp3|wav|ogg)$/i.test(value) || 
-                                value.includes("transloadit") || 
-                                value.includes("picsum") ||
-                                node.nodeType === "imageNode" ||
-                                node.nodeType === "cropImage" ||
-                                node.nodeType === "videoNode" ||
-                                node.nodeType === "audioNode"
-                              );
 
-                              return (
-                                <div className="flex flex-col gap-1.5 mt-1 bg-white border border-zinc-200/60 rounded-lg p-2 shadow-3xs">
-                                  <div className="text-[10px] text-zinc-500 font-mono max-h-16 overflow-y-auto break-all whitespace-pre-wrap select-all">
-                                    {value}
+                            {/* Inputs / Output Preview if successful */}
+                            {node.status === "SUCCESS" &&
+                              !!node.output &&
+                              (() => {
+                                const outputObj = node.output as
+                                  | Record<string, unknown>
+                                  | null
+                                  | undefined;
+                                const value =
+                                  outputObj && typeof outputObj === "object"
+                                    ? (outputObj.response as string) ||
+                                      (outputObj.url as string) ||
+                                      JSON.stringify(outputObj)
+                                    : String(node.output);
+                                const isMedia =
+                                  typeof value === "string" &&
+                                  (value.startsWith("http://") ||
+                                    value.startsWith("https://") ||
+                                    value.startsWith("data:") ||
+                                    value.startsWith("blob:")) &&
+                                  (/\.(jpg|jpeg|png|webp|gif|mp4|webm|mov|mp3|wav|ogg)$/i.test(
+                                    value,
+                                  ) ||
+                                    value.includes("transloadit") ||
+                                    value.includes("picsum") ||
+                                    node.nodeType === "imageNode" ||
+                                    node.nodeType === "cropImage" ||
+                                    node.nodeType === "videoNode" ||
+                                    node.nodeType === "audioNode");
+
+                                return (
+                                  <div className="flex flex-col gap-1.5 mt-1 bg-white border border-zinc-200/60 rounded-lg p-2 shadow-3xs">
+                                    <div className="text-[10px] text-zinc-500 font-mono max-h-16 overflow-y-auto break-all whitespace-pre-wrap select-all">
+                                      {value}
+                                    </div>
+                                    <div className="flex justify-end gap-1.5 border-t border-zinc-100 pt-1.5">
+                                      {isMedia ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(
+                                              value,
+                                              `download-${node.nodeId || node.id}`,
+                                            );
+                                          }}
+                                          className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-semibold text-zinc-600 hover:bg-zinc-100 flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <Download className="w-2.5 h-2.5" />
+                                          <span>Download</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(
+                                              value,
+                                            );
+                                            alert("Copied to clipboard!");
+                                          }}
+                                          className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-semibold text-zinc-600 hover:bg-zinc-100 flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <Copy className="w-2.5 h-2.5" />
+                                          <span>Copy</span>
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex justify-end gap-1.5 border-t border-zinc-100 pt-1.5">
-                                    {isMedia ? (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDownload(value, `download-${node.nodeId || node.id}`);
-                                        }}
-                                        className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-semibold text-zinc-600 hover:bg-zinc-100 flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <Download className="w-2.5 h-2.5" />
-                                        <span>Download</span>
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigator.clipboard.writeText(value);
-                                          alert("Copied to clipboard!");
-                                        }}
-                                        className="px-1.5 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-semibold text-zinc-600 hover:bg-zinc-100 flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <Copy className="w-2.5 h-2.5" />
-                                        <span>Copy</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })()}
+                                );
+                              })()}
 
                             {/* Error display if failed */}
                             {node.status === "FAILED" && node.error && (
