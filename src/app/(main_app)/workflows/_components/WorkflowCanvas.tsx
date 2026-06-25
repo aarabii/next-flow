@@ -19,7 +19,6 @@ import "@xyflow/react/dist/style.css";
 import { Plus, Clock, Play, LayoutGrid } from "lucide-react";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
-import { GeminiNode } from "./GeminiNode";
 import { TextNode } from "./TextNode";
 import { ImageNode } from "./ImageNode";
 import { VideoNode } from "./VideoNode";
@@ -29,7 +28,7 @@ import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
-import { RequestInputField, ResponseResultItem, GeminiImageField } from "@/types/node.type";
+import { RequestInputField, ResponseResultItem } from "@/types/node.type";
 
 interface RunStatusResponse {
   status: string;
@@ -42,7 +41,6 @@ interface RunStatusResponse {
 const nodeTypes = {
   requestInput: RequestInputNode,
   cropImage: CropImageNode,
-  gemini: GeminiNode,
   textNode: TextNode,
   imageNode: ImageNode,
   videoNode: VideoNode,
@@ -442,13 +440,12 @@ export function WorkflowCanvas({
           if (handleId === "prompt") resolvedData.prompt = val;
           if (handleId === "systemPrompt") resolvedData.systemPrompt = val;
 
-          if (handleId.startsWith("image_")) {
-            const images = resolvedData.images as GeminiImageField[] | undefined;
-            if (images) {
-              resolvedData.images = images.map((img) =>
-                img.id === handleId ? { ...img, value: val } : img
-              );
-            }
+          // Update dynamic fields if handleId matches a field ID
+          const fields = resolvedData.fields as RequestInputField[] | undefined;
+          if (fields) {
+            resolvedData.fields = fields.map((f) =>
+              f.id === handleId ? { ...f, value: val } : f
+            );
           }
           if (handleId === "image_input") resolvedData.imageInput = val;
           if (handleId === "video") resolvedData.video = val;
