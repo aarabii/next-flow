@@ -18,6 +18,7 @@ export interface GeminiPayload {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  aspectRatio?: string;
 }
 
 async function fetchFileAsInlineData(url: string) {
@@ -37,12 +38,13 @@ async function fetchFileAsInlineData(url: string) {
   };
 }
 
-async function generateAndUploadImage(ai: GoogleGenAI, promptText: string): Promise<string> {
+async function generateAndUploadImage(ai: GoogleGenAI, promptText: string, aspectRatio?: string): Promise<string> {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image",
     contents: promptText || "A beautiful abstract digital artwork",
     config: {
       responseModalities: ["IMAGE"],
+      imageConfig: aspectRatio ? { aspectRatio } : undefined,
     },
   });
 
@@ -118,6 +120,7 @@ export const geminiTask = task({
       temperature,
       topP,
       maxTokens,
+      aspectRatio,
     } = payload;
     const startTime = new Date();
 
@@ -204,7 +207,7 @@ export const geminiTask = task({
       let outputResponse = "";
 
       if (nodeType === "imageNode") {
-        outputResponse = await generateAndUploadImage(ai, prompt || "A beautiful abstract digital artwork");
+        outputResponse = await generateAndUploadImage(ai, prompt || "A beautiful abstract digital artwork", aspectRatio);
       } else {
         // Call Gemini API
         const response = await ai.models.generateContent({
