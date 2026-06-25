@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
+import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 
 // Inline Zod schemas for this endpoint's requests
 const CreateWorkflowSchema = z.object({
@@ -47,7 +48,14 @@ export async function GET() {
     }
 
     const workflows = await db.workflow.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        NOT: {
+          id: {
+            in: SYSTEM_WORKFLOW_IDS.map((sysId) => `${user.id}-${sysId}`),
+          },
+        },
+      },
       orderBy: { updatedAt: "desc" },
     });
 

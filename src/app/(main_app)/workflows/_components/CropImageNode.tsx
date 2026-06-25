@@ -39,7 +39,7 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
   // Validation: input image must be present (or connected)
   const isValid = inputImage !== "" || isConnected("inputImage");
 
-  const headerRight = (
+  const headerRight = !data.isSystem && (
     <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600">
       <RotateCcw className="w-3.5 h-3.5" />
     </button>
@@ -94,12 +94,18 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
                   Attached Image
                 </span>
               </div>
-              <button
-                onClick={() => updateData({ inputImage: "" })}
-                className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
-              >
-                Clear
-              </button>
+              {!data.isSystem && (
+                <button
+                  onClick={() => updateData({ inputImage: "" })}
+                  className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          ) : data.isSystem ? (
+            <div className="border border-dashed border-zinc-200 rounded-lg p-3 text-center bg-zinc-50/50 text-xs text-zinc-400">
+              Image source locked for system flow
             </div>
           ) : (
             <UploadButton
@@ -159,8 +165,11 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
                   onChange={(e) =>
                     handleSliderChange(slider.id, parseInt(e.target.value))
                   }
-                  disabled={connected}
-                  className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
+                  disabled={connected || !!data.isSystem}
+                  className={cn(
+                    "w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag",
+                    !!data.isSystem && "opacity-50 cursor-not-allowed"
+                  )}
                 />
               </div>
             </div>

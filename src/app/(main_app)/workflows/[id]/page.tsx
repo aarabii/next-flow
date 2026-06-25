@@ -5,6 +5,7 @@ import { WorkflowCanvas } from "../_components/WorkflowCanvas";
 import type { Node, Edge } from "@xyflow/react";
 import { CustomNodeData } from "@/types/node.type";
 import { Prisma } from "../../../../../generated/prisma/client";
+import { SYSTEM_WORKFLOWS, SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -188,7 +189,7 @@ export default async function WorkflowCanvasPage({ params }: PageProps) {
   const { id } = await params;
   const user = await checkAndSyncUser();
 
-  const isSystemTemplate = ["ai-racing-car", "slack-dispatcher", "db-backup-sync"].includes(id);
+  const isSystemTemplate = SYSTEM_WORKFLOW_IDS.includes(id);
   const targetId = isSystemTemplate ? `${user.id}-${id}` : id;
 
   let workflow = await db.workflow.findUnique({
@@ -197,17 +198,19 @@ export default async function WorkflowCanvasPage({ params }: PageProps) {
 
   if (!workflow) {
     if (isSystemTemplate) {
-      let name = "AI Racing Car Generator";
-      if (id === "slack-dispatcher") name = "Slack Alert Dispatcher";
-      if (id === "db-backup-sync") name = "Database Backup Sync";
+      const template = SYSTEM_WORKFLOWS.find((sw) => sw.id === id);
+      if (!template) {
+        redirect("/dashboard");
+      }
 
       workflow = await db.workflow.create({
         data: {
           id: targetId,
           userId: user.id,
-          name,
-          nodes: SAMPLE_NODES as unknown as Prisma.InputJsonValue,
-          edges: SAMPLE_EDGES as unknown as Prisma.InputJsonValue,
+          name: template.name,
+          backgroundImage: template.backgroundImage,
+          nodes: template.nodes as unknown as Prisma.InputJsonValue,
+          edges: template.edges as unknown as Prisma.InputJsonValue,
         },
       });
     } else {

@@ -1,0 +1,326 @@
+{
+  "nodes": [
+    {
+      "id": "request_inputs",
+      "data": {
+        "fields": [
+          {
+            "id": "text_field",
+            "type": "text_field",
+            "label": "Text Field",
+            "value": ""
+          },
+          {
+            "id": "image_field",
+            "type": "image_field",
+            "label": "Image Field",
+            "value": "",
+            "fileName": ""
+          }
+        ]
+      },
+      "type": "requestInput",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 262
+      },
+      "position": {
+        "x": 100,
+        "y": 211
+      },
+      "selected": false,
+      "deletable": false
+    },
+    {
+      "id": "response",
+      "data": {},
+      "type": "response",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 182
+      },
+      "position": {
+        "x": 1700,
+        "y": 224
+      },
+      "selected": false,
+      "deletable": false
+    },
+    {
+      "id": "textNode_1782387599917",
+      "data": {
+        "topP": 0.95,
+        "model": "gemini-3.1-flash-lite",
+        "fields": [
+          {
+            "id": "prompt",
+            "type": "text_field",
+            "label": "Prompt",
+            "value": ""
+          }
+        ],
+        "prompt": "",
+        "response": "",
+        "maxTokens": 2048,
+        "imageInput": "",
+        "temperature": 0.7,
+        "systemPrompt": "You are marketing copy writter. Write a one paragraph product description",
+        "imageInputFileName": ""
+      },
+      "type": "textNode",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 451
+      },
+      "position": {
+        "x": 500,
+        "y": -587
+      },
+      "selected": false
+    },
+    {
+      "id": "textNode_1782387694346",
+      "data": {
+        "topP": 0.95,
+        "model": "gemini-3.1-flash-lite",
+        "fields": [
+          {
+            "id": "prompt",
+            "type": "text_field",
+            "label": "Prompt",
+            "value": ""
+          }
+        ],
+        "prompt": "",
+        "response": "",
+        "maxTokens": 2048,
+        "imageInput": "",
+        "temperature": 0.7,
+        "systemPrompt": "Condence the following product description into a tween length hook (under 240 character)",
+        "imageInputFileName": ""
+      },
+      "type": "textNode",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 451
+      },
+      "position": {
+        "x": 902,
+        "y": -576.25
+      },
+      "selected": false
+    },
+    {
+      "id": "cropImage_1782387908383",
+      "data": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 50,
+        "inputImage": "",
+        "outputImage": ""
+      },
+      "type": "cropImage",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 550
+      },
+      "position": {
+        "x": 500,
+        "y": 71
+      },
+      "selected": false
+    },
+    {
+      "id": "cropImage_1782387910775",
+      "data": {
+        "x": 20,
+        "y": 20,
+        "width": 60,
+        "height": 60,
+        "inputImage": "",
+        "outputImage": ""
+      },
+      "type": "cropImage",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 550
+      },
+      "position": {
+        "x": 500,
+        "y": 704
+      },
+      "selected": false
+    },
+    {
+      "id": "textNode_1782388393611",
+      "data": {
+        "topP": 0.95,
+        "model": "gemini-3.1-flash-lite",
+        "fields": [
+          {
+            "id": "prompt",
+            "type": "text_field",
+            "label": "Prompt",
+            "value": ""
+          },
+          {
+            "id": "image_field_1782388858611",
+            "type": "image_field",
+            "label": "Image Field",
+            "value": ""
+          },
+          {
+            "id": "image_field_1782388867657",
+            "type": "image_field",
+            "label": "Image Field 2",
+            "value": ""
+          }
+        ],
+        "prompt": "",
+        "response": "",
+        "maxTokens": 2048,
+        "imageInput": "",
+        "temperature": 0.7,
+        "systemPrompt": "You are social media manager.Combine the tweet hook and the two product crops into a final marketing post",
+        "imageInputFileName": ""
+      },
+      "type": "textNode",
+      "dragging": false,
+      "measured": {
+        "width": 320,
+        "height": 606
+      },
+      "position": {
+        "x": 1320,
+        "y": -119.5
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_request_inputs_text_field_to_textNode_1782387599917_prompt",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "request_inputs",
+      "target": "textNode_1782387599917",
+      "animated": true,
+      "sourceHandle": "text_field",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "edge_textNode_1782387599917_response_to_textNode_1782387694346_prompt",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "textNode_1782387599917",
+      "target": "textNode_1782387694346",
+      "animated": true,
+      "sourceHandle": "response",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "edge_request_inputs_image_field_to_cropImage_1782387910775_inputImage",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "request_inputs",
+      "target": "cropImage_1782387910775",
+      "animated": true,
+      "sourceHandle": "image_field",
+      "targetHandle": "inputImage"
+    },
+    {
+      "id": "edge_request_inputs_image_field_to_cropImage_1782387908383_inputImage",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "request_inputs",
+      "target": "cropImage_1782387908383",
+      "animated": true,
+      "sourceHandle": "image_field",
+      "targetHandle": "inputImage"
+    },
+    {
+      "id": "edge_textNode_1782387694346_response_to_textNode_1782388393611_prompt",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "textNode_1782387694346",
+      "target": "textNode_1782388393611",
+      "animated": true,
+      "sourceHandle": "response",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "edge_textNode_1782388393611_response_to_response_result",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "textNode_1782388393611",
+      "target": "response",
+      "animated": true,
+      "sourceHandle": "response",
+      "targetHandle": "result"
+    },
+    {
+      "id": "edge_cropImage_1782387908383_outputImage_to_textNode_1782388393611_image_input",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "cropImage_1782387908383",
+      "target": "textNode_1782388393611",
+      "animated": true,
+      "sourceHandle": "outputImage",
+      "targetHandle": "image_input"
+    },
+    {
+      "id": "edge_cropImage_1782387908383_outputImage_to_textNode_1782388393611_image_field_1782388858611",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "cropImage_1782387908383",
+      "target": "textNode_1782388393611",
+      "animated": true,
+      "sourceHandle": "outputImage",
+      "targetHandle": "image_field_1782388858611"
+    },
+    {
+      "id": "edge_cropImage_1782387910775_outputImage_to_textNode_1782388393611_image_field_1782388867657",
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      },
+      "source": "cropImage_1782387910775",
+      "target": "textNode_1782388393611",
+      "animated": true,
+      "sourceHandle": "outputImage",
+      "targetHandle": "image_field_1782388867657"
+    }
+  ]
+}

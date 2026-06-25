@@ -82,7 +82,7 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
     setShowAddMenu(false);
   };
 
-  const headerRightActions = (
+  const headerRightActions = !data.isSystem && (
     <div className="flex items-center gap-1">
       <div className="relative font-sans text-zinc-700" ref={menuRef}>
         <button
@@ -151,18 +151,20 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
                   <Copy className="w-3.5 h-3.5" />
                 )}
               </button>
-              <button
-                onClick={() => handleDelete(field.id)}
-                disabled={fields.length <= 1}
-                className={cn(
-                  "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
-                  fields.length <= 1 &&
-                    "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400"
-                )}
-                title="Delete field"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {!data.isSystem && (
+                <button
+                  onClick={() => handleDelete(field.id)}
+                  disabled={fields.length <= 1}
+                  className={cn(
+                    "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
+                    fields.length <= 1 &&
+                      "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400"
+                  )}
+                  title="Delete field"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { ImportButton } from "../dashboard/_components/ImportButton";
 import { UserWorkflowsContainer } from "../dashboard/_components/UserWorkflowsContainer";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
+import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 
 const timeAgo = (date: Date) => {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -31,7 +32,14 @@ export default async function FlowsPage() {
   const user = await checkAndSyncUser();
 
   const dbWorkflows = await db.workflow.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: user.id,
+      NOT: {
+        id: {
+          in: SYSTEM_WORKFLOW_IDS.map((sysId) => `${user.id}-${sysId}`),
+        },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
 

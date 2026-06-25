@@ -12,6 +12,7 @@ interface DynamicFieldsListProps {
   isConnected: (handleId: string) => boolean;
   onValueChange: (fieldId: string, value: string, fileName?: string) => void;
   onDeleteField: (fieldId: string) => void;
+  isSystem?: boolean;
 }
 
 export function DynamicFieldsList({
@@ -19,6 +20,7 @@ export function DynamicFieldsList({
   isConnected,
   onValueChange,
   onDeleteField,
+  isSystem,
 }: DynamicFieldsListProps) {
   return (
     <>
@@ -30,20 +32,22 @@ export function DynamicFieldsList({
               <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
               {field.label}
             </span>
-            <div className="flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity">
-              <button
-                onClick={() => onDeleteField(field.id)}
-                disabled={fields.length <= 1}
-                className={cn(
-                  "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
-                  fields.length <= 1 &&
-                    "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400"
-                )}
-                title="Delete field"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {!isSystem && (
+              <div className="flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity">
+                <button
+                  onClick={() => onDeleteField(field.id)}
+                  disabled={fields.length <= 1}
+                  className={cn(
+                    "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
+                    fields.length <= 1 &&
+                      "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400"
+                  )}
+                  title="Delete field"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Field Input Area */}

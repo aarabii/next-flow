@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "request_inputs",
+      "data": {
+        "fields": [
+          {
+            "id": "text_field",
+            "type": "text_field",
+            "label": "Text Field",
+            "value": ""
+          },
+          {
+            "id": "image_field",
+            "type": "image_field",
+            "label": "Image Field",
+            "value": ""
+          }
+        ]
+      },
+      "type": "requestInput",
+      "position": {
+        "x": 50,
+        "y": 150
+      },
+      "deletable": false,
+      "measured": {
+        "width": 320,
+        "height": 262
+      }
+    },
+    {
+      "id": "response",
+      "data": {},
+      "type": "response",
+      "position": {
+        "x": 900,
+        "y": 250
+      },
+      "deletable": false,
+      "measured": {
+        "width": 320,
+        "height": 182
+      }
+    },
+    {
+      "id": "textNode_1782405210098",
+      "type": "textNode",
+      "position": {
+        "x": 469.9484536082474,
+        "y": 21.932989690721662
+      },
+      "data": {
+        "model": "gemini-3.1-flash-lite",
+        "prompt": "",
+        "systemPrompt": "Explain the provided code in detail, including its overall purpose, architecture, execution flow, function and class responsibilities, variable usage, algorithms, design patterns, dependencies, and how each part interacts, with a step-by-step breakdown suitable for a complete understanding.\"",
+        "imageInput": "",
+        "imageInputFileName": "",
+        "response": "",
+        "temperature": 0.7,
+        "topP": 0.95,
+        "maxTokens": 2048
+      },
+      "measured": {
+        "width": 320,
+        "height": 451
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "request_inputs",
+      "sourceHandle": "text_field",
+      "target": "textNode_1782405210098",
+      "targetHandle": "prompt",
+      "id": "edge_request_inputs_text_field_to_textNode_1782405210098_prompt",
+      "type": "smoothstep",
+      "animated": true,
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      }
+    },
+    {
+      "source": "textNode_1782405210098",
+      "sourceHandle": "response",
+      "target": "response",
+      "targetHandle": "result",
+      "id": "edge_textNode_1782405210098_response_to_response_result",
+      "type": "smoothstep",
+      "animated": true,
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      }
+    }
+  ]
+}

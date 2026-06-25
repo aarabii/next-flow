@@ -16,7 +16,10 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
+import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
@@ -62,6 +65,9 @@ export function WorkflowCanvas({
   initialNodes,
   initialEdges,
 }: WorkflowCanvasProps) {
+  const router = useRouter();
+  const isSystem = SYSTEM_WORKFLOW_IDS.some((sysId) => workflowId.endsWith(sysId));
+
   const {
     nodes,
     edges,
@@ -321,6 +327,7 @@ export function WorkflowCanvas({
   // Delete connected edges when clicking on a node's handle (dot)
   React.useEffect(() => {
     const handleCanvasClick = (event: MouseEvent) => {
+      if (isSystem) return;
       const target = event.target as HTMLElement;
       if (target && target.classList.contains("react-flow__handle")) {
         const nodeId = target.getAttribute("data-nodeid");
@@ -512,7 +519,7 @@ export function WorkflowCanvas({
 
         additionalData = {
           results: responseResults,
-          onDeleteConnection: (edgeId: string) => {
+          onDeleteConnection: isSystem ? undefined : (edgeId: string) => {
             deleteEdge(edgeId);
           },
         };
@@ -522,11 +529,12 @@ export function WorkflowCanvas({
         ...node,
         data: {
           ...resolvedData,
+          isSystem,
           connectedInputs,
           onChange: onNodeDataChange,
           onRunNode: () => handleRunWorkflow("SINGLE", [node.id]),
           running: runningNodeIds.includes(node.id),
-          onDeleteNode: () => deleteNode(node.id),
+          onDeleteNode: isSystem ? undefined : () => deleteNode(node.id),
           ...additionalData,
         },
       };
@@ -796,9 +804,11 @@ export function WorkflowCanvas({
             <span>{activeRunId !== null ? "Running..." : "Run"}</span>
           </button>
 
-          <button className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer">
-            Publish
-          </button>
+          <CopyWorkflowButton
+            workflowName={workflowName}
+            nodes={nodes}
+            edges={edges}
+          />
         </div>
       </div>
 
@@ -816,6 +826,10 @@ export function WorkflowCanvas({
             nodeTypes={nodeTypes}
             onInit={setReactFlowInstance}
             fitView
+            nodesDraggable={!isSystem}
+            nodesConnectable={!isSystem}
+            edgesFocusable={!isSystem}
+            deleteKeyCode={isSystem ? null : ["Backspace", "Delete"]}
           >
             <Background
               variant={BackgroundVariant.Dots}
@@ -832,26 +846,28 @@ export function WorkflowCanvas({
           </ReactFlow>
 
           {/* Floating Center Bottom Trigger button */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
-            <button
-              id="add-node-button"
-              onClick={() => setShowPicker(!showPicker)}
-              className={cn(
-                "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
-                showPicker && "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45"
-              )}
-              title="Add New Node"
-            >
-              <Plus className="w-5 h-5 transition-transform" />
-            </button>
+          {!isSystem && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
+              <button
+                id="add-node-button"
+                onClick={() => setShowPicker(!showPicker)}
+                className={cn(
+                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
+                  showPicker && "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45"
+                )}
+                title="Add New Node"
+              >
+                <Plus className="w-5 h-5 transition-transform" />
+              </button>
 
-            {showPicker && (
-              <NodePicker
-                onSelect={(type) => addNode(type)}
-                onClose={() => setShowPicker(false)}
-              />
-            )}
-          </div>
+              {showPicker && (
+                <NodePicker
+                  onSelect={(type) => addNode(type)}
+                  onClose={() => setShowPicker(false)}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* History Panel slide-out */}

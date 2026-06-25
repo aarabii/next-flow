@@ -103,7 +103,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
       validationError="At least one prompt or input source is required."
       onRunNode={onRunNode}
       onDeleteNode={data.onDeleteNode}
-      menuItems={(closeMenu) => (
+      menuItems={data.isSystem ? undefined : (closeMenu) => (
         <>
           <button
             onClick={() => {
@@ -179,6 +179,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
         isConnected={isConnected}
         onValueChange={handleValueChange}
         onDeleteField={handleDeleteField}
+        isSystem={!!data.isSystem}
       />
 
       {/* Collapsible Settings */}
