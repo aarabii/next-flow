@@ -277,7 +277,7 @@ export function WorkflowCanvas({
           const statusData = data as RunStatusResponse;
           // Find running/pending nodes
           const running = statusData.nodeRuns
-            .filter((nr) => nr.status === "RUNNING" || nr.status === "PENDING")
+            .filter((nr) => nr.status === "RUNNING")
             .map((nr) => nr.nodeId);
           setRunningNodeIds(running);
 

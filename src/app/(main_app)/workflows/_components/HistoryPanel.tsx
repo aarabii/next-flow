@@ -261,8 +261,10 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                         {run.scope}
                       </span>
                       <span className="font-semibold text-zinc-500 font-mono">
-                        {run.status === "RUNNING" && run.createdAtIso
-                          ? `${Math.max(0, (timeOffset - new Date(run.createdAtIso).getTime()) / 1000).toFixed(1)}s`
+                        {run.status === "RUNNING"
+                          ? run.startedAtIso
+                            ? `${Math.max(0, (timeOffset - new Date(run.startedAtIso).getTime()) / 1000).toFixed(1)}s`
+                            : "⏳"
                           : `${run.duration.toFixed(1)}s`}
                       </span>
                       {isExpanded ? (

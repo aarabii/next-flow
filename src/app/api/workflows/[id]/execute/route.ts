@@ -53,7 +53,6 @@ export async function POST(
         status: "RUNNING",
         scope,
         targetNodes: targetNodeIds || [],
-        startedAt: new Date(),
       },
     });
 
