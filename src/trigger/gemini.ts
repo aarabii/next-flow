@@ -99,7 +99,13 @@ async function generateAndUploadImage(ai: GoogleGenAI, promptText: string): Prom
 
 export const geminiTask = task({
   id: "gemini-execution",
-  run: async (payload: GeminiPayload) => {
+  retry: {
+    maxAttempts: 3,
+    minTimeoutInMs: 2000,
+    maxTimeoutInMs: 10000,
+    factor: 2,
+  },
+  run: async (payload: GeminiPayload, { ctx }) => {
     const {
       nodeRunId,
       model,
@@ -253,15 +259,26 @@ export const geminiTask = task({
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
       const message = error instanceof Error ? error.message : "An unknown error occurred during Gemini generation";
 
-      await db.nodeRun.update({
-        where: { id: nodeRunId },
-        data: {
-          status: "FAILED",
-          error: message,
-          completedAt: endTime,
-          duration,
-        },
-      });
+      const isLastAttempt = ctx.attempt.number >= (ctx.run.maxAttempts || 3);
+
+      if (isLastAttempt) {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            status: "FAILED",
+            error: message,
+            completedAt: endTime,
+            duration,
+          },
+        });
+      } else {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            error: `Attempt ${ctx.attempt.number} failed: ${message}. Retrying...`,
+          },
+        });
+      }
 
       throw error;
     }
