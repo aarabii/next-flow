@@ -29,6 +29,7 @@ import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
 import { RequestInputField, ResponseResultItem } from "@/types/node.type";
+import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 
 interface RunStatusResponse {
   status: string;
@@ -663,11 +664,56 @@ export function WorkflowCanvas({
         onDeleteConnection,
         results,
         connectedInputs,
+        onRunNode,
+        running,
+        onDeleteNode,
         ...restData
       } = node.data as Record<string, unknown>;
+
+      const dataCopy = { ...restData };
+
+      // Explicitly populate model details and config settings to ensure they are preserved on export
+      if (node.type === "textNode") {
+        const config = GEMINI_MODEL_CONFIG.textNode;
+        dataCopy.model = dataCopy.model || config.defaultModelId;
+        dataCopy.temperature = dataCopy.temperature !== undefined ? Number(dataCopy.temperature) : config.defaultTemperature;
+        dataCopy.topP = dataCopy.topP !== undefined ? Number(dataCopy.topP) : config.defaultTopP;
+        dataCopy.maxTokens = dataCopy.maxTokens !== undefined ? Number(dataCopy.maxTokens) : config.defaultMaxTokens;
+        dataCopy.systemPrompt = dataCopy.systemPrompt !== undefined ? dataCopy.systemPrompt : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
+      } else if (node.type === "imageNode") {
+        const config = GEMINI_MODEL_CONFIG.imageNode;
+        dataCopy.model = dataCopy.model || config.defaultModelId;
+        dataCopy.temperature = dataCopy.temperature !== undefined ? Number(dataCopy.temperature) : config.defaultTemperature;
+        dataCopy.topP = dataCopy.topP !== undefined ? Number(dataCopy.topP) : config.defaultTopP;
+        dataCopy.maxTokens = dataCopy.maxTokens !== undefined ? Number(dataCopy.maxTokens) : config.defaultMaxTokens;
+        dataCopy.systemPrompt = dataCopy.systemPrompt !== undefined ? dataCopy.systemPrompt : "Describe a detailed visual scene based on the input.";
+        dataCopy.aspectRatio = dataCopy.aspectRatio || "1:1";
+      } else if (node.type === "videoNode") {
+        const config = GEMINI_MODEL_CONFIG.videoNode;
+        dataCopy.model = dataCopy.model || config.defaultModelId;
+        dataCopy.temperature = dataCopy.temperature !== undefined ? Number(dataCopy.temperature) : config.defaultTemperature;
+        dataCopy.topP = dataCopy.topP !== undefined ? Number(dataCopy.topP) : config.defaultTopP;
+        dataCopy.maxTokens = dataCopy.maxTokens !== undefined ? Number(dataCopy.maxTokens) : config.defaultMaxTokens;
+        dataCopy.systemPrompt = dataCopy.systemPrompt !== undefined ? dataCopy.systemPrompt : "You are a video scene writer. Outline a continuous video description sequence based on the input.";
+      } else if (node.type === "audioNode") {
+        const config = GEMINI_MODEL_CONFIG.audioNode;
+        dataCopy.model = dataCopy.model || config.defaultModelId;
+        dataCopy.temperature = dataCopy.temperature !== undefined ? Number(dataCopy.temperature) : config.defaultTemperature;
+        dataCopy.topP = dataCopy.topP !== undefined ? Number(dataCopy.topP) : config.defaultTopP;
+        dataCopy.maxTokens = dataCopy.maxTokens !== undefined ? Number(dataCopy.maxTokens) : config.defaultMaxTokens;
+        dataCopy.systemPrompt = dataCopy.systemPrompt !== undefined ? dataCopy.systemPrompt : "You are a speech narrator. Write standard speech-to-text narrations.";
+      } else if (node.type === "cropImage") {
+        dataCopy.x = dataCopy.x !== undefined ? Number(dataCopy.x) : 0;
+        dataCopy.y = dataCopy.y !== undefined ? Number(dataCopy.y) : 0;
+        dataCopy.width = dataCopy.width !== undefined ? Number(dataCopy.width) : 100;
+        dataCopy.height = dataCopy.height !== undefined ? Number(dataCopy.height) : 100;
+        dataCopy.inputImage = dataCopy.inputImage || "";
+        dataCopy.outputImage = dataCopy.outputImage || "";
+      }
+
       return {
         ...node,
-        data: restData,
+        data: dataCopy,
       };
     });
 
