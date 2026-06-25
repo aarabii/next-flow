@@ -66,6 +66,7 @@ export const workflowOrchestratorTask = task({
         resolved.temperature = node.data.temperature !== undefined ? Number(node.data.temperature) : 0.7;
         resolved.topP = node.data.topP !== undefined ? Number(node.data.topP) : 0.9;
         resolved.maxTokens = node.data.maxTokens !== undefined ? Number(node.data.maxTokens) : 2048;
+        resolved.model = node.data.model || "";
         resolved.images = [];
         resolved.video = node.data.video || "";
         resolved.audio = node.data.audio || "";
@@ -80,6 +81,7 @@ export const workflowOrchestratorTask = task({
         resolved.temperature = node.data.temperature !== undefined ? Number(node.data.temperature) : 0.7;
         resolved.topP = node.data.topP !== undefined ? Number(node.data.topP) : 0.95;
         resolved.maxTokens = node.data.maxTokens !== undefined ? Number(node.data.maxTokens) : 2048;
+        resolved.model = node.data.model || "";
         resolved.images = [];
         resolved.imageInput = node.data.imageInput || "";
       }
@@ -208,7 +210,7 @@ export const workflowOrchestratorTask = task({
       ) {
         const taskRun = await geminiTask.triggerAndWait({
           nodeRunId: nodeRun.id,
-          model: GEMINI_MODEL_CONFIG.modelId,
+          model: inputs.model || node.data.model || GEMINI_MODEL_CONFIG.modelId,
           nodeType: node.type,
           prompt: inputs.prompt,
           systemPrompt: inputs.systemPrompt,
