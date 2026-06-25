@@ -47,7 +47,13 @@ async function cropWithTransloadit(imageUrl: string, x: number, y: number, width
 
 export const cropImageTask = task({
   id: "crop-image",
-  run: async (payload: CropImagePayload) => {
+  retry: {
+    maxAttempts: 3,
+    minTimeoutInMs: 2000,
+    maxTimeoutInMs: 10000,
+    factor: 2,
+  },
+  run: async (payload: CropImagePayload, { ctx }) => {
     const { nodeRunId, imageUrl, x, y, width, height } = payload;
     const startTime = new Date();
 
@@ -90,15 +96,26 @@ export const cropImageTask = task({
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
       const message = error instanceof Error ? error.message : "An unknown error occurred during crop";
 
-      await db.nodeRun.update({
-        where: { id: nodeRunId },
-        data: {
-          status: "FAILED",
-          error: message,
-          completedAt: endTime,
-          duration,
-        },
-      });
+      const isLastAttempt = ctx.attempt.number >= (ctx.run.maxAttempts || 3);
+
+      if (isLastAttempt) {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            status: "FAILED",
+            error: message,
+            completedAt: endTime,
+            duration,
+          },
+        });
+      } else {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            error: `Attempt ${ctx.attempt.number} failed: ${message}. Retrying...`,
+          },
+        });
+      }
 
       throw error;
     }
