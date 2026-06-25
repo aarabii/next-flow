@@ -158,13 +158,12 @@ export const workflowOrchestratorTask = task({
               const srcData = srcNode.data as CropImageNodeData;
               sourceVal = srcData.outputImage || "";
             } else if (
-              srcNode.type === "gemini" ||
               srcNode.type === "textNode" ||
               srcNode.type === "imageNode" ||
               srcNode.type === "videoNode" ||
               srcNode.type === "audioNode"
             ) {
-              const srcData = srcNode.data as GeminiNodeData;
+              const srcData = srcNode.data as { response?: string };
               sourceVal = srcData.response || "";
             }
           }
@@ -177,7 +176,6 @@ export const workflowOrchestratorTask = task({
           if (targetHandle === "y") resolved.y = Number(sourceVal);
           if (targetHandle === "width") resolved.width = Number(sourceVal);
           if (targetHandle === "height") resolved.height = Number(sourceVal);
-        }
         } else if (
           node.type === "textNode" ||
           node.type === "imageNode" ||
