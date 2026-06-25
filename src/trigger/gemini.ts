@@ -1,6 +1,10 @@
 import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
+import { Transloadit } from "@transloadit/node";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export interface GeminiPayload {
   nodeRunId: string;
@@ -31,6 +35,66 @@ async function fetchFileAsInlineData(url: string) {
       mimeType,
     },
   };
+}
+
+async function generateAndUploadImage(ai: any, promptText: string): Promise<string> {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image",
+    contents: promptText || "A beautiful abstract digital artwork",
+    config: {
+      responseModalities: ["IMAGE"],
+    },
+  });
+
+  const part = response.candidates?.[0]?.content?.parts?.[0];
+  if (!part?.inlineData?.data) {
+    throw new Error("Gemini image generation did not return any image data");
+  }
+
+  const base64Data = part.inlineData.data;
+  const mimeType = part.inlineData.mimeType || "image/png";
+  const extension = mimeType.split("/")[1] || "png";
+  const buffer = Buffer.from(base64Data, "base64");
+
+  const tempDir = os.tmpdir();
+  const tempFilePath = path.join(tempDir, `${Date.now()}-generated-image.${extension}`);
+  fs.writeFileSync(tempFilePath, buffer);
+
+  try {
+    const transloadit = new Transloadit({
+      authKey: process.env.TRANSLOADIT_KEY || "",
+      authSecret: process.env.TRANSLOADIT_SECRET || "",
+    });
+
+    const status = await transloadit.createAssembly({
+      files: { file: tempFilePath },
+      params: {
+        steps: {
+          store: {
+            robot: "/image/resize",
+            use: ":original",
+            result: true,
+          },
+        },
+      },
+      waitForCompletion: true,
+    });
+
+    const fileUrl = status.results?.store?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
+    if (!fileUrl) {
+      throw new Error("Transloadit failed to return URL for generated image");
+    }
+
+    return fileUrl;
+  } finally {
+    try {
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+    } catch (e) {
+      console.error("Failed to delete temp file:", e);
+    }
+  }
 }
 
 export const geminiTask = task({
@@ -126,44 +190,41 @@ export const geminiTask = task({
       if (topP !== undefined) config.topP = topP;
       if (maxTokens !== undefined) config.maxOutputTokens = maxTokens;
 
-      // Call Gemini API
-      const response = await ai.models.generateContent({
-        model: actualModel,
-        contents,
-        config,
-      });
+      let outputResponse = "";
 
-      const responseText = response.text || "No response received";
-
-      let outputResponse = responseText;
       if (nodeType === "imageNode") {
-        const cleanKeywords = (prompt || responseText)
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, "")
-          .split(/\s+/)
-          .filter((w) => w.length > 3)
-          .slice(0, 3)
-          .join("-");
-        outputResponse = `https://picsum.photos/seed/${cleanKeywords || "image"}/800/600`;
-      } else if (nodeType === "videoNode") {
-        const textForClassification = (prompt || responseText).toLowerCase();
-        if (textForClassification.includes("nature") || textForClassification.includes("forest") || textForClassification.includes("tree") || textForClassification.includes("water") || textForClassification.includes("river")) {
-          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4";
-        } else if (textForClassification.includes("tech") || textForClassification.includes("code") || textForClassification.includes("computer") || textForClassification.includes("keyboard")) {
-          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-computer-keyboard-4066-large.mp4";
-        } else if (textForClassification.includes("clock") || textForClassification.includes("time") || textForClassification.includes("gear") || textForClassification.includes("mechanism")) {
-          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-rotating-gears-of-a-clock-mechanism-4306-large.mp4";
-        } else if (textForClassification.includes("city") || textForClassification.includes("car") || textForClassification.includes("traffic") || textForClassification.includes("night")) {
-          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-light-trails-of-traffic-in-a-modern-city-at-night-42284-large.mp4";
-        } else {
-          outputResponse = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-        }
-      } else if (nodeType === "audioNode") {
-        const speechText = responseText.replace(/[^a-zA-Z0-9\s.,!?]/g, "").slice(0, 180);
-        if (speechText.trim()) {
-          outputResponse = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(speechText)}`;
-        } else {
-          outputResponse = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+        outputResponse = await generateAndUploadImage(ai, prompt || "A beautiful abstract digital artwork");
+      } else {
+        // Call Gemini API
+        const response = await ai.models.generateContent({
+          model: actualModel,
+          contents,
+          config,
+        });
+
+        const responseText = response.text || "No response received";
+        outputResponse = responseText;
+
+        if (nodeType === "videoNode") {
+          const textForClassification = (prompt || responseText).toLowerCase();
+          if (textForClassification.includes("nature") || textForClassification.includes("forest") || textForClassification.includes("tree") || textForClassification.includes("water") || textForClassification.includes("river")) {
+            outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4";
+          } else if (textForClassification.includes("tech") || textForClassification.includes("code") || textForClassification.includes("computer") || textForClassification.includes("keyboard")) {
+            outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-computer-keyboard-4066-large.mp4";
+          } else if (textForClassification.includes("clock") || textForClassification.includes("time") || textForClassification.includes("gear") || textForClassification.includes("mechanism")) {
+            outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-rotating-gears-of-a-clock-mechanism-4306-large.mp4";
+          } else if (textForClassification.includes("city") || textForClassification.includes("car") || textForClassification.includes("traffic") || textForClassification.includes("night")) {
+            outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-light-trails-of-traffic-in-a-modern-city-at-night-42284-large.mp4";
+          } else {
+            outputResponse = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+          }
+        } else if (nodeType === "audioNode") {
+          const speechText = responseText.replace(/[^a-zA-Z0-9\s.,!?]/g, "").slice(0, 180);
+          if (speechText.trim()) {
+            outputResponse = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(speechText)}`;
+          } else {
+            outputResponse = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+          }
         }
       }
 

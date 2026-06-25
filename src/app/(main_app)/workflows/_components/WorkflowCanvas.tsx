@@ -138,6 +138,42 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       resetStore();
     };
   }, [workflowId, initialNodes, initialEdges, initializeWorkflow, resetStore]);
+ 
+  // Delete connected edges when clicking on a node's handle (dot)
+  React.useEffect(() => {
+    const handleCanvasClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target && target.classList.contains("react-flow__handle")) {
+        const nodeId = target.getAttribute("data-nodeid");
+        const handleId = target.getAttribute("data-handleid") || null;
+        
+        const isSource = target.classList.contains("react-flow__handle-source") || target.classList.contains("source");
+        const isTarget = target.classList.contains("react-flow__handle-target") || target.classList.contains("target");
+
+        if (nodeId) {
+          // Find all edges connected to this specific handle
+          const edgesToDelete = edges.filter((edge) => {
+            if (isSource) {
+              return edge.source === nodeId && (edge.sourceHandle === handleId || (!edge.sourceHandle && !handleId));
+            } else if (isTarget) {
+              return edge.target === nodeId && (edge.targetHandle === handleId || (!edge.targetHandle && !handleId));
+            }
+            return false;
+          });
+
+          // Delete all matching edges
+          edgesToDelete.forEach((edge) => {
+            deleteEdge(edge.id);
+          });
+        }
+      }
+    };
+
+    document.addEventListener("click", handleCanvasClick);
+    return () => {
+      document.removeEventListener("click", handleCanvasClick);
+    };
+  }, [edges, deleteEdge]);
 
   // Debounced auto-save to PostgreSQL database
   React.useEffect(() => {
