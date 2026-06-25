@@ -31,6 +31,7 @@ export interface CropImageNodeData extends BaseWorkflowNodeData<CropImageNodeDat
 }
 
 export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -43,6 +44,7 @@ export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
 }
 
 export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -55,6 +57,7 @@ export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
 }
 
 export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -67,6 +70,7 @@ export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
 }
 
 export interface AudioNodeData extends BaseWorkflowNodeData<AudioNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   response?: string;
