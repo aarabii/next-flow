@@ -119,6 +119,7 @@ export const workflowOrchestratorTask = task({
         resolved.images = [];
         resolved.video = "";
         resolved.audio = "";
+        resolved.aspectRatio = (data as { aspectRatio?: string }).aspectRatio || "1:1";
 
         const fieldsList = data.fields ? JSON.parse(JSON.stringify(data.fields)) as RequestInputField[] : [
           { id: "prompt", type: "text_field" as const, label: "Prompt", value: data.prompt || "" },
@@ -272,6 +273,7 @@ export const workflowOrchestratorTask = task({
           temperature: inputs.temperature,
           topP: inputs.topP,
           maxTokens: inputs.maxTokens,
+          aspectRatio: inputs.aspectRatio as string | undefined,
         });
       }
     };
