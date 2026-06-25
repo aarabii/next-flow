@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { Copy, Trash2, Plus, Check, MoreHorizontal } from "lucide-react";
+import { Copy, Trash2, Check, MoreHorizontal, Video as VideoIcon, Music as MusicIcon } from "lucide-react";
 import { UploadButton } from "./UploadButton";
 import { cn } from "@/lib/utils";
 import { RequestInputNodeData, RequestInputField } from "@/types/node.type";
@@ -16,6 +16,23 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
 
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
+
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!showAddMenu) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
+        setShowAddMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAddMenu]);
 
   const updateFields = (newFields: RequestInputField[]) => {
     if (data.onChange) {
@@ -42,14 +59,22 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
     updateFields(updated);
   };
 
-  const handleAddField = (type: "text_field" | "image_field") => {
-    const exists = fields.some((f) => f.type === type);
-    if (exists) return; // Prevent duplicate type fields for this trial
+  const handleAddField = (type: "text_field" | "image_field" | "video_field" | "audio_field") => {
+    const timestamp = Date.now();
+    const id = `${type}_${timestamp}`;
+    
+    let label = "Text Field";
+    if (type === "image_field") label = "Image Field";
+    if (type === "video_field") label = "Video Field";
+    if (type === "audio_field") label = "Audio Field";
+
+    const typeCount = fields.filter((f) => f.type === type).length;
+    const finalLabel = typeCount > 0 ? `${label} ${typeCount + 1}` : label;
 
     const newField: RequestInputField = {
-      id: type,
+      id,
       type,
-      label: type === "text_field" ? "Text Field" : "Image Field",
+      label: finalLabel,
       value: "",
     };
 
@@ -57,50 +82,46 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
     setShowAddMenu(false);
   };
 
-  const hasTextField = fields.some((f) => f.type === "text_field");
-  const hasImageField = fields.some((f) => f.type === "image_field");
-  const canAddField = !hasTextField || !hasImageField;
-
   const headerRightActions = (
     <div className="flex items-center gap-1">
-      {/* Add Field Button */}
-      <div className="relative">
+      <div className="relative font-sans text-zinc-700" ref={menuRef}>
         <button
-          onClick={() => canAddField && setShowAddMenu(!showAddMenu)}
-          disabled={!canAddField}
-          className={cn(
-            "p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer",
-            !canAddField && "opacity-40 cursor-not-allowed"
-          )}
-          title="Add field"
+          onClick={() => setShowAddMenu(!showAddMenu)}
+          className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-500"
+          title="Field options"
         >
-          <Plus className="w-4 h-4 text-zinc-500" />
+          <MoreHorizontal className="w-4 h-4" />
         </button>
 
         {showAddMenu && (
-          <div className="absolute right-0 mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
-            {!hasTextField && (
-              <button
-                onClick={() => handleAddField("text_field")}
-                className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
-              >
-                Add Text Field
-              </button>
-            )}
-            {!hasImageField && (
-              <button
-                onClick={() => handleAddField("image_field")}
-                className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors"
-              >
-                Add Image Field
-              </button>
-            )}
+          <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700">
+            <button
+              onClick={() => handleAddField("text_field")}
+              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+            >
+              Add Text Field
+            </button>
+            <button
+              onClick={() => handleAddField("image_field")}
+              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+            >
+              Add Image Field
+            </button>
+            <button
+              onClick={() => handleAddField("video_field")}
+              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+            >
+              Add Video Field
+            </button>
+            <button
+              onClick={() => handleAddField("audio_field")}
+              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+            >
+              Add Audio Field
+            </button>
           </div>
         )}
       </div>
-      <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer">
-        <MoreHorizontal className="w-4 h-4 text-zinc-400" />
-      </button>
     </div>
   );
 
@@ -154,36 +175,42 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
               className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-20 text-zinc-700 bg-zinc-50/20"
             />
           ) : (
-            <div className="w-full">
+            <div className="w-full font-sans text-zinc-700">
               {field.value ? (
                 <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
                   <div className="flex items-center gap-2 overflow-hidden">
                     {/* Thumbnail preview */}
                     <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                      <img
-                        src={field.value}
-                        alt="preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
+                      {field.type === "image_field" ? (
+                        <img
+                          src={field.value}
+                          alt="preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : field.type === "video_field" ? (
+                        <VideoIcon className="w-4 h-4 text-blue-500" />
+                      ) : (
+                        <MusicIcon className="w-4 h-4 text-purple-500" />
+                      )}
                     </div>
                     <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
-                      {field.fileName || "Uploaded Image"}
+                      {field.fileName || (field.type === "image_field" ? "Uploaded Image" : field.type === "video_field" ? "Uploaded Video" : "Uploaded Audio")}
                     </span>
                   </div>
                   <button
                     onClick={() => handleValueChange(field.id, "", "")}
                     className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
-                    title="Clear image"
+                    title="Clear file"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ) : (
                 <UploadButton
-                  variant="image"
+                  variant={field.type === "image_field" ? "image" : field.type === "video_field" ? "video" : "audio"}
                   onChange={(url, name) => {
                     handleValueChange(field.id, url, name);
                   }}

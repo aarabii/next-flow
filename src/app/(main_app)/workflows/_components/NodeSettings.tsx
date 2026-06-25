@@ -35,7 +35,7 @@ export function NodeSettings({ temperature, topP, maxTokens, onChange }: NodeSet
               step="0.1"
               value={temperature}
               onChange={(e) => onChange({ temperature: parseFloat(e.target.value) })}
-              className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
             />
           </div>
 
@@ -51,7 +51,7 @@ export function NodeSettings({ temperature, topP, maxTokens, onChange }: NodeSet
               step="0.05"
               value={topP}
               onChange={(e) => onChange({ topP: parseFloat(e.target.value) })}
-              className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
             />
           </div>
 
@@ -61,7 +61,7 @@ export function NodeSettings({ temperature, topP, maxTokens, onChange }: NodeSet
               type="number"
               value={maxTokens}
               onChange={(e) => onChange({ maxTokens: parseInt(e.target.value) || 1 })}
-              className="w-16 p-1 border border-zinc-200 rounded text-right font-mono text-[11px]"
+              className="w-16 p-1 border border-zinc-200 rounded text-right font-mono text-[11px] nodrag"
             />
           </div>
         </div>

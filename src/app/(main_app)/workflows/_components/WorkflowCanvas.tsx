@@ -12,9 +12,11 @@ import {
   type Connection,
   type NodeChange,
   type EdgeChange,
+  ControlButton,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid } from "lucide-react";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { GeminiNode } from "./GeminiNode";
@@ -73,6 +75,7 @@ export function WorkflowCanvas({
     deleteNode,
     resetStore,
     initializeWorkflow,
+    setNodes,
   } = useWorkflowStore();
 
   const [showPicker, setShowPicker] = React.useState(false);
@@ -81,6 +84,97 @@ export function WorkflowCanvas({
   const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [localName, setLocalName] = React.useState(workflowName);
+  const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
+
+  const autoLayout = React.useCallback(() => {
+    // 1. Map connections
+    const incoming = new Map<string, string[]>();
+    nodes.forEach((n) => incoming.set(n.id, []));
+    edges.forEach((e) => {
+      if (incoming.has(e.target)) {
+        incoming.get(e.target)!.push(e.source);
+      }
+    });
+
+    // 2. Compute depth levels
+    const levels = new Map<string, number>();
+    const getLevel = (nodeId: string): number => {
+      if (levels.has(nodeId)) return levels.get(nodeId)!;
+      const parents = incoming.get(nodeId) || [];
+      if (parents.length === 0) {
+        levels.set(nodeId, 0);
+        return 0;
+      }
+      const parentLevels = parents.map((p) => getLevel(p));
+      const lvl = Math.max(...parentLevels) + 1;
+      levels.set(nodeId, lvl);
+      return lvl;
+    };
+
+    nodes.forEach((n) => getLevel(n.id));
+
+    // 3. Group by level
+    const groups = new Map<number, string[]>();
+    nodes.forEach((n) => {
+      const lvl = levels.get(n.id) || 0;
+      if (!groups.has(lvl)) groups.set(lvl, []);
+      groups.get(lvl)!.push(n.id);
+    });
+
+    // 4. Calculate layout coordinate positions dynamically
+    const colWidth = 400;
+    const nodeSpacing = 50;
+
+    const levelHeights = new Map<number, number>();
+    const levelOffsets = new Map<number, number[]>();
+
+    const sortedLevels = Array.from(groups.keys()).sort((a, b) => a - b);
+    
+    sortedLevels.forEach((lvl) => {
+      const colNodeIds = groups.get(lvl) || [];
+      let totalHeight = 0;
+      const offsets: number[] = [];
+      
+      colNodeIds.forEach((nodeId) => {
+        const node = nodes.find((n) => n.id === nodeId);
+        const nodeHeight = node?.measured?.height || (node?.type === "cropImage" ? 550 : 300);
+        offsets.push(totalHeight);
+        totalHeight += nodeHeight + nodeSpacing;
+      });
+      
+      levelHeights.set(lvl, totalHeight - nodeSpacing);
+      levelOffsets.set(lvl, offsets);
+    });
+
+    const startX = 100;
+    const centerY = 350;
+
+    const newNodes = nodes.map((node) => {
+      const lvl = levels.get(node.id) || 0;
+      const colNodeIds = groups.get(lvl) || [];
+      const rowIndex = colNodeIds.indexOf(node.id);
+      
+      const colHeight = levelHeights.get(lvl) || 0;
+      const colOffsets = levelOffsets.get(lvl) || [];
+      const yOffset = colOffsets[rowIndex] || 0;
+
+      const x = startX + lvl * colWidth;
+      const y = centerY - (colHeight / 2) + yOffset;
+
+      return {
+        ...node,
+        position: { x, y },
+      };
+    });
+
+    setNodes(newNodes);
+
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 0.15, duration: 800 });
+      }
+    }, 100);
+  }, [nodes, edges, setNodes, reactFlowInstance]);
 
   React.useEffect(() => {
     setLocalName(workflowName);
@@ -274,6 +368,7 @@ export function WorkflowCanvas({
   // Debounced auto-save to PostgreSQL database
   React.useEffect(() => {
     if (nodes.length === 0) return;
+    if (activeRunId !== null) return; // Skip auto-save while a run is active to prevent overwriting backend execution results
 
     const handler = setTimeout(async () => {
       try {
@@ -290,7 +385,7 @@ export function WorkflowCanvas({
     }, 1000);
 
     return () => clearTimeout(handler);
-  }, [nodes, edges, workflowId]);
+  }, [nodes, edges, workflowId, activeRunId]);
 
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
@@ -676,6 +771,7 @@ export function WorkflowCanvas({
             onEdgeDoubleClick={onEdgeDoubleClick}
             isValidConnection={isValidConnection}
             nodeTypes={nodeTypes}
+            onInit={setReactFlowInstance}
             fitView
           >
             <Background
@@ -684,7 +780,11 @@ export function WorkflowCanvas({
               size={1.5}
               color="rgba(168, 85, 247, 0.12)"
             />
-            <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100" />
+            <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100">
+              <ControlButton onClick={autoLayout} title="Auto Layout">
+                <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 hover:text-purple-600 transition-colors" />
+              </ControlButton>
+            </Controls>
             <MiniMap className="!bg-white !border-zinc-200 !shadow-md !rounded-xl !bottom-4 !right-4" />
           </ReactFlow>
 

@@ -40,6 +40,42 @@ interface ResolvedInputs {
   [key: string]: unknown;
 }
 
+function getTopologicalOrder(nodeIds: string[], edges: Edge[]): string[] {
+  const order: string[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  const visit = (id: string) => {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) {
+      // Handle cycle gracefully by ignoring
+      return;
+    }
+    visiting.add(id);
+
+    // Get upstream dependencies of this node
+    const dependencies = edges
+      .filter((edge) => edge.target === id)
+      .map((edge) => edge.source);
+
+    for (const depId of dependencies) {
+      if (nodeIds.includes(depId)) {
+        visit(depId);
+      }
+    }
+
+    visiting.delete(id);
+    visited.add(id);
+    order.push(id);
+  };
+
+  for (const id of nodeIds) {
+    visit(id);
+  }
+
+  return order;
+}
+
 export const workflowOrchestratorTask = task({
   id: "workflow-orchestrator",
   run: async (payload: OrchestratorPayload) => {
@@ -69,8 +105,6 @@ export const workflowOrchestratorTask = task({
     const pendingNodeRuns = nodeRuns.filter((nr) => nr.status === "PENDING");
     const executionNodeIds = pendingNodeRuns.map((nr) => nr.nodeId);
 
-    // Keep track of executing promises for dependency coordination
-    const executionPromises: { [nodeId: string]: Promise<unknown> } = {};
     const nodeOutputs: { [nodeId: string]: unknown } = {};
 
     // Helper to find dependencies (upstream nodes) of a node
@@ -110,19 +144,23 @@ export const workflowOrchestratorTask = task({
         node.type === "videoNode" ||
         node.type === "audioNode"
       ) {
-        const data = node.data as TextNodeData; // structure is identical for Text/Image/Video/Audio node settings
-        resolved.prompt = data.prompt || "";
+        const data = node.data as TextNodeData;
         resolved.systemPrompt = data.systemPrompt || "";
         resolved.temperature = data.temperature !== undefined ? Number(data.temperature) : 0.7;
         resolved.topP = data.topP !== undefined ? Number(data.topP) : 0.95;
         resolved.maxTokens = data.maxTokens !== undefined ? Number(data.maxTokens) : 2048;
         resolved.model = "";
         resolved.images = [];
-        const imgData = node.data as ImageNodeData;
-        resolved.imageInput = imgData.imageInput || "";
-        if (resolved.imageInput) {
-          resolved.images.push(resolved.imageInput);
+        resolved.video = "";
+        resolved.audio = "";
+
+        const fieldsList = data.fields ? JSON.parse(JSON.stringify(data.fields)) as RequestInputField[] : [
+          { id: "prompt", type: "text_field" as const, label: "Prompt", value: data.prompt || "" },
+        ];
+        if (!data.fields && data.imageInput) {
+          fieldsList.push({ id: "image_input", type: "image_field" as const, label: "Input Image", value: data.imageInput });
         }
+        resolved.fieldsList = fieldsList;
       }
 
       // 2. Map connected inputs
@@ -188,11 +226,45 @@ export const workflowOrchestratorTask = task({
           node.type === "videoNode" ||
           node.type === "audioNode"
         ) {
+          const fieldsList = resolved.fieldsList as RequestInputField[] | undefined;
+          if (fieldsList) {
+            const field = fieldsList.find((f) => f.id === targetHandle);
+            if (field) {
+              field.value = sourceVal;
+            }
+          }
           if (targetHandle === "prompt") resolved.prompt = sourceVal;
           if (targetHandle === "system" || targetHandle === "systemPrompt") resolved.systemPrompt = sourceVal;
           if (targetHandle === "image_input") {
             resolved.imageInput = sourceVal;
             if (sourceVal) resolved.images.push(sourceVal);
+          }
+        }
+      }
+
+      // 3. Compile prompt and media from fieldsList for textNode / imageNode / videoNode / audioNode
+      if (
+        node.type === "textNode" ||
+        node.type === "imageNode" ||
+        node.type === "videoNode" ||
+        node.type === "audioNode"
+      ) {
+        const fieldsList = resolved.fieldsList as RequestInputField[] | undefined;
+        if (fieldsList) {
+          const prompts: string[] = [];
+          for (const field of fieldsList) {
+            if (field.type === "text_field") {
+              if (field.value) prompts.push(field.value);
+            } else if (field.type === "image_field") {
+              if (field.value) resolved.images.push(field.value);
+            } else if (field.type === "video_field") {
+              if (field.value) resolved.video = field.value;
+            } else if (field.type === "audio_field") {
+              if (field.value) resolved.audio = field.value;
+            }
+          }
+          if (prompts.length > 0) {
+            resolved.prompt = prompts.join("\n\n");
           }
         }
       }
@@ -207,11 +279,7 @@ export const workflowOrchestratorTask = task({
 
       if (!node || !nodeRun) return null;
 
-      // Await all upstream dependencies that are also being run in this execution
-      const upstreamIds = getUpstreamDependencies(nodeId);
-      const activeUpstreams = upstreamIds.filter((uid) => executionNodeIds.includes(uid));
-
-      await Promise.all(activeUpstreams.map((uid) => executionPromises[uid]));
+      // Dependencies are already executed sequentially in topological order
 
       // Resolve the inputs (pull from parent output or manual data)
       const inputs = await resolveInputs(nodeId, node);
@@ -311,15 +379,14 @@ export const workflowOrchestratorTask = task({
     };
 
     try {
-      // 3. Kick off execution for all targeted nodes
-      // Since dependencies are awaited in topological order inside executeNode,
-      // we can safely kick them all off concurrently!
-      for (const nodeId of executionNodeIds) {
-        executionPromises[nodeId] = executeNode(nodeId);
-      }
+      // 3. Sort targeted nodes topologically to respect dependencies
+      const sortedNodeIds = getTopologicalOrder(executionNodeIds, edges);
 
-      // Wait for all execution promises to complete
-      await Promise.all(Object.values(executionPromises));
+      // Execute nodes sequentially to avoid TASK_DID_CONCURRENT_WAIT errors in Trigger.dev
+      for (const nodeId of sortedNodeIds) {
+        const result = await executeNode(nodeId);
+        nodeOutputs[nodeId] = result;
+      }
 
       // 4. Update the Response node's output results dynamically at the end
       const responseNode = nodes.find((n) => n.type === "response");
@@ -364,7 +431,15 @@ export const workflowOrchestratorTask = task({
               const srcData = srcNode.data as RequestInputNodeData;
               const field = srcData.fields?.find((f) => f.id === edge.sourceHandle);
               label = field?.label || "Input Field";
-              type = field?.type === "image_field" ? "image" : "text";
+              if (field?.type === "image_field") {
+                type = "image";
+              } else if (field?.type === "video_field") {
+                type = "video";
+              } else if (field?.type === "audio_field") {
+                type = "audio";
+              } else {
+                type = "text";
+              }
             } else if (srcNode.type === "cropImage") {
               label = "Crop Image Output";
               type = "image";

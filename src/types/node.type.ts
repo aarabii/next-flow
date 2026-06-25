@@ -2,7 +2,7 @@ import type { Node } from "@xyflow/react";
 
 export interface RequestInputField {
   id: string;
-  type: "text_field" | "image_field";
+  type: "text_field" | "image_field" | "video_field" | "audio_field";
   label: string;
   value: string;
   fileName?: string;
@@ -62,6 +62,7 @@ export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  fields?: RequestInputField[];
 }
 
 export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {

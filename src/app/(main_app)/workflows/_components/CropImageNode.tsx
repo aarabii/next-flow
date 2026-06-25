@@ -160,7 +160,7 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
                     handleSliderChange(slider.id, parseInt(e.target.value))
                   }
                   disabled={connected}
-                  className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
                 />
               </div>
             </div>

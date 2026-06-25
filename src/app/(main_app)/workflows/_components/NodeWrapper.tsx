@@ -13,6 +13,7 @@ interface NodeWrapperProps {
   onDeleteNode?: () => void;
   headerLeftExtra?: React.ReactNode;
   headerRightExtra?: React.ReactNode;
+  menuItems?: React.ReactNode | ((closeMenu: () => void) => React.ReactNode);
   children: React.ReactNode;
 }
 
@@ -27,9 +28,27 @@ export function NodeWrapper({
   onDeleteNode,
   headerLeftExtra,
   headerRightExtra,
+  menuItems,
   children,
 }: NodeWrapperProps) {
   const [showDeleteMenu, setShowDeleteMenu] = React.useState(false);
+
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!showDeleteMenu) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
+        setShowDeleteMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDeleteMenu]);
 
   return (
     <div
@@ -81,9 +100,9 @@ export function NodeWrapper({
               <span>{running ? "Running..." : "Run"}</span>
             </button>
           )}
-
+ 
           {onDeleteNode && (
-            <div className="relative" onMouseLeave={() => setShowDeleteMenu(false)}>
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowDeleteMenu(!showDeleteMenu)}
                 className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600"
@@ -91,7 +110,25 @@ export function NodeWrapper({
                 <MoreHorizontal className="w-4 h-4" />
               </button>
               {showDeleteMenu && (
-                <div className="absolute right-0 mt-1 w-28 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs">
+                <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700 font-sans">
+                  {menuItems && (
+                    typeof menuItems === "function"
+                      ? menuItems(() => setShowDeleteMenu(false))
+                      : menuItems
+                  )}
+                  {onRunNode && (
+                    <button
+                      onClick={() => {
+                        onRunNode();
+                        setShowDeleteMenu(false);
+                      }}
+                      disabled={running || !isValid}
+                      className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-zinc-500 stroke-none" />
+                      <span>Run Node</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       onDeleteNode();
