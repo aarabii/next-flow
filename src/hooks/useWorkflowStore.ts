@@ -9,22 +9,16 @@ import {
   type EdgeChange,
   type Connection,
 } from "@xyflow/react";
-
-interface WorkflowState {
-  nodes: Node[];
-  edges: Edge[];
-  setNodes: (nodes: Node[] | ((nds: Node[]) => Node[])) => void;
-  setEdges: (edges: Edge[] | ((eds: Edge[]) => Edge[])) => void;
-  onNodesChange: (changes: NodeChange[]) => void;
-  onEdgesChange: (changes: EdgeChange[]) => void;
-  onConnect: (connection: Connection) => void;
-  onNodeDataChange: (nodeId: string, updatedData: any) => void;
-  addNode: (nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode") => void;
-  deleteEdge: (edgeId: string) => void;
-  deleteNode: (nodeId: string) => void;
-  resetStore: () => void;
-  initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
-}
+import { WorkflowState } from "@/types/store.type";
+import {
+  RequestInputField,
+  CropImageNodeData,
+  GeminiNodeData,
+  TextNodeData,
+  ImageNodeData,
+  VideoNodeData,
+  AudioNodeData,
+} from "@/types/node.type";
 
 const initialNodes: Node[] = [
   {
@@ -33,9 +27,15 @@ const initialNodes: Node[] = [
     position: { x: 50, y: 150 },
     data: {
       fields: [
-        { id: "text_field", type: "text_field", label: "Text Field", value: "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design." },
-        { id: "image_field", type: "image_field", label: "Image Field", value: "" }
-      ]
+        {
+          id: "text_field",
+          type: "text_field",
+          label: "Text Field",
+          value:
+            "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design.",
+        },
+        { id: "image_field", type: "image_field", label: "Image Field", value: "" },
+      ] as RequestInputField[],
     },
     deletable: false,
   },
@@ -44,37 +44,47 @@ const initialNodes: Node[] = [
     type: "response",
     position: { x: 900, y: 250 },
     data: {
-      results: []
+      results: [],
     },
     deletable: false,
-  }
+  },
 ];
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialNodes,
   edges: [],
+  lastRunOutputs: {},
+  lastRunPrompts: {},
+
   setNodes: (nodes) => {
     set({
       nodes: typeof nodes === "function" ? nodes(get().nodes) : nodes,
     });
   },
+
   setEdges: (edges) => {
     set({
       edges: typeof edges === "function" ? edges(get().edges) : edges,
     });
   },
-  onNodesChange: (changes) => {
+
+  onNodesChange: (changes: NodeChange[]) => {
     set({
       nodes: applyNodeChanges(changes, get().nodes),
     });
   },
-  onEdgesChange: (changes) => {
+
+  onEdgesChange: (changes: EdgeChange[]) => {
     set({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
-  onConnect: (connection) => {
-    const edgeId = `edge_${connection.source}_${connection.sourceHandle || "default"}_to_${connection.target}_${connection.targetHandle || "default"}`;
+
+  onConnect: (connection: Connection) => {
+    const edgeId = `edge_${connection.source}_${
+      connection.sourceHandle || "default"
+    }_to_${connection.target}_${connection.targetHandle || "default"}`;
+    
     const newEdge: Edge = {
       ...connection,
       id: edgeId,
@@ -82,11 +92,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       animated: true,
       style: { stroke: "#a855f7", strokeWidth: 2 },
     };
+
     set({
       edges: addEdge(newEdge, get().edges),
     });
   },
-  onNodeDataChange: (nodeId, updatedData) => {
+
+  onNodeDataChange: (nodeId: string, updatedData: Record<string, any>) => {
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
@@ -102,10 +114,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }),
     });
   },
+
   addNode: (nodeType) => {
     const nodes = get().nodes;
     const id = `${nodeType}_${Date.now()}`;
-    let data: any = {};
+    let data: Record<string, any> = {};
 
     if (nodeType === "cropImage") {
       data = {
@@ -115,10 +128,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         height: 100,
         inputImage: "",
         outputImage: "",
-      };
+      } as CropImageNodeData;
     } else if (nodeType === "gemini") {
       data = {
-        model: "Gemini 3.1 Pro",
+        model: "Gemini 3 Flash Preview",
         prompt: "",
         promptEnabled: true,
         systemPrompt: "",
@@ -129,16 +142,17 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         temperature: 1.0,
         topP: 0.95,
         maxTokens: 2048,
-      };
+      } as GeminiNodeData;
     } else if (nodeType === "textNode") {
       data = {
         prompt: "",
-        systemPrompt: "You are a helpful text generator assistant. Provide concise and accurate text responses.",
+        systemPrompt:
+          "You are a helpful text generator assistant. Provide concise and accurate text responses.",
         response: "",
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-      };
+      } as TextNodeData;
     } else if (nodeType === "imageNode") {
       data = {
         prompt: "",
@@ -149,27 +163,29 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-      };
+      } as ImageNodeData;
     } else if (nodeType === "videoNode") {
       data = {
         prompt: "",
-        systemPrompt: "You are a video scene writer. Outline a continuous video description sequence based on the input.",
+        systemPrompt:
+          "You are a video scene writer. Outline a continuous video description sequence based on the input.",
         imageInput: "",
         imageInputFileName: "",
         response: "",
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-      };
+      } as VideoNodeData;
     } else if (nodeType === "audioNode") {
       data = {
         prompt: "",
-        systemPrompt: "You are a speech narrator. Write standard speech-to-text narrations.",
+        systemPrompt:
+          "You are a speech narrator. Write standard speech-to-text narrations.",
         response: "",
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-      };
+      } as AudioNodeData;
     }
 
     const newNode: Node = {
@@ -183,41 +199,51 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       nodes: [...nodes, newNode],
     });
   },
-  deleteEdge: (edgeId) => {
+
+  deleteEdge: (edgeId: string) => {
     set({
       edges: get().edges.filter((e) => e.id !== edgeId),
     });
   },
-  deleteNode: (nodeId) => {
+
+  deleteNode: (nodeId: string) => {
     if (nodeId === "request_inputs" || nodeId === "response") return;
     set({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
     });
   },
+
   resetStore: () => {
     set({
       nodes: initialNodes,
       edges: [],
+      lastRunOutputs: {},
+      lastRunPrompts: {},
     });
   },
-  initializeWorkflow: (nodes, edges) => {
+
+  initializeWorkflow: (nodes: Node[], edges: Edge[]) => {
     const currentNodes = get().nodes;
     if (currentNodes.length <= 2) {
       set({ nodes, edges });
       return;
     }
-    const mergedNodes = nodes.map(incomingNode => {
-      const localNode = currentNodes.find(n => n.id === incomingNode.id);
+    const mergedNodes = nodes.map((incomingNode) => {
+      const localNode = currentNodes.find((n) => n.id === incomingNode.id);
       if (!localNode) return incomingNode;
+      
+      const incomingData = incomingNode.data as Record<string, any>;
+      const localData = localNode.data as Record<string, any>;
+
       return {
         ...localNode,
         data: {
-          ...localNode.data,
-          response: incomingNode.data.response,
-          outputImage: incomingNode.data.outputImage,
-          results: incomingNode.data.results,
-        }
+          ...localData,
+          response: incomingData.response,
+          outputImage: incomingData.outputImage,
+          results: incomingData.results,
+        },
       };
     });
     set({
@@ -225,4 +251,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges,
     });
   },
+
+  setLastRunOutputs: (outputs) => set({ lastRunOutputs: outputs }),
+  setLastRunPrompts: (prompts) => set({ lastRunPrompts: prompts }),
 }));

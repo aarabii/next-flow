@@ -16,6 +16,10 @@ export interface WorkflowState {
   deleteNode: (nodeId: string) => void;
   resetStore: () => void;
   initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
+  lastRunOutputs: Record<string, any>;
+  lastRunPrompts: Record<string, string>;
+  setLastRunOutputs: (outputs: Record<string, any>) => void;
+  setLastRunPrompts: (prompts: Record<string, string>) => void;
 }
 
 export interface DashboardState {
