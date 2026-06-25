@@ -5,14 +5,14 @@ import { Search, Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Cpu
 import { cn } from "@/lib/utils";
 
 export interface NodePickerProps {
-  onSelect: (nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode") => void;
+  onSelect: (nodeType: "cropImage" | "textNode" | "imageNode" | "videoNode" | "audioNode") => void;
   onClose: () => void;
 }
 
 type CategoryId = "recent" | "image" | "video" | "audio" | "others";
 
 interface PickerItem {
-  id: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode";
+  id: "cropImage" | "textNode" | "imageNode" | "videoNode" | "audioNode";
   title: string;
   description: string;
   category: CategoryId;
