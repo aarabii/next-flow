@@ -9,7 +9,6 @@ import {
   RequestInputField,
   RequestInputNodeData,
   CropImageNodeData,
-  GeminiNodeData,
   TextNodeData,
   ImageNodeData,
   VideoNodeData,
@@ -105,17 +104,6 @@ export const workflowOrchestratorTask = task({
         resolved.width = data.width !== undefined ? Number(data.width) : 100;
         resolved.height = data.height !== undefined ? Number(data.height) : 100;
         resolved.imageUrl = data.inputImage || "";
-      } else if (node.type === "gemini") {
-        const data = node.data as GeminiNodeData;
-        resolved.prompt = data.promptEnabled !== false ? (data.prompt || "") : "";
-        resolved.systemPrompt = data.systemPrompt || "";
-        resolved.temperature = data.temperature !== undefined ? Number(data.temperature) : 0.7;
-        resolved.topP = data.topP !== undefined ? Number(data.topP) : 0.9;
-        resolved.maxTokens = data.maxTokens !== undefined ? Number(data.maxTokens) : 2048;
-        resolved.model = data.model || "";
-        resolved.images = [];
-        resolved.video = data.video || "";
-        resolved.audio = data.audio || "";
       } else if (
         node.type === "textNode" ||
         node.type === "imageNode" ||
@@ -189,15 +177,7 @@ export const workflowOrchestratorTask = task({
           if (targetHandle === "y") resolved.y = Number(sourceVal);
           if (targetHandle === "width") resolved.width = Number(sourceVal);
           if (targetHandle === "height") resolved.height = Number(sourceVal);
-        } else if (node.type === "gemini") {
-          if (targetHandle === "prompt") resolved.prompt = sourceVal;
-          if (targetHandle === "system" || targetHandle === "systemPrompt") resolved.systemPrompt = sourceVal;
-          if (targetHandle === "image" || targetHandle?.startsWith("image_")) {
-            // Multimodal Image (Vision) accepts multiple connections
-            if (sourceVal) resolved.images.push(sourceVal);
-          }
-          if (targetHandle === "video") resolved.video = sourceVal;
-          if (targetHandle === "audio") resolved.audio = sourceVal;
+        }
         } else if (
           node.type === "textNode" ||
           node.type === "imageNode" ||
@@ -270,13 +250,12 @@ export const workflowOrchestratorTask = task({
           height: inputs.height || 100,
         });
       } else if (
-        node.type === "gemini" ||
         node.type === "textNode" ||
         node.type === "imageNode" ||
         node.type === "videoNode" ||
         node.type === "audioNode"
       ) {
-        const nodeModel = (node.data as GeminiNodeData).model || GEMINI_MODEL_CONFIG.modelId;
+        const nodeModel = (node.data as { model?: string }).model || GEMINI_MODEL_CONFIG.modelId;
         await geminiTask.trigger({
           nodeRunId: nodeRun.id,
           model: inputs.model || nodeModel,
@@ -314,7 +293,6 @@ export const workflowOrchestratorTask = task({
             : n
         );
       } else if (
-        node.type === "gemini" ||
         node.type === "textNode" ||
         node.type === "imageNode" ||
         node.type === "videoNode" ||
@@ -461,13 +439,12 @@ export const workflowOrchestratorTask = task({
                 const srcData = srcNode.data as CropImageNodeData;
                 val = srcData.outputImage || "";
               } else if (
-                srcNode.type === "gemini" ||
                 srcNode.type === "textNode" ||
                 srcNode.type === "imageNode" ||
                 srcNode.type === "videoNode" ||
                 srcNode.type === "audioNode"
               ) {
-                const srcData = srcNode.data as GeminiNodeData;
+                const srcData = srcNode.data as { response?: string };
                 val = srcData.response || "";
               }
             }
@@ -500,10 +477,6 @@ export const workflowOrchestratorTask = task({
             } else if (srcNode.type === "audioNode") {
               label = "Audio Output";
               type = "audio";
-            } else if (srcNode.type === "gemini") {
-              const srcData = srcNode.data as GeminiNodeData;
-              label = `${srcData.model || "Gemini"} Response`;
-              type = "text";
             }
           }
 
