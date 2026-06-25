@@ -5,7 +5,8 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Music as MusicIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
-import { AudioNodeData } from "@/types/node.type";
+import { AudioNodeData, RequestInputField } from "@/types/node.type";
+import { DynamicFieldsList } from "./DynamicFieldsList";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
 
@@ -32,8 +33,50 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
   const onRunNode = data.onRunNode;
   const running = data.running;
 
-  // Validation: prompt must be present (or connected)
-  const isValid = prompt.trim() !== "" || isConnected("prompt");
+  // Backward-compatible fields setup
+  const fields = React.useMemo<RequestInputField[]>(() => {
+    if (data.fields) return data.fields;
+    return [
+      { id: "prompt", type: "text_field", label: "Prompt", value: prompt },
+    ];
+  }, [data.fields, prompt]);
+
+  const handleValueChange = (fieldId: string, value: string, fileName?: string) => {
+    const updated = fields.map((f) =>
+      f.id === fieldId ? { ...f, value, fileName } : f
+    );
+    updateData({ fields: updated });
+  };
+
+  const handleAddField = (type: "text_field" | "image_field" | "video_field" | "audio_field") => {
+    const timestamp = Date.now();
+    const newId = `${type}_${timestamp}`;
+    
+    let label = "Text Field";
+    if (type === "image_field") label = "Image Field";
+    if (type === "video_field") label = "Video Field";
+    if (type === "audio_field") label = "Audio Field";
+
+    const typeCount = fields.filter((f) => f.type === type).length;
+    const finalLabel = typeCount > 0 ? `${label} ${typeCount + 1}` : label;
+
+    const newField = {
+      id: newId,
+      type,
+      label: finalLabel,
+      value: "",
+    };
+
+    updateData({ fields: [...fields, newField] });
+  };
+
+  const handleDeleteField = (fieldId: string) => {
+    const updated = fields.filter((f) => f.id !== fieldId);
+    updateData({ fields: updated });
+  };
+
+  // Validation: at least one field must have a value or be connected
+  const isValid = fields.some((f) => f.value.trim() !== "" || isConnected(f.id));
 
   return (
     <NodeWrapper
@@ -42,9 +85,50 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
       badge={GEMINI_MODEL_CONFIG.name}
       running={running}
       isValid={isValid}
-      validationError="Prompt is required."
+      validationError="At least one prompt or input source is required."
       onRunNode={onRunNode}
       onDeleteNode={data.onDeleteNode}
+      menuItems={(closeMenu) => (
+        <>
+          <button
+            onClick={() => {
+              handleAddField("text_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Text Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("image_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Image Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("video_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Video Field
+          </button>
+          <button
+            onClick={() => {
+              handleAddField("audio_field");
+              closeMenu();
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
+          >
+            Add Audio Field
+          </button>
+          <div className="border-b border-zinc-100 my-1"></div>
+        </>
+      )}
     >
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
@@ -52,7 +136,7 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           type="target"
           position={Position.Left}
           id="systemPrompt"
-          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5!"
+          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -69,38 +153,18 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           }
           className={cn(
             "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic",
+            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
           )}
         />
       </div>
 
-      {/* Text Prompt */}
-      <div className="relative flex flex-col gap-1.5 group/field">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="prompt"
-          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5!"
-        />
-        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-          Text Prompt <span className="text-red-500">*</span>
-        </span>
-        <textarea
-          value={prompt}
-          onChange={(e) => updateData({ prompt: e.target.value })}
-          disabled={isConnected("prompt")}
-          placeholder={
-            isConnected("prompt")
-              ? "Linked to upstream source..."
-              : "Enter text prompt..."
-          }
-          className={cn(
-            "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-20 text-zinc-700 bg-zinc-50/20",
-            isConnected("prompt") && "bg-zinc-50 text-zinc-400 italic",
-          )}
-        />
-      </div>
+      {/* Dynamic Fields */}
+      <DynamicFieldsList
+        fields={fields}
+        isConnected={isConnected}
+        onValueChange={handleValueChange}
+        onDeleteField={handleDeleteField}
+      />
 
       {/* Collapsible Settings */}
       <NodeSettings
@@ -117,10 +181,10 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           Output Audio
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-20 flex items-center justify-center text-xs text-zinc-600">
+        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[80px] flex items-center justify-center text-xs text-zinc-600">
           {response ? (
             <div className="border border-zinc-200 rounded-lg p-2.5 bg-white flex items-center gap-2 w-full">
-              <MusicIcon className="w-5 h-5 text-rose-500 shrink-0" />
+              <MusicIcon className="w-5 h-5 text-rose-500 flex-shrink-0" />
               <span className="font-semibold text-[11px] text-zinc-700 truncate flex-1 font-mono">
                 {response.split("/").pop() || "Audio output"}
               </span>
@@ -134,7 +198,7 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           type="source"
           position={Position.Right}
           id="response"
-          className="w-3! h-3! bg-rose-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5"
+          className="!w-3 !h-3 !bg-rose-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
         />
       </div>
     </NodeWrapper>
