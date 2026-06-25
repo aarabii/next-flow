@@ -3,6 +3,7 @@
 import * as React from "react";
 import { SearchBar } from "./SearchBar";
 import { UserFlowCard } from "./UserFlowCard";
+import { useDashboardStore } from "@/hooks/useDashboardStore";
 
 interface UserWorkflow {
   id: string;
@@ -18,7 +19,7 @@ interface UserWorkflowsContainerProps {
 }
 
 export function UserWorkflowsContainer({ initialWorkflows }: UserWorkflowsContainerProps) {
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const { searchQuery, setSearchQuery } = useDashboardStore();
 
   const filteredWorkflows = React.useMemo(() => {
     return initialWorkflows.filter((workflow) =>
@@ -30,9 +31,7 @@ export function UserWorkflowsContainer({ initialWorkflows }: UserWorkflowsContai
     <>
       <div className="flex flex-col gap-space-04 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-body text-text-primary font-medium">
-            Your Workflows
-          </div>
+          <div className="text-body text-text-primary font-medium">Your Workflows</div>
           <div className="text-small text-text-secondary">
             Open one to edit, run, and review history.
           </div>

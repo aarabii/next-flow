@@ -5,7 +5,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Search } from "lucide-react";
 import { WorkflowActionsDropdown } from "./WorkflowActionsDropdown";
-import { renameWorkflowAction, deleteWorkflowAction, updateWorkflowBackgroundAction } from "../actions";
+import { useDashboardStore } from "@/hooks/useDashboardStore";
 
 interface UserWorkflow {
   id: string;
@@ -23,19 +23,45 @@ interface UserFlowCardProps {
 
 export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps) => {
   const router = useRouter();
-  const [uploadingIds, setUploadingIds] = React.useState<Record<string, boolean>>({});
+  const { uploadingIds, setUploadingId } = useDashboardStore();
   const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleRename = async (id: string, currentTitle: string) => {
     const newName = prompt("Rename workflow", currentTitle);
-    if (newName && newName.trim() && newName.trim() !== currentTitle) {
-      await renameWorkflowAction(id, newName.trim());
+    if (!newName || !newName.trim() || newName.trim() === currentTitle) return;
+
+    try {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to rename workflow");
+      }
+
+      router.refresh();
+    } catch (err: any) {
+      alert(`Error renaming workflow: ${err.message}`);
     }
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (confirm(`Are you sure you want to delete "${title}"?`)) {
-      await deleteWorkflowAction(id);
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+    try {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete workflow");
+      }
+
+      router.refresh();
+    } catch (err: any) {
+      alert(`Error deleting workflow: ${err.message}`);
     }
   };
 
@@ -43,11 +69,12 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadingIds((prev) => ({ ...prev, [id]: true }));
+    setUploadingId(id, true);
     try {
       const formData = new FormData();
       formData.append("file", file);
 
+      // Transloadit image upload endpoint
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -59,13 +86,22 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
 
       const data = await response.json();
       if (data.url) {
-        await updateWorkflowBackgroundAction(id, data.url);
+        const updateResponse = await fetch(`/api/workflows/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ backgroundImage: data.url }),
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error("Failed to save workflow background image");
+        }
+
+        router.refresh();
       }
     } catch (err: any) {
       alert(`Error uploading image: ${err.message}`);
     } finally {
-      setUploadingIds((prev) => ({ ...prev, [id]: false }));
-      // Reset input value so same image can be uploaded again if needed
+      setUploadingId(id, false);
       if (event.target) {
         event.target.value = "";
       }
@@ -106,7 +142,7 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
         <div key={workflow.id} className="group/card relative max-w-62 w-full">
           <div className="relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md bg-white">
             <Link
-              className="block aspect-250/162 bg-surface-main-background-3 dark:bg-card relative bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[12px_12px] overflow-hidden"
+              className="block aspect-250/162 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[12px_12px] overflow-hidden relative"
               href={workflow.href}
             >
               {workflow.backgroundImage ? (
@@ -131,14 +167,12 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
                   viewBox="0 0 100 60"
                   fill="none"
                 >
-                  {/* Connection lines */}
                   <path
                     d="M25 30 L50 18 M25 30 L50 42 M50 18 L75 30 M50 42 L75 30"
                     stroke="currentColor"
                     strokeWidth="1"
                     strokeDasharray="2 2"
                   />
-                  {/* Start Node */}
                   <rect
                     x="15"
                     y="24"
@@ -150,14 +184,7 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
                     stroke="currentColor"
                     strokeWidth="1"
                   />
-                  <circle
-                    cx="21"
-                    cy="30"
-                    r="2"
-                    fill="currentColor"
-                    fillOpacity="0.4"
-                  />
-                  {/* Upper Middle Node */}
+                  <circle cx="21" cy="30" r="2" fill="currentColor" fillOpacity="0.4" />
                   <rect
                     x="44"
                     y="12"
@@ -169,14 +196,7 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
                     stroke="currentColor"
                     strokeWidth="1"
                   />
-                  <circle
-                    cx="50"
-                    cy="18"
-                    r="2"
-                    fill="currentColor"
-                    fillOpacity="0.4"
-                  />
-                  {/* Lower Middle Node */}
+                  <circle cx="50" cy="18" r="2" fill="currentColor" fillOpacity="0.4" />
                   <rect
                     x="44"
                     y="36"
@@ -188,14 +208,7 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
                     stroke="currentColor"
                     strokeWidth="1"
                   />
-                  <circle
-                    cx="50"
-                    cy="42"
-                    r="2"
-                    fill="currentColor"
-                    fillOpacity="0.4"
-                  />
-                  {/* End Node */}
+                  <circle cx="50" cy="42" r="2" fill="currentColor" fillOpacity="0.4" />
                   <rect
                     x="73"
                     y="24"
@@ -207,13 +220,7 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
                     stroke="currentColor"
                     strokeWidth="1"
                   />
-                  <circle
-                    cx="79"
-                    cy="30"
-                    r="2"
-                    fill="currentColor"
-                    fillOpacity="0.4"
-                  />
+                  <circle cx="79" cy="30" r="2" fill="currentColor" fillOpacity="0.4" />
                 </svg>
               </div>
             </Link>
@@ -263,15 +270,10 @@ export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps)
 
           {/* Card Info */}
           <div className="mt-2 px-1">
-            <div
-              className="truncate text-sm font-semibold text-zinc-700"
-              title={workflow.title}
-            >
+            <div className="truncate text-sm font-semibold text-zinc-700" title={workflow.title}>
               {workflow.title}
             </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {workflow.editedAt}
-            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{workflow.editedAt}</div>
           </div>
         </div>
       ))}

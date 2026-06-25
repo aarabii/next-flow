@@ -4,7 +4,7 @@ import { UserWorkflowsContainer } from "./_components/UserWorkflowsContainer";
 import { ImportButton } from "./_components/ImportButton";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
-import { createWorkflowAction } from "./actions";
+import { NewWorkflowButton } from "./_components/NewWorkflowButton";
 
 
 const timeAgo = (date: Date) => {
@@ -65,16 +65,7 @@ export default async function DashboardPage() {
         </div>
         <div className="flex items-center justify-end gap-space-03">
           <ImportButton />
-          <form action={createWorkflowAction}>
-            <button
-              type="submit"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-radius-l bg-surface-on-action text-icon-on-action transition-colors hover:opacity-90 disabled:opacity-40 cursor-pointer"
-              title="Create a new workflow"
-              aria-label="New workflow"
-            >
-              <Plus className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </form>
+          <NewWorkflowButton />
         </div>
       </div>
 

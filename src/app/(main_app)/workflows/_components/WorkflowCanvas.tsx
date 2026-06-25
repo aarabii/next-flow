@@ -9,6 +9,9 @@ import {
   BackgroundVariant,
   type Node,
   type Edge,
+  type Connection,
+  type NodeChange,
+  type EdgeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Plus, Clock, Play } from "lucide-react";
@@ -23,10 +26,9 @@ import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
-import { useWorkflowStore } from "../_store/useWorkflowStore";
-import { saveWorkflowAction, executeWorkflowAction, getWorkflowRunStatusAction, getWorkflowAction, renameWorkflowAction } from "../actions";
+import { useWorkflowStore } from "@/hooks/useWorkflowStore";
+import { RequestInputField, ResponseResultItem } from "@/types/node.type";
 
-// Declare custom node types outside the component to avoid re-renders
 const nodeTypes = {
   requestInput: RequestInputNode,
   cropImage: CropImageNode,
@@ -45,7 +47,12 @@ interface WorkflowCanvasProps {
   initialEdges: Edge[];
 }
 
-export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initialEdges }: WorkflowCanvasProps) {
+export function WorkflowCanvas({
+  workflowId,
+  workflowName,
+  initialNodes,
+  initialEdges,
+}: WorkflowCanvasProps) {
   const {
     nodes,
     edges,
@@ -78,7 +85,17 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       return;
     }
     try {
-      await renameWorkflowAction(workflowId, localName.trim());
+      // Call PUT /api/workflows/[id] to update name
+      const res = await fetch(`/api/workflows/${workflowId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: localName.trim() }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to rename workflow");
+      }
+
       setIsEditingName(false);
     } catch (err: any) {
       alert(`Failed to rename workflow: ${err.message}`);
@@ -87,20 +104,42 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
     }
   };
 
-  const handleRunWorkflow = React.useCallback(async (scope: "FULL" | "PARTIAL" | "SINGLE", targetNodeIds?: string[]) => {
-    try {
-      // Save canvas first
-      await saveWorkflowAction(workflowId, nodes, edges);
-      
-      const res = await executeWorkflowAction(workflowId, scope, targetNodeIds);
-      if (res.success) {
-        setActiveRunId(res.runId);
-        setHistoryOpen(true); // Auto-open history panel to show run progress
+  const handleRunWorkflow = React.useCallback(
+    async (scope: "FULL" | "PARTIAL" | "SINGLE", targetNodeIds?: string[]) => {
+      try {
+        // Save canvas first via API
+        const saveRes = await fetch(`/api/workflows/${workflowId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodes, edges }),
+        });
+
+        if (!saveRes.ok) {
+          throw new Error("Failed to auto-save canvas before execution");
+        }
+
+        // Trigger run execution via execute API
+        const runRes = await fetch(`/api/workflows/${workflowId}/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope, targetNodeIds }),
+        });
+
+        if (!runRes.ok) {
+          throw new Error("Failed to trigger execution");
+        }
+
+        const res = await runRes.json();
+        if (res.success) {
+          setActiveRunId(res.runId);
+          setHistoryOpen(true); // Auto-open history panel to show run progress
+        }
+      } catch (err: any) {
+        alert(`Failed to trigger execution: ${err.message}`);
       }
-    } catch (err: any) {
-      alert(`Failed to trigger execution: ${err.message}`);
-    }
-  }, [workflowId, nodes, edges]);
+    },
+    [workflowId, nodes, edges]
+  );
 
   React.useEffect(() => {
     if (!activeRunId) return;
@@ -110,20 +149,28 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
 
     const pollStatus = async () => {
       try {
-        const data = await getWorkflowRunStatusAction(activeRunId);
+        const res = await fetch(`/api/runs/${activeRunId}/status`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch run status");
+        }
+        const data = await res.json();
+
         if (!active) return;
 
         if (data) {
           // Find running/pending nodes
           const running = data.nodeRuns
-            .filter((nr) => nr.status === "RUNNING" || nr.status === "PENDING")
-            .map((nr) => nr.nodeId);
+            .filter((nr: any) => nr.status === "RUNNING" || nr.status === "PENDING")
+            .map((nr: any) => nr.nodeId);
           setRunningNodeIds(running);
 
           // Real-time canvas outputs update
-          const updated = await getWorkflowAction(workflowId);
-          if (updated && updated.nodes && active) {
-            initializeWorkflow(updated.nodes as any[], updated.edges as any[]);
+          const workflowRes = await fetch(`/api/workflows/${workflowId}`);
+          if (workflowRes.ok) {
+            const updated = await workflowRes.json();
+            if (updated && updated.nodes && active) {
+              initializeWorkflow(updated.nodes as Node[], updated.edges as Edge[]);
+            }
           }
 
           if (data.status === "RUNNING" || data.status === "PENDING") {
@@ -155,12 +202,11 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
     if (initialNodes.length > 0) {
       initializeWorkflow(initialNodes, initialEdges);
     }
-    console.log("[Py] Candidate LinkedIn: https://www.linkedin.com/in/arv95");
     return () => {
       resetStore();
     };
   }, [workflowId, initialNodes, initialEdges, initializeWorkflow, resetStore]);
- 
+
   // Delete connected edges when clicking on a node's handle (dot)
   React.useEffect(() => {
     const handleCanvasClick = (event: MouseEvent) => {
@@ -168,23 +214,33 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       if (target && target.classList.contains("react-flow__handle")) {
         const nodeId = target.getAttribute("data-nodeid");
         const handleId = target.getAttribute("data-handleid") || null;
-        
-        const isSource = target.classList.contains("react-flow__handle-source") || target.classList.contains("source");
-        const isTarget = target.classList.contains("react-flow__handle-target") || target.classList.contains("target");
+
+        const isSource =
+          target.classList.contains("react-flow__handle-source") ||
+          target.classList.contains("source");
+        const isTarget =
+          target.classList.contains("react-flow__handle-target") ||
+          target.classList.contains("target");
 
         if (nodeId) {
           // Find all edges connected to this specific handle
-          const edgesToDelete = edges.filter((edge) => {
+          const edgesToDelete = edges.filter((edge: Edge) => {
             if (isSource) {
-              return edge.source === nodeId && (edge.sourceHandle === handleId || (!edge.sourceHandle && !handleId));
+              return (
+                edge.source === nodeId &&
+                (edge.sourceHandle === handleId || (!edge.sourceHandle && !handleId))
+              );
             } else if (isTarget) {
-              return edge.target === nodeId && (edge.targetHandle === handleId || (!edge.targetHandle && !handleId));
+              return (
+                edge.target === nodeId &&
+                (edge.targetHandle === handleId || (!edge.targetHandle && !handleId))
+              );
             }
             return false;
           });
 
           // Delete all matching edges
-          edgesToDelete.forEach((edge) => {
+          edgesToDelete.forEach((edge: Edge) => {
             deleteEdge(edge.id);
           });
         }
@@ -200,10 +256,16 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
   // Debounced auto-save to PostgreSQL database
   React.useEffect(() => {
     if (nodes.length === 0) return;
-    
+
     const handler = setTimeout(async () => {
       try {
-        await saveWorkflowAction(workflowId, nodes, edges);
+        await fetch(`/api/workflows/${workflowId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nodes, edges }),
+        });
       } catch (error) {
         console.error("Auto-save error:", error);
       }
@@ -215,16 +277,18 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
     const resolveValue = (nodeId: string, handleId: string): any => {
-      const edge = edges.find((e) => e.target === nodeId && e.targetHandle === handleId);
+      const edge = edges.find((e: Edge) => e.target === nodeId && e.targetHandle === handleId);
       if (!edge) return null;
 
-      const sourceNode = nodes.find((n) => n.id === edge.source);
+      const sourceNode = nodes.find((n: Node) => n.id === edge.source);
       if (!sourceNode) return null;
 
-      const sourceData = sourceNode.data as any;
+      const sourceData = sourceNode.data as Record<string, any>;
 
       if (sourceNode.type === "requestInput") {
-        const field = sourceData.fields?.find((f: any) => f.id === edge.sourceHandle);
+        const field = sourceData.fields?.find(
+          (f: RequestInputField) => f.id === edge.sourceHandle
+        );
         return field?.value;
       }
       if (sourceNode.type === "cropImage") {
@@ -242,22 +306,28 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       return null;
     };
 
-    return nodes.map((node) => {
-      const nodeEdges = edges.filter((edge) => edge.target === node.id);
-      const connectedInputs = nodeEdges.map((edge) => edge.targetHandle || "").filter(Boolean);
+    return nodes.map((node: Node) => {
+      const nodeEdges = edges.filter((edge: Edge) => edge.target === node.id);
+      const connectedInputs = nodeEdges
+        .map((edge: Edge) => edge.targetHandle || "")
+        .filter(Boolean);
 
-      const resolvedData: any = { ...node.data };
-      connectedInputs.forEach((handleId) => {
+      const resolvedData: Record<string, any> = { ...node.data };
+      connectedInputs.forEach((handleId: string) => {
         const val = resolveValue(node.id, handleId);
         if (val !== null && val !== undefined) {
           if (handleId === "inputImage") resolvedData.inputImage = val;
-          if (handleId === "x") resolvedData.x = typeof val === "number" ? val : parseInt(val) || 0;
-          if (handleId === "y") resolvedData.y = typeof val === "number" ? val : parseInt(val) || 0;
-          if (handleId === "width") resolvedData.width = typeof val === "number" ? val : parseInt(val) || 100;
-          if (handleId === "height") resolvedData.height = typeof val === "number" ? val : parseInt(val) || 100;
+          if (handleId === "x")
+            resolvedData.x = typeof val === "number" ? val : parseInt(val) || 0;
+          if (handleId === "y")
+            resolvedData.y = typeof val === "number" ? val : parseInt(val) || 0;
+          if (handleId === "width")
+            resolvedData.width = typeof val === "number" ? val : parseInt(val) || 100;
+          if (handleId === "height")
+            resolvedData.height = typeof val === "number" ? val : parseInt(val) || 100;
           if (handleId === "prompt") resolvedData.prompt = val;
           if (handleId === "systemPrompt") resolvedData.systemPrompt = val;
-          
+
           if (handleId.startsWith("image_")) {
             resolvedData.images = resolvedData.images?.map((img: any) =>
               img.id === handleId ? { ...img, value: val } : img
@@ -270,18 +340,20 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       });
 
       // Special case: Response node results
-      let additionalData: any = {};
+      let additionalData: Record<string, any> = {};
       if (node.id === "response") {
-        const responseResults = nodeEdges.map((edge) => {
-          const srcNode = nodes.find((n) => n.id === edge.source);
+        const responseResults = nodeEdges.map((edge: Edge) => {
+          const srcNode = nodes.find((n: Node) => n.id === edge.source);
           let label = srcNode?.id || "Source Node";
           let val = "";
           let type: "image" | "video" | "audio" | "text" = "text";
 
           if (srcNode) {
-            const srcData = srcNode.data as any;
+            const srcData = srcNode.data as Record<string, any>;
             if (srcNode.type === "requestInput") {
-              const field = srcData.fields?.find((f: any) => f.id === edge.sourceHandle);
+              const field = srcData.fields?.find(
+                (f: RequestInputField) => f.id === edge.sourceHandle
+              );
               label = field?.label || "Input Field";
               val = field?.value || "";
               type = field?.type === "image_field" ? "image" : "text";
@@ -319,7 +391,7 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
             label,
             value: val,
             type,
-          };
+          } as ResponseResultItem;
         });
 
         additionalData = {
@@ -343,97 +415,121 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
         },
       };
     });
-  }, [nodes, edges, onNodeDataChange, deleteEdge, deleteNode, runningNodeIds, handleRunWorkflow]);
+  }, [
+    nodes,
+    edges,
+    onNodeDataChange,
+    deleteEdge,
+    deleteNode,
+    runningNodeIds,
+    handleRunWorkflow,
+  ]);
 
   // Validates connections: prevents cycles, self-connections, and mismatched types
-  const isValidConnection = React.useCallback((connection: any) => {
-    if (connection.source === connection.target) return false;
+  const isValidConnection = React.useCallback(
+    (connection: Connection | Edge) => {
+      if (!connection.source || !connection.target) return false;
+      if (connection.source === connection.target) return false;
 
-    // Cycle detection check (DFS)
-    const wouldCreateCycle = (sourceId: string, targetId: string) => {
-      const adjList: Record<string, string[]> = {};
-      edges.forEach((edge) => {
-        if (!adjList[edge.source]) adjList[edge.source] = [];
-        adjList[edge.source].push(edge.target);
-      });
-      if (!adjList[sourceId]) adjList[sourceId] = [];
-      adjList[sourceId].push(targetId);
+      // Cycle detection check (DFS)
+      const wouldCreateCycle = (sourceId: string, targetId: string) => {
+        const adjList: Record<string, string[]> = {};
+        edges.forEach((edge: Edge) => {
+          if (!adjList[edge.source]) adjList[edge.source] = [];
+          adjList[edge.source].push(edge.target);
+        });
+        if (!adjList[sourceId]) adjList[sourceId] = [];
+        adjList[sourceId].push(targetId);
 
-      const visited = new Set<string>();
-      const recStack = new Set<string>();
+        const visited = new Set<string>();
+        const recStack = new Set<string>();
 
-      const dfs = (nodeId: string): boolean => {
-        visited.add(nodeId);
-        recStack.add(nodeId);
+        const dfs = (nodeId: string): boolean => {
+          visited.add(nodeId);
+          recStack.add(nodeId);
 
-        const neighbors = adjList[nodeId] || [];
-        for (const neighbor of neighbors) {
-          if (!visited.has(neighbor)) {
-            if (dfs(neighbor)) return true;
-          } else if (recStack.has(neighbor)) {
-            return true;
+          const neighbors = adjList[nodeId] || [];
+          for (const neighbor of neighbors) {
+            if (!visited.has(neighbor)) {
+              if (dfs(neighbor)) return true;
+            } else if (recStack.has(neighbor)) {
+              return true;
+            }
           }
-        }
 
-        recStack.delete(nodeId);
-        return false;
+          recStack.delete(nodeId);
+          return false;
+        };
+
+        return dfs(targetId);
       };
 
-      return dfs(targetId);
-    };
+      if (wouldCreateCycle(connection.source, connection.target)) {
+        return false;
+      }
 
-    if (wouldCreateCycle(connection.source, connection.target)) {
-      return false;
-    }
+      // Type-safety checks
+      const getHandleType = (
+        nodeId: string,
+        handleId: string | null,
+        isSource: boolean
+      ) => {
+        const node = nodes.find((n: Node) => n.id === nodeId);
+        if (!node) return "any";
 
-    // Type-safety checks
-    const getHandleType = (nodeId: string, handleId: string | null, isSource: boolean) => {
-      const node = nodes.find((n) => n.id === nodeId);
-      if (!node) return "any";
-      
-      const type = node.type;
-      
-      if (type === "requestInput") {
-        return handleId === "image_field" ? "image" : "text";
-      }
-      if (type === "cropImage") {
-        if (isSource) return "image";
-        return handleId === "inputImage" ? "image" : "number";
-      }
-      if (type === "textNode") {
-        if (isSource) return "text";
-        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
-      }
-      if (type === "imageNode") {
-        if (isSource) return "image";
-        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
-        if (handleId === "image_input") return "image";
-      }
-      if (type === "videoNode") {
-        if (isSource) return "video";
-        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
-        if (handleId === "image_input") return "image";
-      }
-      if (type === "audioNode") {
-        if (isSource) return "audio";
-        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
-      }
-      if (type === "gemini") {
-        if (isSource) return "text";
-        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
-        if (handleId?.startsWith("image_")) return "image";
-        if (handleId === "video") return "video";
-        if (handleId === "audio") return "audio";
-      }
-      return "any";
-    };
+        const type = node.type;
 
-    const sourceType = getHandleType(connection.source, connection.sourceHandle, true);
-    const targetType = getHandleType(connection.target, connection.targetHandle, false);
+        if (type === "requestInput") {
+          return handleId === "image_field" ? "image" : "text";
+        }
+        if (type === "cropImage") {
+          if (isSource) return "image";
+          return handleId === "inputImage" ? "image" : "number";
+        }
+        if (type === "textNode") {
+          if (isSource) return "text";
+          if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+        }
+        if (type === "imageNode") {
+          if (isSource) return "image";
+          if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+          if (handleId === "image_input") return "image";
+        }
+        if (type === "videoNode") {
+          if (isSource) return "video";
+          if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+          if (handleId === "image_input") return "image";
+        }
+        if (type === "audioNode") {
+          if (isSource) return "audio";
+          if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+        }
+        if (type === "gemini") {
+          if (isSource) return "text";
+          if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+          if (handleId?.startsWith("image_")) return "image";
+          if (handleId === "video") return "video";
+          if (handleId === "audio") return "audio";
+        }
+        return "any";
+      };
 
-    if (targetType === "any") return true;
-    return sourceType === targetType;
-  }, [edges, nodes]);
+      const sourceType = getHandleType(
+        connection.source,
+        connection.sourceHandle ?? null,
+        true
+      );
+      const targetType = getHandleType(
+        connection.target,
+        connection.targetHandle ?? null,
+        false
+      );
+
+      if (targetType === "any") return true;
+      return sourceType === targetType;
+    },
+    [edges, nodes]
+  );
 
   // Double-click on an edge to delete the connection
   const onEdgeDoubleClick = React.useCallback(
@@ -445,8 +541,14 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
 
   // Export current nodes and edges layout as a JSON file download
   const handleExportJSON = React.useCallback(() => {
-    const cleanNodes = nodes.map((node) => {
-      const { onChange, onDeleteConnection, results, connectedInputs, ...restData } = node.data as any;
+    const cleanNodes = nodes.map((node: Node) => {
+      const {
+        onChange,
+        onDeleteConnection,
+        results,
+        connectedInputs,
+        ...restData
+      } = node.data as any;
       return {
         ...node,
         data: restData,
@@ -456,7 +558,7 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
     const dataStr = JSON.stringify({ nodes: cleanNodes, edges }, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.href = url;
     link.download = `${workflowName.toLowerCase().replace(/\s+/g, "-")}-workflow.json`;
@@ -497,7 +599,9 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
               {localName}
             </span>
           )}
-          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40">{workflowId}</span>
+          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40">
+            {workflowId}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -506,13 +610,13 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
           >
             Export JSON
           </button>
-          
+
           <button
             onClick={() => setHistoryOpen(!historyOpen)}
             className={cn(
               "px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5",
-              historyOpen 
-                ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100/50" 
+              historyOpen
+                ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100/50"
                 : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
             )}
           >
@@ -550,7 +654,12 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
             nodeTypes={nodeTypes}
             fitView
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1.5} color="rgba(168, 85, 247, 0.12)" />
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={16}
+              size={1.5}
+              color="rgba(168, 85, 247, 0.12)"
+            />
             <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100" />
             <MiniMap className="!bg-white !border-zinc-200 !shadow-md !rounded-xl !bottom-4 !right-4" />
           </ReactFlow>
@@ -570,7 +679,10 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
             </button>
 
             {showPicker && (
-              <NodePicker onSelect={(type) => addNode(type)} onClose={() => setShowPicker(false)} />
+              <NodePicker
+                onSelect={(type) => addNode(type)}
+                onClose={() => setShowPicker(false)}
+              />
             )}
           </div>
         </div>

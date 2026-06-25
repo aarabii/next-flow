@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { X, CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layers, HelpCircle, Loader2, Copy, Download } from "lucide-react";
+import { X, CheckCircle2, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp, Layers, Loader2, Copy, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getWorkflowRunsAction } from "../actions";
 
 export interface NodeRunItem {
   id: string;
@@ -36,121 +35,6 @@ interface HistoryPanelProps {
   onClose: () => void;
 }
 
-// Mock seed data matching the expected format from TEMP/po.md
-const MOCK_RUNS: WorkflowRunItem[] = [
-  {
-    id: "run-123",
-    runNumber: 123,
-    status: "SUCCESS",
-    scope: "FULL",
-    duration: 77.1,
-    createdAt: "Apr 25, 2026 3:45 PM",
-    nodeRuns: [
-      {
-        id: "nr-1",
-        nodeLabel: "Request-Inputs",
-        nodeType: "requestInput",
-        status: "SUCCESS",
-        duration: 0.1,
-        inputs: {},
-        output: { text_field: "Product: Wireless Bluetooth Headphones...", image_field: "uploaded_photo.jpg" }
-      },
-      {
-        id: "nr-2",
-        nodeLabel: "Crop Image #1",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 31.8,
-        output: "https://cdn.transloadit.com/cropped_headphones_1.jpg"
-      },
-      {
-        id: "nr-3",
-        nodeLabel: "Crop Image #2",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 32.1,
-        output: "https://cdn.transloadit.com/cropped_headphones_2.jpg"
-      },
-      {
-        id: "nr-4",
-        nodeLabel: "Gemini #1",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 4.2,
-        inputs: { Prompt: "Write a product description..." },
-        output: "Introducing our premium wireless bluetooth headphones..."
-      },
-      {
-        id: "nr-5",
-        nodeLabel: "Gemini #2",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 3.9,
-        inputs: { Prompt: "Condense this description..." },
-        output: "Silence the world. 30 hrs battery. Premium sound."
-      },
-      {
-        id: "nr-6",
-        nodeLabel: "Final Gemini",
-        nodeType: "gemini",
-        status: "SUCCESS",
-        duration: 4.5,
-        inputs: { Prompt: "Combine hook and crops..." },
-        output: "Hear what matters. Silence the world. 30 hrs sound... [Image: Cropped 1] [Image: Cropped 2]"
-      },
-      {
-        id: "nr-7",
-        nodeLabel: "Response",
-        nodeType: "response",
-        status: "SUCCESS",
-        duration: 0.1,
-        output: "Final result captured."
-      }
-    ]
-  },
-  {
-    id: "run-122",
-    runNumber: 122,
-    status: "FAILED",
-    scope: "PARTIAL",
-    duration: 35.8,
-    createdAt: "Apr 25, 2026 2:10 PM",
-    nodeRuns: [
-      {
-        id: "nr-8",
-        nodeLabel: "Request-Inputs",
-        nodeType: "requestInput",
-        status: "SUCCESS",
-        duration: 0.1,
-        output: { text_field: "Product: Wireless Bluetooth Headphones..." }
-      },
-      {
-        id: "nr-9",
-        nodeLabel: "Crop Image #1",
-        nodeType: "cropImage",
-        status: "SUCCESS",
-        duration: 31.2,
-        output: "https://cdn.transloadit.com/cropped_headphones_1.jpg"
-      },
-      {
-        id: "nr-10",
-        nodeLabel: "Gemini #1",
-        nodeType: "gemini",
-        status: "FAILED",
-        duration: 4.5,
-        error: "Google AI API quota limit reached. Please try again."
-      },
-      {
-        id: "nr-11",
-        nodeLabel: "Gemini #2",
-        nodeType: "gemini",
-        status: "SKIPPED",
-        duration: 0
-      }
-    ]
-  }
-];
-
 export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   const [runs, setRuns] = React.useState<WorkflowRunItem[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -176,7 +60,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   };
 
   React.useEffect(() => {
-    const hasRunning = runs.some(r => r.status === "RUNNING");
+    const hasRunning = runs.some((r) => r.status === "RUNNING");
     if (!hasRunning) return;
 
     const intervalId = setInterval(() => {
@@ -192,13 +76,18 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
 
     const fetchRuns = async () => {
       try {
-        const data = await getWorkflowRunsAction(workflowId);
+        const res = await fetch(`/api/workflows/${workflowId}/runs`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch runs");
+        }
+        const data = await res.json();
+        
         if (active) {
-          setRuns(data as any);
+          setRuns(data);
           setLoading(false);
 
           // Poll every 1.5s if a run is running, otherwise every 3.5s
-          const hasRunning = data.some(r => r.status === "RUNNING");
+          const hasRunning = data.some((r: any) => r.status === "RUNNING");
           if (hasRunning) {
             timerId = setTimeout(fetchRuns, 1500);
           } else {
