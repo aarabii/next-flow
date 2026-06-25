@@ -10,6 +10,7 @@ import {
   type Connection,
 } from "@xyflow/react";
 import { WorkflowState } from "@/types/store.type";
+import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 import {
   RequestInputField,
   CropImageNodeData,
@@ -130,6 +131,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       } as CropImageNodeData;
     } else if (nodeType === "textNode") {
       data = {
+        model: GEMINI_MODEL_CONFIG.textNode.defaultModelId,
         prompt: "",
         systemPrompt:
           "You are a helpful text generator assistant. Provide concise and accurate text responses.",
@@ -142,6 +144,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       } as TextNodeData;
     } else if (nodeType === "imageNode") {
       data = {
+        model: GEMINI_MODEL_CONFIG.imageNode.defaultModelId,
         prompt: "",
         systemPrompt: "Describe a detailed visual scene based on the input.",
         imageInput: "",
@@ -153,6 +156,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       } as ImageNodeData;
     } else if (nodeType === "videoNode") {
       data = {
+        model: GEMINI_MODEL_CONFIG.videoNode.defaultModelId,
         prompt: "",
         systemPrompt:
           "You are a video scene writer. Outline a continuous video description sequence based on the input.",
@@ -165,6 +169,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       } as VideoNodeData;
     } else if (nodeType === "audioNode") {
       data = {
+        model: GEMINI_MODEL_CONFIG.audioNode.defaultModelId,
         prompt: "",
         systemPrompt:
           "You are a speech narrator. Write standard speech-to-text narrations.",
