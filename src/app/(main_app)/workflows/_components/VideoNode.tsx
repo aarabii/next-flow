@@ -146,25 +146,6 @@ export function VideoNode({ id, data }: NodeProps<Node<VideoNodeData>>) {
         </>
       )}
     >
-      {/* Model Selector */}
-      <div className="relative flex flex-col gap-1.5">
-        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-          Model
-        </span>
-        <select
-          value={model}
-          onChange={(e) => updateData({ model: e.target.value })}
-          className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 text-zinc-700 bg-white nodrag"
-        >
-          {GEMINI_MODEL_CONFIG.videoNode.models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
         <Handle
@@ -206,6 +187,8 @@ export function VideoNode({ id, data }: NodeProps<Node<VideoNodeData>>) {
         temperature={temperature}
         topP={topP}
         maxTokens={maxTokens}
+        model={model}
+        models={GEMINI_MODEL_CONFIG.videoNode.models}
         onChange={(updates) => updateData(updates)}
       />
 

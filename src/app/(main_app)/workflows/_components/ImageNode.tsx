@@ -21,6 +21,7 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
   const temperature = data.temperature ?? GEMINI_MODEL_CONFIG.imageNode.defaultTemperature;
   const topP = data.topP ?? GEMINI_MODEL_CONFIG.imageNode.defaultTopP;
   const maxTokens = data.maxTokens ?? GEMINI_MODEL_CONFIG.imageNode.defaultMaxTokens;
+  const aspectRatio = data.aspectRatio || "1:1";
 
   const selectedModelName =
     GEMINI_MODEL_CONFIG.imageNode.models.find((m) => m.id === model)?.name || model;
@@ -144,25 +145,6 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
         </>
       )}
     >
-      {/* Model Selector */}
-      <div className="relative flex flex-col gap-1.5">
-        <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-          Model
-        </span>
-        <select
-          value={model}
-          onChange={(e) => updateData({ model: e.target.value })}
-          className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 text-zinc-700 bg-white nodrag"
-        >
-          {GEMINI_MODEL_CONFIG.imageNode.models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
         <Handle
@@ -204,6 +186,9 @@ export function ImageNode({ id, data }: NodeProps<Node<ImageNodeData>>) {
         temperature={temperature}
         topP={topP}
         maxTokens={maxTokens}
+        model={model}
+        models={GEMINI_MODEL_CONFIG.imageNode.models}
+        aspectRatio={aspectRatio}
         onChange={(updates) => updateData(updates)}
       />
 

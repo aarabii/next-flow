@@ -1,14 +1,32 @@
 import * as React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { ModelInfo } from "@/config/modelConfig";
 
 interface NodeSettingsProps {
   temperature: number;
   topP: number;
   maxTokens: number;
-  onChange: (updates: { temperature?: number; topP?: number; maxTokens?: number }) => void;
+  model?: string;
+  models?: readonly ModelInfo[];
+  aspectRatio?: string;
+  onChange: (updates: {
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    model?: string;
+    aspectRatio?: string;
+  }) => void;
 }
 
-export function NodeSettings({ temperature, topP, maxTokens, onChange }: NodeSettingsProps) {
+export function NodeSettings({
+  temperature,
+  topP,
+  maxTokens,
+  model,
+  models,
+  aspectRatio,
+  onChange,
+}: NodeSettingsProps) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   return (
@@ -23,6 +41,42 @@ export function NodeSettings({ temperature, topP, maxTokens, onChange }: NodeSet
 
       {settingsOpen && (
         <div className="flex flex-col gap-3 mt-3 text-xs text-zinc-600 bg-zinc-50/40 p-2 rounded-lg border border-zinc-100">
+          {/* Model Selector Dropdown */}
+          {models && model && (
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-[10px] text-zinc-500">Model</span>
+              <select
+                value={model}
+                onChange={(e) => onChange({ model: e.target.value })}
+                className="w-full text-xs p-1.5 border border-zinc-200 rounded text-zinc-700 bg-white nodrag"
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Aspect Ratio Selector (Optional) */}
+          {aspectRatio !== undefined && (
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-[10px] text-zinc-500">Aspect Ratio</span>
+              <select
+                value={aspectRatio}
+                onChange={(e) => onChange({ aspectRatio: e.target.value })}
+                className="w-full text-xs p-1.5 border border-zinc-200 rounded text-zinc-700 bg-white nodrag"
+              >
+                <option value="1:1">1:1 (Square)</option>
+                <option value="16:9">16:9 (Widescreen)</option>
+                <option value="9:16">9:16 (Vertical)</option>
+                <option value="4:3">4:3 (Landscape)</option>
+                <option value="3:4">3:4 (Portrait)</option>
+              </select>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1">
             <div className="flex justify-between font-mono text-[10px]">
               <span>Temperature</span>

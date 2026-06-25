@@ -2,7 +2,7 @@ import { task, wait } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/prisma";
 import { cropImageTask } from "./cropImage";
 import { geminiTask } from "./gemini";
-import { GEMINI_MODEL_CONFIG } from "../config/modelConfig";
+import { GEMINI_MODEL_CONFIG, type WorkflowNodeType } from "../config/modelConfig";
 import { type Node, type Edge } from "@xyflow/react";
 import { Prisma } from "../../generated/prisma/client";
 import {
@@ -110,12 +110,14 @@ export const workflowOrchestratorTask = task({
         node.type === "videoNode" ||
         node.type === "audioNode"
       ) {
+        const type = node.type as WorkflowNodeType;
+        const config = GEMINI_MODEL_CONFIG[type];
         const data = node.data as TextNodeData;
         resolved.systemPrompt = data.systemPrompt || "";
-        resolved.temperature = data.temperature !== undefined ? Number(data.temperature) : 0.7;
-        resolved.topP = data.topP !== undefined ? Number(data.topP) : 0.95;
-        resolved.maxTokens = data.maxTokens !== undefined ? Number(data.maxTokens) : 2048;
-        resolved.model = "";
+        resolved.temperature = data.temperature !== undefined ? Number(data.temperature) : config.defaultTemperature;
+        resolved.topP = data.topP !== undefined ? Number(data.topP) : config.defaultTopP;
+        resolved.maxTokens = data.maxTokens !== undefined ? Number(data.maxTokens) : config.defaultMaxTokens;
+        resolved.model = data.model || config.defaultModelId;
         resolved.images = [];
         resolved.video = "";
         resolved.audio = "";

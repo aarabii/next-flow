@@ -138,9 +138,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         imageInput: "",
         imageInputFileName: "",
         response: "",
-        temperature: 0.7,
-        topP: 0.95,
-        maxTokens: 2048,
+        temperature: GEMINI_MODEL_CONFIG.textNode.defaultTemperature,
+        topP: GEMINI_MODEL_CONFIG.textNode.defaultTopP,
+        maxTokens: GEMINI_MODEL_CONFIG.textNode.defaultMaxTokens,
       } as TextNodeData;
     } else if (nodeType === "imageNode") {
       data = {
@@ -150,9 +150,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         imageInput: "",
         imageInputFileName: "",
         response: "",
-        temperature: 0.7,
-        topP: 0.95,
-        maxTokens: 2048,
+        temperature: GEMINI_MODEL_CONFIG.imageNode.defaultTemperature,
+        topP: GEMINI_MODEL_CONFIG.imageNode.defaultTopP,
+        maxTokens: GEMINI_MODEL_CONFIG.imageNode.defaultMaxTokens,
         aspectRatio: "1:1",
       } as ImageNodeData;
     } else if (nodeType === "videoNode") {
@@ -164,9 +164,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         imageInput: "",
         imageInputFileName: "",
         response: "",
-        temperature: 0.7,
-        topP: 0.95,
-        maxTokens: 2048,
+        temperature: GEMINI_MODEL_CONFIG.videoNode.defaultTemperature,
+        topP: GEMINI_MODEL_CONFIG.videoNode.defaultTopP,
+        maxTokens: GEMINI_MODEL_CONFIG.videoNode.defaultMaxTokens,
       } as VideoNodeData;
     } else if (nodeType === "audioNode") {
       data = {
@@ -175,9 +175,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         systemPrompt:
           "You are a speech narrator. Write standard speech-to-text narrations.",
         response: "",
-        temperature: 0.7,
-        topP: 0.95,
-        maxTokens: 2048,
+        temperature: GEMINI_MODEL_CONFIG.audioNode.defaultTemperature,
+        topP: GEMINI_MODEL_CONFIG.audioNode.defaultTopP,
+        maxTokens: GEMINI_MODEL_CONFIG.audioNode.defaultMaxTokens,
       } as AudioNodeData;
     }
 
