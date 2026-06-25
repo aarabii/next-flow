@@ -15,6 +15,10 @@ import { Plus, Clock, Play } from "lucide-react";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { GeminiNode } from "./GeminiNode";
+import { TextNode } from "./TextNode";
+import { ImageNode } from "./ImageNode";
+import { VideoNode } from "./VideoNode";
+import { AudioNode } from "./AudioNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
@@ -27,6 +31,10 @@ const nodeTypes = {
   requestInput: RequestInputNode,
   cropImage: CropImageNode,
   gemini: GeminiNode,
+  textNode: TextNode,
+  imageNode: ImageNode,
+  videoNode: VideoNode,
+  audioNode: AudioNode,
   response: ResponseNode,
 };
 
@@ -90,18 +98,18 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
             .map((nr) => nr.nodeId);
           setRunningNodeIds(running);
 
+          // Real-time canvas outputs update
+          const updated = await getWorkflowAction(workflowId);
+          if (updated && updated.nodes && active) {
+            initializeWorkflow(updated.nodes as any[], updated.edges as any[]);
+          }
+
           if (data.status === "RUNNING" || data.status === "PENDING") {
             timerId = setTimeout(pollStatus, 1200);
           } else {
             // Run completed (SUCCESS or FAILED or PARTIAL)
             setActiveRunId(null);
             setRunningNodeIds([]);
-            
-            // Reload the updated nodes/edges from DB to render outputs on canvas
-            const updated = await getWorkflowAction(workflowId);
-            if (updated && updated.nodes && active) {
-              initializeWorkflow(updated.nodes as any[], updated.edges as any[]);
-            }
           }
         }
       } catch (err) {
@@ -164,7 +172,13 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       if (sourceNode.type === "cropImage") {
         return sourceData.outputImage;
       }
-      if (sourceNode.type === "gemini") {
+      if (
+        sourceNode.type === "gemini" ||
+        sourceNode.type === "textNode" ||
+        sourceNode.type === "imageNode" ||
+        sourceNode.type === "videoNode" ||
+        sourceNode.type === "audioNode"
+      ) {
         return sourceData.response;
       }
       return null;
@@ -191,6 +205,7 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
               img.id === handleId ? { ...img, value: val } : img
             );
           }
+          if (handleId === "image_input") resolvedData.imageInput = val;
           if (handleId === "video") resolvedData.video = val;
           if (handleId === "audio") resolvedData.audio = val;
         }
@@ -216,6 +231,22 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
               label = "Crop Image Output";
               val = srcData.outputImage || "";
               type = "image";
+            } else if (srcNode.type === "textNode") {
+              label = "Text Output";
+              val = srcData.response || "";
+              type = "text";
+            } else if (srcNode.type === "imageNode") {
+              label = "Image Output";
+              val = srcData.response || "";
+              type = "image";
+            } else if (srcNode.type === "videoNode") {
+              label = "Video Output";
+              val = srcData.response || "";
+              type = "video";
+            } else if (srcNode.type === "audioNode") {
+              label = "Audio Output";
+              val = srcData.response || "";
+              type = "audio";
             } else if (srcNode.type === "gemini") {
               label = `${srcData.model || "Gemini"} Response`;
               val = srcData.response || "";
@@ -310,6 +341,24 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
       if (type === "cropImage") {
         if (isSource) return "image";
         return handleId === "inputImage" ? "image" : "number";
+      }
+      if (type === "textNode") {
+        if (isSource) return "text";
+        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+      }
+      if (type === "imageNode") {
+        if (isSource) return "image";
+        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+        if (handleId === "image_input") return "image";
+      }
+      if (type === "videoNode") {
+        if (isSource) return "video";
+        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
+        if (handleId === "image_input") return "image";
+      }
+      if (type === "audioNode") {
+        if (isSource) return "audio";
+        if (handleId === "prompt" || handleId === "systemPrompt") return "text";
       }
       if (type === "gemini") {
         if (isSource) return "text";

@@ -1,18 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Search, Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Cpu, Clock, Layers, Sparkles, Scissors } from "lucide-react";
+import { Search, Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Cpu, Clock, Layers, Sparkles, Scissors, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface NodePickerProps {
-  onSelect: (nodeType: "cropImage" | "gemini") => void;
+  onSelect: (nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode") => void;
   onClose: () => void;
 }
 
 type CategoryId = "recent" | "image" | "video" | "audio" | "others";
 
 interface PickerItem {
-  id: "cropImage" | "gemini";
+  id: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode";
   title: string;
   description: string;
   category: CategoryId;
@@ -49,11 +49,32 @@ export function NodePicker({ onSelect, onClose }: NodePickerProps) {
       icon: <Scissors className="w-4 h-4 text-emerald-500" />,
     },
     {
-      id: "gemini",
-      title: "Gemini 3.1 Pro",
-      description: "Run advanced prompts, vision tasks, and multimodal execution",
+      id: "textNode",
+      title: "Text Node",
+      description: "Generate high-quality text output using Gemini",
       category: "others",
-      icon: <Sparkles className="w-4 h-4 text-purple-500" />,
+      icon: <FileText className="w-4 h-4 text-amber-500" />,
+    },
+    {
+      id: "imageNode",
+      title: "Image Node",
+      description: "Generate images from text prompts or input images",
+      category: "image",
+      icon: <ImageIcon className="w-4 h-4 text-blue-500" />,
+    },
+    {
+      id: "videoNode",
+      title: "Video Node",
+      description: "Generate videos from text prompts or input images",
+      category: "video",
+      icon: <VideoIcon className="w-4 h-4 text-indigo-500" />,
+    },
+    {
+      id: "audioNode",
+      title: "Audio Node",
+      description: "Generate audio speech from text prompts",
+      category: "audio",
+      icon: <MusicIcon className="w-4 h-4 text-rose-500" />,
     },
   ];
 

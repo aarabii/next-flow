@@ -19,7 +19,7 @@ interface WorkflowState {
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   onNodeDataChange: (nodeId: string, updatedData: any) => void;
-  addNode: (nodeType: "cropImage" | "gemini") => void;
+  addNode: (nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode") => void;
   deleteEdge: (edgeId: string) => void;
   deleteNode: (nodeId: string) => void;
   resetStore: () => void;
@@ -130,6 +130,46 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         topP: 0.95,
         maxTokens: 2048,
       };
+    } else if (nodeType === "textNode") {
+      data = {
+        prompt: "",
+        systemPrompt: "You are a helpful text generator assistant. Provide concise and accurate text responses.",
+        response: "",
+        temperature: 0.7,
+        topP: 0.95,
+        maxTokens: 2048,
+      };
+    } else if (nodeType === "imageNode") {
+      data = {
+        prompt: "",
+        systemPrompt: "Describe a detailed visual scene based on the input.",
+        imageInput: "",
+        imageInputFileName: "",
+        response: "",
+        temperature: 0.7,
+        topP: 0.95,
+        maxTokens: 2048,
+      };
+    } else if (nodeType === "videoNode") {
+      data = {
+        prompt: "",
+        systemPrompt: "You are a video scene writer. Outline a continuous video description sequence based on the input.",
+        imageInput: "",
+        imageInputFileName: "",
+        response: "",
+        temperature: 0.7,
+        topP: 0.95,
+        maxTokens: 2048,
+      };
+    } else if (nodeType === "audioNode") {
+      data = {
+        prompt: "",
+        systemPrompt: "You are a speech narrator. Write standard speech-to-text narrations.",
+        response: "",
+        temperature: 0.7,
+        topP: 0.95,
+        maxTokens: 2048,
+      };
     }
 
     const newNode: Node = {
@@ -162,8 +202,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     });
   },
   initializeWorkflow: (nodes, edges) => {
+    const currentNodes = get().nodes;
+    if (currentNodes.length <= 2) {
+      set({ nodes, edges });
+      return;
+    }
+    const mergedNodes = nodes.map(incomingNode => {
+      const localNode = currentNodes.find(n => n.id === incomingNode.id);
+      if (!localNode) return incomingNode;
+      return {
+        ...localNode,
+        data: {
+          ...localNode.data,
+          response: incomingNode.data.response,
+          outputImage: incomingNode.data.outputImage,
+          results: incomingNode.data.results,
+        }
+      };
+    });
     set({
-      nodes,
+      nodes: mergedNodes,
       edges,
     });
   },

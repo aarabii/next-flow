@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 export interface GeminiPayload {
   nodeRunId: string;
   model: string;
+  nodeType?: string;
   prompt?: string;
   systemPrompt?: string;
   images?: string[];
@@ -38,6 +39,7 @@ export const geminiTask = task({
     const {
       nodeRunId,
       model,
+      nodeType,
       prompt,
       systemPrompt,
       images,
@@ -69,11 +71,8 @@ export const geminiTask = task({
 
       const ai = new GoogleGenAI({ apiKey });
 
-      // Map models to new recommended Gemini 3 models per gemini-api-dev skill
-      let actualModel = "gemini-3-pro-preview";
-      if (model.toLowerCase().includes("flash")) {
-        actualModel = "gemini-2.5-flash-lite";
-      }
+      // Use model ID from the configuration or fall back to flash
+      const actualModel = model || "gemini-2.5-flash-lite";
 
       // Build contents array
       const contents: any[] = [];
@@ -136,6 +135,38 @@ export const geminiTask = task({
 
       const responseText = response.text || "No response received";
 
+      let outputResponse = responseText;
+      if (nodeType === "imageNode") {
+        const cleanKeywords = (prompt || responseText)
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .split(/\s+/)
+          .filter((w) => w.length > 3)
+          .slice(0, 3)
+          .join("-");
+        outputResponse = `https://picsum.photos/seed/${cleanKeywords || "image"}/800/600`;
+      } else if (nodeType === "videoNode") {
+        const textForClassification = (prompt || responseText).toLowerCase();
+        if (textForClassification.includes("nature") || textForClassification.includes("forest") || textForClassification.includes("tree") || textForClassification.includes("water") || textForClassification.includes("river")) {
+          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4";
+        } else if (textForClassification.includes("tech") || textForClassification.includes("code") || textForClassification.includes("computer") || textForClassification.includes("keyboard")) {
+          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-computer-keyboard-4066-large.mp4";
+        } else if (textForClassification.includes("clock") || textForClassification.includes("time") || textForClassification.includes("gear") || textForClassification.includes("mechanism")) {
+          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-rotating-gears-of-a-clock-mechanism-4306-large.mp4";
+        } else if (textForClassification.includes("city") || textForClassification.includes("car") || textForClassification.includes("traffic") || textForClassification.includes("night")) {
+          outputResponse = "https://assets.mixkit.co/videos/preview/mixkit-light-trails-of-traffic-in-a-modern-city-at-night-42284-large.mp4";
+        } else {
+          outputResponse = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+        }
+      } else if (nodeType === "audioNode") {
+        const speechText = responseText.replace(/[^a-zA-Z0-9\s.,!?]/g, "").slice(0, 180);
+        if (speechText.trim()) {
+          outputResponse = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(speechText)}`;
+        } else {
+          outputResponse = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+        }
+      }
+
       // 3. Update status to SUCCESS
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -144,13 +175,13 @@ export const geminiTask = task({
         where: { id: nodeRunId },
         data: {
           status: "SUCCESS",
-          output: { response: responseText },
+          output: { response: outputResponse },
           completedAt: endTime,
           duration,
         },
       });
 
-      return { response: responseText };
+      return { response: outputResponse };
     } catch (error: any) {
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;

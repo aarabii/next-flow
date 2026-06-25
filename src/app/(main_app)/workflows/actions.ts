@@ -55,7 +55,13 @@ export async function executeWorkflowAction(
 
   // Define target executable nodes
   let nodesToExecute = nodes.filter(
-    (n) => n.type === "cropImage" || n.type === "gemini"
+    (n) =>
+      n.type === "cropImage" ||
+      n.type === "gemini" ||
+      n.type === "textNode" ||
+      n.type === "imageNode" ||
+      n.type === "videoNode" ||
+      n.type === "audioNode"
   );
 
   if (scope === "SINGLE" && targetNodeIds && targetNodeIds.length > 0) {
@@ -86,7 +92,18 @@ export async function executeWorkflowAction(
   }
 
   for (const node of nodesToExecute) {
-    let label = node.type === "cropImage" ? "Crop Image" : `${node.data.model || "Gemini"} LLM`;
+    let label =
+      node.type === "cropImage"
+        ? "Crop Image"
+        : node.type === "textNode"
+        ? "Text Generation"
+        : node.type === "imageNode"
+        ? "Image Generation"
+        : node.type === "videoNode"
+        ? "Video Generation"
+        : node.type === "audioNode"
+        ? "Audio Generation"
+        : `${node.data.model || "Gemini"} LLM`;
     await db.nodeRun.create({
       data: {
         workflowRunId: run.id,

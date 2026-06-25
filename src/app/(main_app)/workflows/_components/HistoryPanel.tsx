@@ -232,7 +232,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
       case "FAILED":
         return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />;
       case "RUNNING":
-        return <Clock className="w-3.5 h-3.5 text-blue-500 animate-pulse flex-shrink-0" />;
+        return <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin flex-shrink-0" />;
       case "SKIPPED":
       default:
         return <AlertCircle className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />;
@@ -310,10 +310,13 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                         <div key={node.id} className="flex items-start gap-2.5 text-xs">
                           {getNodeStatusIcon(node.status)}
                           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                            <div className="flex items-center justify-between w-full font-medium text-zinc-700">
+                            <div className={cn(
+                              "flex items-center justify-between w-full font-medium text-zinc-700",
+                              node.status === "RUNNING" && "text-purple-600 font-semibold"
+                            )}>
                               <span className="truncate">{node.nodeLabel}</span>
                               <span className="text-[10px] font-mono text-zinc-400 flex-shrink-0">
-                                {node.status === "SKIPPED" ? "-" : `${node.duration}s`}
+                                {node.status === "SKIPPED" ? "-" : node.status === "RUNNING" ? "Running..." : `${node.duration}s`}
                               </span>
                             </div>
                             
@@ -321,7 +324,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                             {node.status === "SUCCESS" && node.output && (
                               <div className="bg-white border border-zinc-150 rounded-md p-1.5 mt-0.5 text-[10px] text-zinc-500 overflow-x-auto font-mono max-h-16 break-all">
                                 {typeof node.output === "object" ? (
-                                  JSON.stringify(node.output)
+                                  node.output.response || node.output.url || JSON.stringify(node.output)
                                 ) : (
                                   node.output
                                 )}

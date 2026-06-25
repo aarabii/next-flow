@@ -2,6 +2,7 @@ import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/prisma";
 import { cropImageTask } from "./cropImage";
 import { geminiTask } from "./gemini";
+import { GEMINI_MODEL_CONFIG } from "../config/modelConfig";
 
 export interface OrchestratorPayload {
   workflowRunId: string;
@@ -24,7 +25,7 @@ export const workflowOrchestratorTask = task({
     }
 
     const workflow = workflowRun.workflow;
-    const nodes = workflow.nodes as any[];
+    let nodes = workflow.nodes as any[];
     const edges = workflow.edges as any[];
 
     // 2. Fetch all NodeRun records created for this run
@@ -68,6 +69,19 @@ export const workflowOrchestratorTask = task({
         resolved.images = [];
         resolved.video = node.data.video || "";
         resolved.audio = node.data.audio || "";
+      } else if (
+        node.type === "textNode" ||
+        node.type === "imageNode" ||
+        node.type === "videoNode" ||
+        node.type === "audioNode"
+      ) {
+        resolved.prompt = node.data.prompt || "";
+        resolved.systemPrompt = node.data.systemPrompt || "";
+        resolved.temperature = node.data.temperature !== undefined ? Number(node.data.temperature) : 0.7;
+        resolved.topP = node.data.topP !== undefined ? Number(node.data.topP) : 0.95;
+        resolved.maxTokens = node.data.maxTokens !== undefined ? Number(node.data.maxTokens) : 2048;
+        resolved.images = [];
+        resolved.imageInput = node.data.imageInput || "";
       }
 
       // 2. Map connected inputs
@@ -95,7 +109,13 @@ export const workflowOrchestratorTask = task({
               sourceVal = field?.value || "";
             } else if (srcNode.type === "cropImage") {
               sourceVal = srcNode.data.outputImage || "";
-            } else if (srcNode.type === "gemini") {
+            } else if (
+              srcNode.type === "gemini" ||
+              srcNode.type === "textNode" ||
+              srcNode.type === "imageNode" ||
+              srcNode.type === "videoNode" ||
+              srcNode.type === "audioNode"
+            ) {
               sourceVal = srcNode.data.response || "";
             }
           }
@@ -117,6 +137,18 @@ export const workflowOrchestratorTask = task({
           }
           if (targetHandle === "video") resolved.video = sourceVal;
           if (targetHandle === "audio") resolved.audio = sourceVal;
+        } else if (
+          node.type === "textNode" ||
+          node.type === "imageNode" ||
+          node.type === "videoNode" ||
+          node.type === "audioNode"
+        ) {
+          if (targetHandle === "prompt") resolved.prompt = sourceVal;
+          if (targetHandle === "system" || targetHandle === "systemPrompt") resolved.systemPrompt = sourceVal;
+          if (targetHandle === "image_input") {
+            resolved.imageInput = sourceVal;
+            if (sourceVal) resolved.images.push(sourceVal);
+          }
         }
       }
 
@@ -157,20 +189,27 @@ export const workflowOrchestratorTask = task({
           nodeOutputs[nodeId] = result;
 
           // Save back output image to Workflow nodes in DB for UI visibility
-          const updatedNodes = nodes.map((n) =>
+          nodes = nodes.map((n) =>
             n.id === nodeId ? { ...n, data: { ...n.data, outputImage: result.url } } : n
           );
           await db.workflow.update({
             where: { id: workflow.id },
-            data: { nodes: updatedNodes },
+            data: { nodes: nodes },
           });
         } else {
           throw new Error((taskRun as any).error?.message || "Crop Image task failed");
         }
-      } else if (node.type === "gemini") {
+      } else if (
+        node.type === "gemini" ||
+        node.type === "textNode" ||
+        node.type === "imageNode" ||
+        node.type === "videoNode" ||
+        node.type === "audioNode"
+      ) {
         const taskRun = await geminiTask.triggerAndWait({
           nodeRunId: nodeRun.id,
-          model: node.data.model || "Gemini 3.1 Pro",
+          model: GEMINI_MODEL_CONFIG.modelId,
+          nodeType: node.type,
           prompt: inputs.prompt,
           systemPrompt: inputs.systemPrompt,
           images: inputs.images,
@@ -186,15 +225,15 @@ export const workflowOrchestratorTask = task({
           nodeOutputs[nodeId] = result;
 
           // Save back Gemini response text to Workflow nodes in DB for UI visibility
-          const updatedNodes = nodes.map((n) =>
+          nodes = nodes.map((n) =>
             n.id === nodeId ? { ...n, data: { ...n.data, response: result.response } } : n
           );
           await db.workflow.update({
             where: { id: workflow.id },
-            data: { nodes: updatedNodes },
+            data: { nodes: nodes },
           });
         } else {
-          throw new Error((taskRun as any).error?.message || "Gemini task failed");
+          throw new Error((taskRun as any).error?.message || `${node.type} task failed`);
         }
       }
 
@@ -232,7 +271,13 @@ export const workflowOrchestratorTask = task({
                 val = field?.value || "";
               } else if (srcNode.type === "cropImage") {
                 val = srcNode.data.outputImage || "";
-              } else if (srcNode.type === "gemini") {
+              } else if (
+                srcNode.type === "gemini" ||
+                srcNode.type === "textNode" ||
+                srcNode.type === "imageNode" ||
+                srcNode.type === "videoNode" ||
+                srcNode.type === "audioNode"
+              ) {
                 val = srcNode.data.response || "";
               }
             }
@@ -244,6 +289,18 @@ export const workflowOrchestratorTask = task({
             } else if (srcNode.type === "cropImage") {
               label = "Crop Image Output";
               type = "image";
+            } else if (srcNode.type === "textNode") {
+              label = "Text Output";
+              type = "text";
+            } else if (srcNode.type === "imageNode") {
+              label = "Image Output";
+              type = "image";
+            } else if (srcNode.type === "videoNode") {
+              label = "Video Output";
+              type = "video";
+            } else if (srcNode.type === "audioNode") {
+              label = "Audio Output";
+              type = "audio";
             } else if (srcNode.type === "gemini") {
               label = `${srcNode.data.model || "Gemini"} Response`;
               type = "text";
@@ -261,12 +318,12 @@ export const workflowOrchestratorTask = task({
         });
 
         // Save Response results to Workflow nodes in DB for UI visibility
-        const updatedNodes = nodes.map((n) =>
+        nodes = nodes.map((n) =>
           n.id === responseNode.id ? { ...n, data: { ...n.data, results: finalResults } } : n
         );
         await db.workflow.update({
           where: { id: workflow.id },
-          data: { nodes: updatedNodes },
+          data: { nodes: nodes },
         });
 
         // Update the Response NodeRun
