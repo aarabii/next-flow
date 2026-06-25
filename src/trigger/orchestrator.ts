@@ -253,7 +253,13 @@ export const workflowOrchestratorTask = task({
         node.type === "videoNode" ||
         node.type === "audioNode"
       ) {
-        const nodeModel = (node.data as { model?: string }).model || GEMINI_MODEL_CONFIG.modelId;
+        let defaultModelId = "";
+        if (node.type === "textNode") defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
+        else if (node.type === "imageNode") defaultModelId = GEMINI_MODEL_CONFIG.imageNode.defaultModelId;
+        else if (node.type === "videoNode") defaultModelId = GEMINI_MODEL_CONFIG.videoNode.defaultModelId;
+        else if (node.type === "audioNode") defaultModelId = GEMINI_MODEL_CONFIG.audioNode.defaultModelId;
+
+        const nodeModel = (node.data as { model?: string }).model || defaultModelId;
         await geminiTask.trigger({
           nodeRunId: nodeRun.id,
           model: inputs.model || nodeModel,
