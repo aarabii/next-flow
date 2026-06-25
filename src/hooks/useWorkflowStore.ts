@@ -13,7 +13,6 @@ import { WorkflowState } from "@/types/store.type";
 import {
   RequestInputField,
   CropImageNodeData,
-  GeminiNodeData,
   TextNodeData,
   ImageNodeData,
   VideoNodeData,
@@ -129,20 +128,6 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         inputImage: "",
         outputImage: "",
       } as CropImageNodeData;
-    } else if (nodeType === "gemini") {
-      data = {
-        model: "Gemini 3 Flash Preview",
-        prompt: "",
-        promptEnabled: true,
-        systemPrompt: "",
-        images: [],
-        video: "",
-        audio: "",
-        response: "",
-        temperature: 1.0,
-        topP: 0.95,
-        maxTokens: 2048,
-      } as GeminiNodeData;
     } else if (nodeType === "textNode") {
       data = {
         prompt: "",
