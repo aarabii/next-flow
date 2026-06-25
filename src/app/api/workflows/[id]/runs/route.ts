@@ -1,0 +1,65 @@
+import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { db } from "@/lib/prisma";
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: workflowId } = await params;
+
+    const runs = await db.workflowRun.findMany({
+      where: {
+        workflowId,
+        userId: user.id,
+      },
+      include: {
+        nodeRuns: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const formattedRuns = runs.map((run, index, arr) => {
+      const runNumber = arr.length - index;
+      return {
+        id: run.id,
+        runNumber,
+        status: run.status,
+        createdAt: run.createdAt.toLocaleString(),
+        createdAtIso: run.createdAt.toISOString(),
+        startedAtIso: run.startedAt ? run.startedAt.toISOString() : null,
+        duration: run.duration ? Math.round(run.duration * 10) / 10 : 0,
+        scope: run.scope,
+        targetNodes: run.targetNodes,
+        nodeRuns: run.nodeRuns.map((nr) => ({
+          id: nr.id,
+          nodeId: nr.nodeId,
+          nodeLabel: nr.nodeLabel,
+          nodeType: nr.nodeType,
+          status: nr.status,
+          duration: nr.duration ? Math.round(nr.duration * 10) / 10 : 0,
+          inputs: nr.inputs,
+          output: nr.output,
+          error: nr.error,
+          startedAtIso: nr.startedAt ? nr.startedAt.toISOString() : null,
+        })),
+      };
+    });
+
+    return NextResponse.json(formattedRuns);
+  } catch (error: any) {
+    console.error("GET /api/workflows/[id]/runs error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch runs history" },
+      { status: 500 }
+    );
+  }
+}
