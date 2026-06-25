@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react";
 import { SystemFlowCard } from "./_components/SystemFlowCard";
-import { SearchBar } from "./_components/SearchBar";
-import { UserFlowCard } from "./_components/UserFlowCard";
+import { UserWorkflowsContainer } from "./_components/UserWorkflowsContainer";
 import { ImportButton } from "./_components/ImportButton";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
@@ -45,6 +44,7 @@ export default async function DashboardPage() {
     href: `/workflows/${w.id}`,
     editedAt: timeAgo(w.updatedAt),
     gradient: GRADIENTS[idx % GRADIENTS.length],
+    backgroundImage: w.backgroundImage,
   }));
 
   return (
@@ -97,18 +97,7 @@ export default async function DashboardPage() {
 
       {/* User Workflows Section */}
       <div className="mt-space-09">
-        <div className="flex flex-col gap-space-04 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-body text-text-primary font-medium">
-              Your Workflows
-            </div>
-            <div className="text-small text-text-secondary">
-              Open one to edit, run, and review history.
-            </div>
-          </div>
-          <SearchBar />
-        </div>
-        <UserFlowCard initialWorkflows={workflows} />
+        <UserWorkflowsContainer initialWorkflows={workflows} />
       </div>
     </div>
   );

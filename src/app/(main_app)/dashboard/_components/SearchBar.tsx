@@ -1,6 +1,11 @@
 import { Search } from "lucide-react";
 
-export const SearchBar = () => {
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export const SearchBar = ({ value, onChange }: SearchBarProps) => {
   return (
     <div className="relative w-full sm:w-66">
       <Search
@@ -9,9 +14,12 @@ export const SearchBar = () => {
       />
       <input
         placeholder="Search workflows..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="h-10 w-full rounded-radius-xl border border-width-xs border-boarder-tertiary bg-surface-main-background-2 pl-11 pr-space-04 text-body text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-boarder-secondary"
         type="text"
       />
     </div>
   );
 };
+

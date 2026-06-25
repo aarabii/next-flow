@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { checkAndSyncUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 
@@ -147,8 +148,11 @@ export async function getWorkflowRunsAction(workflowId: string) {
       runNumber,
       status: run.status as "SUCCESS" | "FAILED" | "PARTIAL" | "RUNNING",
       createdAt: run.createdAt.toLocaleString(),
+      createdAtIso: run.createdAt.toISOString(),
+      startedAtIso: run.startedAt ? run.startedAt.toISOString() : null,
       duration: run.duration ? Math.round(run.duration * 10) / 10 : 0,
       scope: run.scope as "FULL" | "PARTIAL" | "SINGLE",
+      targetNodes: run.targetNodes,
       nodeRuns: run.nodeRuns.map((nr) => ({
         id: nr.id,
         nodeId: nr.nodeId,
@@ -159,6 +163,7 @@ export async function getWorkflowRunsAction(workflowId: string) {
         inputs: nr.inputs,
         output: nr.output,
         error: nr.error,
+        startedAtIso: nr.startedAt ? nr.startedAt.toISOString() : null,
       })),
     };
   });
@@ -200,6 +205,24 @@ export async function getWorkflowAction(id: string) {
 
   return workflow;
 }
+
+export async function renameWorkflowAction(id: string, name: string) {
+  const user = await checkAndSyncUser();
+
+  await db.workflow.updateMany({
+    where: {
+      id,
+      userId: user.id,
+    },
+    data: {
+      name,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/workflows/${id}`);
+}
+
 
 
 

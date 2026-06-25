@@ -90,3 +90,20 @@ export async function importWorkflowAction(name: string, nodes: any[], edges: an
   redirect(`/workflows/${workflow.id}`);
 }
 
+export async function updateWorkflowBackgroundAction(id: string, backgroundImage: string) {
+  const user = await checkAndSyncUser();
+
+  await db.workflow.updateMany({
+    where: {
+      id,
+      userId: user.id,
+    },
+    data: {
+      backgroundImage,
+    },
+  });
+
+  revalidatePath("/dashboard");
+}
+
+

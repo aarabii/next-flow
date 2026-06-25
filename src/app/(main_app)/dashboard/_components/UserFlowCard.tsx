@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Search } from "lucide-react";
 import { WorkflowActionsDropdown } from "./WorkflowActionsDropdown";
-import { renameWorkflowAction, deleteWorkflowAction } from "../actions";
+import { renameWorkflowAction, deleteWorkflowAction, updateWorkflowBackgroundAction } from "../actions";
 
 interface UserWorkflow {
   id: string;
@@ -12,14 +13,18 @@ interface UserWorkflow {
   href: string;
   editedAt: string;
   gradient: string;
+  backgroundImage?: string | null;
 }
 
 interface UserFlowCardProps {
   initialWorkflows: UserWorkflow[];
+  workflows: UserWorkflow[];
 }
 
-export const UserFlowCard = ({ initialWorkflows }: UserFlowCardProps) => {
+export const UserFlowCard = ({ initialWorkflows, workflows }: UserFlowCardProps) => {
   const router = useRouter();
+  const [uploadingIds, setUploadingIds] = React.useState<Record<string, boolean>>({});
+  const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleRename = async (id: string, currentTitle: string) => {
     const newName = prompt("Rename workflow", currentTitle);
@@ -31,6 +36,39 @@ export const UserFlowCard = ({ initialWorkflows }: UserFlowCardProps) => {
   const handleDelete = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
       await deleteWorkflowAction(id);
+    }
+  };
+
+  const handleImageUpload = async (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        await updateWorkflowBackgroundAction(id, data.url);
+      }
+    } catch (err: any) {
+      alert(`Error uploading image: ${err.message}`);
+    } finally {
+      setUploadingIds((prev) => ({ ...prev, [id]: false }));
+      // Reset input value so same image can be uploaded again if needed
+      if (event.target) {
+        event.target.value = "";
+      }
     }
   };
 
@@ -48,18 +86,43 @@ export const UserFlowCard = ({ initialWorkflows }: UserFlowCardProps) => {
     );
   }
 
+  if (workflows.length === 0) {
+    return (
+      <div className="mt-space-06 flex flex-col items-center justify-center border border-dashed border-zinc-200 rounded-2xl py-12 px-4 text-center bg-zinc-50/20 max-w-xl">
+        <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 mb-3 border border-zinc-200/50">
+          <Search className="w-5 h-5" />
+        </div>
+        <div className="text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1">No matches found</div>
+        <p className="text-xs text-zinc-400 max-w-[280px]">
+          We couldn't find any workflows matching your search query.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-space-06 grid grid-cols-1 gap-space-07 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-      {initialWorkflows.map((workflow) => (
+      {workflows.map((workflow) => (
         <div key={workflow.id} className="group/card relative max-w-62 w-full">
           <div className="relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md bg-white">
             <Link
               className="block aspect-250/162 bg-surface-main-background-3 dark:bg-card relative bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[12px_12px] overflow-hidden"
               href={workflow.href}
             >
-              <div
-                className={`absolute inset-0 bg-linear-to-br ${workflow.gradient} opacity-50`}
-              />
+              {workflow.backgroundImage ? (
+                <>
+                  <img
+                    src={workflow.backgroundImage}
+                    alt={workflow.title}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/10 transition-opacity group-hover/card:bg-black/20" />
+                </>
+              ) : (
+                <div
+                  className={`absolute inset-0 bg-linear-to-br ${workflow.gradient} opacity-50`}
+                />
+              )}
 
               {/* Premium abstract mini-workflow nodes placeholder */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-75">
@@ -161,14 +224,28 @@ export const UserFlowCard = ({ initialWorkflows }: UserFlowCardProps) => {
             <div className="relative">
               <button
                 type="button"
-                className="rounded-md bg-white/80 p-1 text-muted-foreground opacity-0 transition-all group-hover/card:opacity-100 hover:bg-white hover:text-foreground focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-black/50 dark:hover:bg-black/70 cursor-pointer"
+                onClick={() => fileInputRefs.current[workflow.id]?.click()}
+                disabled={uploadingIds[workflow.id]}
+                className="rounded-md bg-white/80 p-1 text-muted-foreground opacity-0 transition-all group-hover/card:opacity-100 hover:bg-white hover:text-foreground focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-black/50 dark:hover:bg-black/70 cursor-pointer flex items-center justify-center"
                 title="Change background image"
               >
-                <ImagePlus className="w-4 h-4" />
+                {uploadingIds[workflow.id] ? (
+                  <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ImagePlus className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
-          <input hidden accept="image/*" type="file" />
+          <input
+            ref={(el) => {
+              fileInputRefs.current[workflow.id] = el;
+            }}
+            hidden
+            accept="image/*"
+            type="file"
+            onChange={(e) => handleImageUpload(workflow.id, e)}
+          />
 
           {/* Right Action Button (Dropdown Menu) */}
           <div className="absolute right-2 top-2 z-10">

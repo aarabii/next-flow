@@ -24,7 +24,7 @@ import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "../_store/useWorkflowStore";
-import { saveWorkflowAction, executeWorkflowAction, getWorkflowRunStatusAction, getWorkflowAction } from "../actions";
+import { saveWorkflowAction, executeWorkflowAction, getWorkflowRunStatusAction, getWorkflowAction, renameWorkflowAction } from "../actions";
 
 // Declare custom node types outside the component to avoid re-renders
 const nodeTypes = {
@@ -64,6 +64,28 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [localName, setLocalName] = React.useState(workflowName);
+
+  React.useEffect(() => {
+    setLocalName(workflowName);
+  }, [workflowName]);
+
+  const handleRename = async () => {
+    if (!localName.trim() || localName.trim() === workflowName) {
+      setIsEditingName(false);
+      setLocalName(workflowName);
+      return;
+    }
+    try {
+      await renameWorkflowAction(workflowId, localName.trim());
+      setIsEditingName(false);
+    } catch (err: any) {
+      alert(`Failed to rename workflow: ${err.message}`);
+      setLocalName(workflowName);
+      setIsEditingName(false);
+    }
+  };
 
   const handleRunWorkflow = React.useCallback(async (scope: "FULL" | "PARTIAL" | "SINGLE", targetNodeIds?: string[]) => {
     try {
@@ -449,7 +471,32 @@ export function WorkflowCanvas({ workflowId, workflowName, initialNodes, initial
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-700">Workflow</span>
           <span className="text-zinc-300">/</span>
-          <span className="text-sm font-semibold text-zinc-800">{workflowName}</span>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              onBlur={handleRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleRename();
+                } else if (e.key === "Escape") {
+                  setIsEditingName(false);
+                  setLocalName(workflowName);
+                }
+              }}
+              className="text-sm font-semibold text-zinc-800 px-2 py-0.5 border border-purple-500 rounded-md outline-hidden bg-white w-48 focus:ring-2 focus:ring-purple-500/20"
+              autoFocus
+            />
+          ) : (
+            <span
+              onDoubleClick={() => setIsEditingName(true)}
+              className="text-sm font-semibold text-zinc-800 cursor-pointer select-none hover:text-purple-600 transition-colors"
+              title="Double click to rename"
+            >
+              {localName}
+            </span>
+          )}
           <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40">{workflowId}</span>
         </div>
         <div className="flex items-center gap-2">
