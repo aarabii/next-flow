@@ -153,6 +153,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
+        aspectRatio: "1:1",
       } as ImageNodeData;
     } else if (nodeType === "videoNode") {
       data = {
