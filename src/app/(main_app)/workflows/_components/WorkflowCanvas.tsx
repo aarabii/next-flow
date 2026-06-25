@@ -3,10 +3,8 @@
 import * as React from "react";
 import {
   ReactFlow,
-  Background,
   Controls,
   MiniMap,
-  BackgroundVariant,
   type Node,
   type Edge,
   type Connection,
@@ -20,6 +18,7 @@ import { Plus, Clock, Play, LayoutGrid, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
+import DotField from "@/components/DotField";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
@@ -831,12 +830,7 @@ export function WorkflowCanvas({
             edgesFocusable={!isSystem}
             deleteKeyCode={isSystem ? null : ["Backspace", "Delete"]}
           >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={16}
-              size={1.5}
-              color="rgba(168, 85, 247, 0.12)"
-            />
+            <DotField />
             <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100">
               <ControlButton onClick={autoLayout} title="Auto Layout">
                 <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 hover:text-purple-600 transition-colors" />

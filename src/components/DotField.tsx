@@ -12,7 +12,7 @@ const DotField = memo(
   ({
     dotRadius = 1.5,
     dotSpacing = 16,
-    color = "rgba(168, 85, 247, 0.15)", // Premium subtle purple dot grid
+    color = "rgba(0, 0, 0, 0.15)",
     className = "",
     ...rest
   }: DotFieldProps) => {
