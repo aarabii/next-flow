@@ -63,7 +63,6 @@ export async function POST(
     let nodesToExecute = nodes.filter(
       (n) =>
         n.type === "cropImage" ||
-        n.type === "gemini" ||
         n.type === "textNode" ||
         n.type === "imageNode" ||
         n.type === "videoNode" ||
@@ -109,16 +108,13 @@ export async function POST(
           ? "Image Generation"
           : node.type === "videoNode"
           ? "Video Generation"
-          : node.type === "audioNode"
-          ? "Audio Generation"
-          : "Gemini LLM";
-      const nodeModel = (node.data as { model?: string }).model || "Gemini";
+          : "Audio Generation";
       await db.nodeRun.create({
         data: {
           workflowRunId: run.id,
           nodeId: node.id,
           nodeType: node.type || "",
-          nodeLabel: label === "Gemini LLM" ? `${nodeModel} LLM` : label,
+          nodeLabel: label,
           status: "PENDING",
         },
       });
