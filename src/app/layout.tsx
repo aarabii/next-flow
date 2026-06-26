@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
-import { Inter, Google_Sans_Flex, JetBrains_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,7 +10,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const googleSansFlex = Google_Sans_Flex({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-google-sans-flex",
@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${googleSansFlex.variable} ${jetBrainsMono.variable}`}
+      className={`${inter.variable} ${plusJakartaSans.variable} ${jetBrainsMono.variable}`}
     >
       <body className="antialiased">
         <ClerkProvider>{children}</ClerkProvider>

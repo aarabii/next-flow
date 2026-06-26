@@ -2,7 +2,10 @@ import { task, wait } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/prisma";
 import { cropImageTask } from "./cropImage";
 import { geminiTask } from "./gemini";
-import { GEMINI_MODEL_CONFIG, type WorkflowNodeType } from "../config/modelConfig";
+import {
+  GEMINI_MODEL_CONFIG,
+  type WorkflowNodeType,
+} from "../config/modelConfig";
 import { type Node, type Edge } from "@xyflow/react";
 import { Prisma } from "../../generated/prisma/client";
 import {
@@ -10,9 +13,6 @@ import {
   RequestInputNodeData,
   CropImageNodeData,
   TextNodeData,
-  ImageNodeData,
-  VideoNodeData,
-  AudioNodeData,
   ResponseResultItem,
 } from "@/types/node.type";
 
@@ -39,7 +39,12 @@ interface ResolvedInputs {
   [key: string]: unknown;
 }
 
-type NodeExecutionState = "PENDING" | "TRIGGERED" | "SUCCESS" | "FAILED" | "SKIPPED";
+type NodeExecutionState =
+  | "PENDING"
+  | "TRIGGERED"
+  | "SUCCESS"
+  | "FAILED"
+  | "SKIPPED";
 
 export const workflowOrchestratorTask = task({
   id: "workflow-orchestrator",
@@ -114,20 +119,40 @@ export const workflowOrchestratorTask = task({
         const config = GEMINI_MODEL_CONFIG[type];
         const data = node.data as TextNodeData;
         resolved.systemPrompt = data.systemPrompt || "";
-        resolved.temperature = data.temperature !== undefined ? Number(data.temperature) : config.defaultTemperature;
-        resolved.topP = data.topP !== undefined ? Number(data.topP) : config.defaultTopP;
-        resolved.maxTokens = data.maxTokens !== undefined ? Number(data.maxTokens) : config.defaultMaxTokens;
+        resolved.temperature =
+          data.temperature !== undefined
+            ? Number(data.temperature)
+            : config.defaultTemperature;
+        resolved.topP =
+          data.topP !== undefined ? Number(data.topP) : config.defaultTopP;
+        resolved.maxTokens =
+          data.maxTokens !== undefined
+            ? Number(data.maxTokens)
+            : config.defaultMaxTokens;
         resolved.model = data.model || config.defaultModelId;
         resolved.images = [];
         resolved.video = "";
         resolved.audio = "";
-        resolved.aspectRatio = (data as { aspectRatio?: string }).aspectRatio || "1:1";
+        resolved.aspectRatio =
+          (data as { aspectRatio?: string }).aspectRatio || "1:1";
 
-        const fieldsList = data.fields ? JSON.parse(JSON.stringify(data.fields)) as RequestInputField[] : [
-          { id: "prompt", type: "text_field" as const, label: "Prompt", value: data.prompt || "" },
-        ];
+        const fieldsList = data.fields
+          ? (JSON.parse(JSON.stringify(data.fields)) as RequestInputField[])
+          : [
+              {
+                id: "prompt",
+                type: "text_field" as const,
+                label: "Prompt",
+                value: data.prompt || "",
+              },
+            ];
         if (!data.fields && data.imageInput) {
-          fieldsList.push({ id: "image_input", type: "image_field" as const, label: "Input Image", value: data.imageInput });
+          fieldsList.push({
+            id: "image_input",
+            type: "image_field" as const,
+            label: "Input Image",
+            value: data.imageInput,
+          });
         }
         resolved.fieldsList = fieldsList;
       }
@@ -140,13 +165,14 @@ export const workflowOrchestratorTask = task({
 
         // Resolve value from the source node
         let sourceVal = "";
-        
+
         // If the source node was executed in this run, use its output. Otherwise, read from workflow node data.
         if (nodeOutputs[sourceId] !== undefined) {
           const out = nodeOutputs[sourceId];
           if (out && typeof out === "object") {
             const outObj = out as Record<string, unknown>;
-            sourceVal = (outObj.url as string) || (outObj.response as string) || "";
+            sourceVal =
+              (outObj.url as string) || (outObj.response as string) || "";
           } else {
             sourceVal = String(out || "");
           }
@@ -185,7 +211,9 @@ export const workflowOrchestratorTask = task({
           node.type === "videoNode" ||
           node.type === "audioNode"
         ) {
-          const fieldsList = resolved.fieldsList as RequestInputField[] | undefined;
+          const fieldsList = resolved.fieldsList as
+            | RequestInputField[]
+            | undefined;
           if (fieldsList) {
             const field = fieldsList.find((f) => f.id === targetHandle);
             if (field) {
@@ -193,7 +221,8 @@ export const workflowOrchestratorTask = task({
             }
           }
           if (targetHandle === "prompt") resolved.prompt = sourceVal;
-          if (targetHandle === "system" || targetHandle === "systemPrompt") resolved.systemPrompt = sourceVal;
+          if (targetHandle === "system" || targetHandle === "systemPrompt")
+            resolved.systemPrompt = sourceVal;
           if (targetHandle === "image_input") {
             resolved.imageInput = sourceVal;
             if (sourceVal) resolved.images.push(sourceVal);
@@ -208,7 +237,9 @@ export const workflowOrchestratorTask = task({
         node.type === "videoNode" ||
         node.type === "audioNode"
       ) {
-        const fieldsList = resolved.fieldsList as RequestInputField[] | undefined;
+        const fieldsList = resolved.fieldsList as
+          | RequestInputField[]
+          | undefined;
         if (fieldsList) {
           const prompts: string[] = [];
           for (const field of fieldsList) {
@@ -257,12 +288,17 @@ export const workflowOrchestratorTask = task({
         node.type === "audioNode"
       ) {
         let defaultModelId = "";
-        if (node.type === "textNode") defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
-        else if (node.type === "imageNode") defaultModelId = GEMINI_MODEL_CONFIG.imageNode.defaultModelId;
-        else if (node.type === "videoNode") defaultModelId = GEMINI_MODEL_CONFIG.videoNode.defaultModelId;
-        else if (node.type === "audioNode") defaultModelId = GEMINI_MODEL_CONFIG.audioNode.defaultModelId;
+        if (node.type === "textNode")
+          defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
+        else if (node.type === "imageNode")
+          defaultModelId = GEMINI_MODEL_CONFIG.imageNode.defaultModelId;
+        else if (node.type === "videoNode")
+          defaultModelId = GEMINI_MODEL_CONFIG.videoNode.defaultModelId;
+        else if (node.type === "audioNode")
+          defaultModelId = GEMINI_MODEL_CONFIG.audioNode.defaultModelId;
 
-        const nodeModel = (node.data as { model?: string }).model || defaultModelId;
+        const nodeModel =
+          (node.data as { model?: string }).model || defaultModelId;
         await geminiTask.trigger({
           nodeRunId: nodeRun.id,
           model: inputs.model || nodeModel,
@@ -298,7 +334,7 @@ export const workflowOrchestratorTask = task({
                   outputImage: outputObj.url,
                 },
               }
-            : n
+            : n,
         );
       } else if (
         node.type === "textNode" ||
@@ -316,7 +352,7 @@ export const workflowOrchestratorTask = task({
                   response: outputObj.response,
                 },
               }
-            : n
+            : n,
         );
       }
     };
@@ -332,9 +368,12 @@ export const workflowOrchestratorTask = task({
         const blockedNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
-          const executionDeps = deps.filter((depId) => executionNodeIds.includes(depId));
+          const executionDeps = deps.filter((depId) =>
+            executionNodeIds.includes(depId),
+          );
           return executionDeps.some(
-            (depId) => nodeState[depId] === "FAILED" || nodeState[depId] === "SKIPPED"
+            (depId) =>
+              nodeState[depId] === "FAILED" || nodeState[depId] === "SKIPPED",
           );
         });
 
@@ -355,7 +394,9 @@ export const workflowOrchestratorTask = task({
           const deps = getUpstreamDependencies(nodeId);
           // Only check dependencies that are within our execution scope.
           // Dependencies outside scope (e.g. requestInput) are already satisfied.
-          const executionDeps = deps.filter((depId) => executionNodeIds.includes(depId));
+          const executionDeps = deps.filter((depId) =>
+            executionNodeIds.includes(depId),
+          );
           return executionDeps.every((depId) => nodeState[depId] === "SUCCESS");
         });
 
@@ -370,16 +411,18 @@ export const workflowOrchestratorTask = task({
           (nodeId) =>
             nodeState[nodeId] === "SUCCESS" ||
             nodeState[nodeId] === "FAILED" ||
-            nodeState[nodeId] === "SKIPPED"
+            nodeState[nodeId] === "SKIPPED",
         );
         if (allDone) break;
 
         // 5. Deadlock safety: no in-flight and no ready nodes but not all done
         const hasInFlight = executionNodeIds.some(
-          (nodeId) => nodeState[nodeId] === "TRIGGERED"
+          (nodeId) => nodeState[nodeId] === "TRIGGERED",
         );
         if (!hasInFlight && readyNodes.length === 0) {
-          console.error("Orchestrator deadlock detected — breaking execution loop");
+          console.error(
+            "Orchestrator deadlock detected — breaking execution loop",
+          );
           break;
         }
 
@@ -397,11 +440,17 @@ export const workflowOrchestratorTask = task({
           for (const nr of latestNodeRuns) {
             if (!executionNodeIds.includes(nr.nodeId)) continue;
 
-            if (nr.status === "SUCCESS" && nodeState[nr.nodeId] === "TRIGGERED") {
+            if (
+              nr.status === "SUCCESS" &&
+              nodeState[nr.nodeId] === "TRIGGERED"
+            ) {
               processCompletedNode(nr.nodeId, nr.output);
               nodeState[nr.nodeId] = "SUCCESS";
               nodesUpdated = true;
-            } else if (nr.status === "FAILED" && nodeState[nr.nodeId] === "TRIGGERED") {
+            } else if (
+              nr.status === "FAILED" &&
+              nodeState[nr.nodeId] === "TRIGGERED"
+            ) {
               nodeState[nr.nodeId] = "FAILED";
               nodesUpdated = true;
             }
@@ -422,7 +471,9 @@ export const workflowOrchestratorTask = task({
       // 4. Update the Response node's output results dynamically at the end
       const responseNode = nodes.find((n) => n.type === "response");
       if (responseNode) {
-        const incomingToResponse = edges.filter((edge) => edge.target === responseNode.id);
+        const incomingToResponse = edges.filter(
+          (edge) => edge.target === responseNode.id,
+        );
         const finalResults = incomingToResponse.map((edge) => {
           const srcNode = nodes.find((n) => n.id === edge.source);
           let label = srcNode?.id || "Source Node";
@@ -434,14 +485,17 @@ export const workflowOrchestratorTask = task({
               const out = nodeOutputs[srcNode.id];
               if (out && typeof out === "object") {
                 const outObj = out as Record<string, unknown>;
-                val = (outObj.url as string) || (outObj.response as string) || "";
+                val =
+                  (outObj.url as string) || (outObj.response as string) || "";
               } else {
                 val = String(out || "");
               }
             } else {
               if (srcNode.type === "requestInput") {
                 const srcData = srcNode.data as RequestInputNodeData;
-                const field = srcData.fields?.find((f) => f.id === edge.sourceHandle);
+                const field = srcData.fields?.find(
+                  (f) => f.id === edge.sourceHandle,
+                );
                 val = field?.value || "";
               } else if (srcNode.type === "cropImage") {
                 const srcData = srcNode.data as CropImageNodeData;
@@ -459,7 +513,9 @@ export const workflowOrchestratorTask = task({
 
             if (srcNode.type === "requestInput") {
               const srcData = srcNode.data as RequestInputNodeData;
-              const field = srcData.fields?.find((f) => f.id === edge.sourceHandle);
+              const field = srcData.fields?.find(
+                (f) => f.id === edge.sourceHandle,
+              );
               label = field?.label || "Input Field";
               if (field?.type === "image_field") {
                 type = "image";
@@ -508,7 +564,7 @@ export const workflowOrchestratorTask = task({
                   results: finalResults,
                 },
               }
-            : n
+            : n,
         );
         await db.workflow.update({
           where: { id: workflow.id },
@@ -516,13 +572,17 @@ export const workflowOrchestratorTask = task({
         });
 
         // Update the Response NodeRun
-        const respNodeRun = nodeRuns.find((nr) => nr.nodeId === responseNode.id);
+        const respNodeRun = nodeRuns.find(
+          (nr) => nr.nodeId === responseNode.id,
+        );
         if (respNodeRun) {
           await db.nodeRun.update({
             where: { id: respNodeRun.id },
             data: {
               status: "SUCCESS",
-              output: { results: finalResults } as unknown as Prisma.InputJsonValue,
+              output: {
+                results: finalResults,
+              } as unknown as Prisma.InputJsonValue,
               completedAt: new Date(),
             },
           });
@@ -534,9 +594,17 @@ export const workflowOrchestratorTask = task({
       const runDuration = (endTime.getTime() - runStartTime.getTime()) / 1000;
 
       // Determine final status: if any node failed, mark as FAILED
-      const hasFailed = executionNodeIds.some((nodeId) => nodeState[nodeId] === "FAILED");
-      const hasSkipped = executionNodeIds.some((nodeId) => nodeState[nodeId] === "SKIPPED");
-      const finalStatus = hasFailed ? "FAILED" : hasSkipped ? "PARTIAL" : "SUCCESS";
+      const hasFailed = executionNodeIds.some(
+        (nodeId) => nodeState[nodeId] === "FAILED",
+      );
+      const hasSkipped = executionNodeIds.some(
+        (nodeId) => nodeState[nodeId] === "SKIPPED",
+      );
+      const finalStatus = hasFailed
+        ? "FAILED"
+        : hasSkipped
+          ? "PARTIAL"
+          : "SUCCESS";
 
       await db.workflowRun.update({
         where: { id: workflowRunId },
