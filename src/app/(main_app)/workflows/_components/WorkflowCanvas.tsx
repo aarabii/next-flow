@@ -80,6 +80,7 @@ export function WorkflowCanvas({
     resetStore,
     initializeWorkflow,
     setNodes,
+    setEdges,
     past,
     future,
     takeSnapshot,
@@ -426,6 +427,51 @@ export function WorkflowCanvas({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [undo, redo]);
+
+  // Keyboard shortcut to delete selected nodes or edges on Backspace or Delete press
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Backspace" || e.key === "Delete") {
+        const target = e.target;
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable)
+        ) {
+          return;
+        }
+
+        const selectedNodes = nodes.filter((n) => n.selected);
+        const selectedEdges = edges.filter((e) => e.selected);
+
+        if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+          e.preventDefault();
+          takeSnapshot();
+
+          const deletableNodes = selectedNodes.filter(
+            (n) => n.id !== "request_inputs" && n.id !== "response"
+          );
+          const deletableNodeIds = deletableNodes.map((n) => n.id);
+          const selectedEdgeIds = selectedEdges.map((e) => e.id);
+
+          if (deletableNodeIds.length > 0 || selectedEdgeIds.length > 0) {
+            setNodes((nds: Node[]) => nds.filter((n) => !deletableNodeIds.includes(n.id)));
+            setEdges((eds: Edge[]) => eds.filter(
+              (edge: Edge) =>
+                !deletableNodeIds.includes(edge.source) &&
+                !deletableNodeIds.includes(edge.target) &&
+                !selectedEdgeIds.includes(edge.id)
+            ));
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [nodes, edges, setNodes, setEdges, takeSnapshot]);
 
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
@@ -885,7 +931,7 @@ export function WorkflowCanvas({
             nodesDraggable={!isSystem}
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
-            deleteKeyCode={isSystem ? null : ["Backspace", "Delete"]}
+            deleteKeyCode={null}
           >
             <DotField />
             <Controls className="!bg-white !border-zinc-200 !shadow-md !rounded-lg overflow-hidden [&_button]:!border-b-zinc-100">

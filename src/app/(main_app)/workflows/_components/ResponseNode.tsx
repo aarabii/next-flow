@@ -80,7 +80,7 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
             <p className="text-xs text-zinc-400">Connect output nodes to collect results here</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 max-h-[360px] overflow-y-auto pr-1">
             {results.map((item) => {
               const type = detectType(item);
               return (

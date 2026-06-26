@@ -282,7 +282,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                       Node Executions
                     </span>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto pr-1">
                       {run.nodeRuns.map((node) => (
                         <div
                           key={node.id}
@@ -346,7 +346,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
 
                                 return (
                                   <div className="flex flex-col gap-1.5 mt-1 bg-white border border-zinc-200/60 rounded-lg p-2 shadow-3xs">
-                                    <div className="text-[10px] text-zinc-500 font-mono max-h-16 overflow-y-auto break-all whitespace-pre-wrap select-all">
+                                    <div className="text-[10px] text-zinc-500 font-mono max-h-36 overflow-y-auto break-all whitespace-pre-wrap select-all pr-1">
                                       {value}
                                     </div>
                                     <div className="flex justify-end gap-1.5 border-t border-zinc-100 pt-1.5">
@@ -386,7 +386,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
 
                             {/* Error display if failed */}
                             {node.status === "FAILED" && node.error && (
-                              <div className="bg-red-50/50 border border-red-100 rounded-md p-1.5 mt-0.5 text-[10px] text-red-500 leading-relaxed">
+                              <div className="bg-red-50/50 border border-red-100 rounded-md p-1.5 mt-0.5 text-[10px] text-red-500 leading-relaxed max-h-24 overflow-y-auto break-all pr-1">
                                 {node.error}
                               </div>
                             )}

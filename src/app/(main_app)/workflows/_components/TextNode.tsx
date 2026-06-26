@@ -200,7 +200,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
           Output Text
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[60px] text-xs text-zinc-600">
+        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[60px] max-h-[200px] overflow-y-auto text-xs text-zinc-600 pr-1">
           {response ? (
             <div className="whitespace-pre-wrap">
               <ReactMarkdown>{response}</ReactMarkdown>
