@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+import { CandidateLogger } from "@/components/CandidateLogger";
 
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
@@ -38,7 +39,10 @@ export default function RootLayout({
       className={`${inter.variable} ${plusJakartaSans.variable} ${jetBrainsMono.variable}`}
     >
       <body className="antialiased">
-        <ClerkProvider>{children}</ClerkProvider>
+        <ClerkProvider>
+          <CandidateLogger />
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );
