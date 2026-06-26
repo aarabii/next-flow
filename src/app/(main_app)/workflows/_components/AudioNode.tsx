@@ -18,12 +18,15 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
   const response = data.response || "";
 
   const model = data.model || GEMINI_MODEL_CONFIG.audioNode.defaultModelId;
-  const temperature = data.temperature ?? GEMINI_MODEL_CONFIG.audioNode.defaultTemperature;
+  const temperature =
+    data.temperature ?? GEMINI_MODEL_CONFIG.audioNode.defaultTemperature;
   const topP = data.topP ?? GEMINI_MODEL_CONFIG.audioNode.defaultTopP;
-  const maxTokens = data.maxTokens ?? GEMINI_MODEL_CONFIG.audioNode.defaultMaxTokens;
+  const maxTokens =
+    data.maxTokens ?? GEMINI_MODEL_CONFIG.audioNode.defaultMaxTokens;
 
   const selectedModelName =
-    GEMINI_MODEL_CONFIG.audioNode.models.find((m) => m.id === model)?.name || model;
+    GEMINI_MODEL_CONFIG.audioNode.models.find((m) => m.id === model)?.name ||
+    model;
 
   const connectedInputs = data.connectedInputs || [];
   const isConnected = (handleId: string) => connectedInputs.includes(handleId);
@@ -37,7 +40,6 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
   const onRunNode = data.onRunNode;
   const running = data.running;
 
-  // Backward-compatible fields setup
   const fields = React.useMemo<RequestInputField[]>(() => {
     if (data.fields) return data.fields;
     return [
@@ -45,17 +47,24 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
     ];
   }, [data.fields, prompt]);
 
-  const handleValueChange = (fieldId: string, value: string, fileName?: string) => {
+  const handleValueChange = (
+    fieldId: string,
+    value: string,
+    fileName?: string,
+  ) => {
     const updated = fields.map((f) =>
-      f.id === fieldId ? { ...f, value, fileName } : f
+      f.id === fieldId ? { ...f, value, fileName } : f,
     );
     updateData({ fields: updated });
   };
 
-  const handleAddField = (type: "text_field" | "image_field" | "video_field" | "audio_field") => {
+  const handleAddField = (
+    type: "text_field" | "image_field" | "video_field" | "audio_field",
+  ) => {
+    // eslint-disable-next-line react-hooks/purity
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
-    
+
     let label = "Text Field";
     if (type === "image_field") label = "Image Field";
     if (type === "video_field") label = "Video Field";
@@ -79,8 +88,9 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
     updateData({ fields: updated });
   };
 
-  // Validation: at least one field must have a value or be connected
-  const isValid = fields.some((f) => f.value.trim() !== "" || isConnected(f.id));
+  const isValid = fields.some(
+    (f) => f.value.trim() !== "" || isConnected(f.id),
+  );
 
   return (
     <NodeWrapper
@@ -134,13 +144,12 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
         </>
       )}
     >
-      {/* System Prompt (Required) */}
       <div className="relative flex flex-col gap-1.5">
         <Handle
           type="target"
           position={Position.Left}
           id="systemPrompt"
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-ml-1.5"
+          className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -ml-1.5!"
         />
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -157,12 +166,11 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           }
           className={cn(
             "w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-16 text-zinc-700 bg-zinc-50/20",
-            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic"
+            isConnected("systemPrompt") && "bg-zinc-50 text-zinc-400 italic",
           )}
         />
       </div>
 
-      {/* Dynamic Fields */}
       <DynamicFieldsList
         fields={fields}
         isConnected={isConnected}
@@ -170,7 +178,6 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
         onDeleteField={handleDeleteField}
       />
 
-      {/* Collapsible Settings */}
       <NodeSettings
         temperature={temperature}
         topP={topP}
@@ -180,17 +187,16 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
         onChange={(updates) => updateData(updates)}
       />
 
-      {/* Output Audio Section */}
       <div className="border-t border-zinc-100 pt-3 relative flex flex-col gap-1.5">
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
           Output Audio
         </span>
 
-        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[80px] flex items-center justify-center text-xs text-zinc-600">
+        <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-20 flex items-center justify-center text-xs text-zinc-600">
           {response ? (
             <div className="border border-zinc-200 rounded-lg p-2.5 bg-white flex items-center gap-2 w-full">
-              <MusicIcon className="w-5 h-5 text-rose-500 flex-shrink-0" />
+              <MusicIcon className="w-5 h-5 text-rose-500 shrink-0" />
               <span className="font-semibold text-[11px] text-zinc-700 truncate flex-1 font-mono">
                 {response.split("/").pop() || "Audio output"}
               </span>
@@ -204,7 +210,7 @@ export function AudioNode({ id, data }: NodeProps<Node<AudioNodeData>>) {
           type="source"
           position={Position.Right}
           id="response"
-          className="!w-3 !h-3 !bg-rose-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
+          className="w-3! h-3! bg-rose-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5!"
         />
       </div>
     </NodeWrapper>

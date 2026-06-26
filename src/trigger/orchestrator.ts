@@ -52,7 +52,6 @@ export const workflowOrchestratorTask = task({
     const { workflowRunId } = payload;
     const runStartTime = new Date();
 
-    // 1. Fetch WorkflowRun and Workflow
     const workflowRun = await db.workflowRun.findUnique({
       where: { id: workflowRunId },
       include: { workflow: true },
@@ -62,7 +61,6 @@ export const workflowOrchestratorTask = task({
       throw new Error(`WorkflowRun ${workflowRunId} not found`);
     }
 
-    // Set the actual processing start time (not the API call time)
     await db.workflowRun.update({
       where: { id: workflowRunId },
       data: { startedAt: runStartTime },
@@ -72,36 +70,30 @@ export const workflowOrchestratorTask = task({
     let nodes = workflow.nodes as unknown as Node[];
     const edges = workflow.edges as unknown as Edge[];
 
-    // 2. Fetch all NodeRun records created for this run
     const nodeRuns = await db.nodeRun.findMany({
       where: { workflowRunId },
     });
 
-    // We only execute nodes that are in PENDING status in the database
     const pendingNodeRuns = nodeRuns.filter((nr) => nr.status === "PENDING");
     const executionNodeIds = pendingNodeRuns.map((nr) => nr.nodeId);
 
     const nodeOutputs: { [nodeId: string]: unknown } = {};
 
-    // Track execution state for each node in this orchestrator
     const nodeState: { [nodeId: string]: NodeExecutionState } = {};
     for (const nodeId of executionNodeIds) {
       nodeState[nodeId] = "PENDING";
     }
 
-    // Helper to find upstream dependencies of a node
     const getUpstreamDependencies = (nodeId: string) => {
       return edges
         .filter((edge) => edge.target === nodeId)
         .map((edge) => edge.source);
     };
 
-    // Helper to resolve inputs for a node
     const resolveInputs = async (nodeId: string, node: Node) => {
       const incomingEdges = edges.filter((edge) => edge.target === nodeId);
       const resolved: ResolvedInputs = { images: [] };
 
-      // 1. Initialize with manual/configured node data values
       if (node.type === "cropImage") {
         const data = node.data as CropImageNodeData;
         resolved.x = data.x !== undefined ? Number(data.x) : 0;
@@ -157,16 +149,13 @@ export const workflowOrchestratorTask = task({
         resolved.fieldsList = fieldsList;
       }
 
-      // 2. Map connected inputs
       for (const edge of incomingEdges) {
         const sourceId = edge.source;
         const sourceHandle = edge.sourceHandle;
         const targetHandle = edge.targetHandle;
 
-        // Resolve value from the source node
         let sourceVal = "";
 
-        // If the source node was executed in this run, use its output. Otherwise, read from workflow node data.
         if (nodeOutputs[sourceId] !== undefined) {
           const out = nodeOutputs[sourceId];
           if (out && typeof out === "object") {
@@ -198,7 +187,6 @@ export const workflowOrchestratorTask = task({
           }
         }
 
-        // Apply resolved values to target handles
         if (node.type === "cropImage") {
           if (targetHandle === "inputImage") resolved.imageUrl = sourceVal;
           if (targetHandle === "x") resolved.x = Number(sourceVal);
@@ -230,7 +218,6 @@ export const workflowOrchestratorTask = task({
         }
       }
 
-      // 3. Compile prompt and media from fieldsList for textNode / imageNode / videoNode / audioNode
       if (
         node.type === "textNode" ||
         node.type === "imageNode" ||
@@ -262,14 +249,12 @@ export const workflowOrchestratorTask = task({
       return resolved;
     };
 
-    // Fire-and-forget: trigger a node's execution task without waiting
     const triggerNode = async (nodeId: string) => {
       const node = nodes.find((n) => n.id === nodeId);
       const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
 
       if (!node || !nodeRun) return;
 
-      // Resolve inputs from upstream outputs (already in nodeOutputs) or node data
       const inputs = await resolveInputs(nodeId, node);
 
       if (node.type === "cropImage") {
@@ -316,7 +301,6 @@ export const workflowOrchestratorTask = task({
       }
     };
 
-    // Process a completed node: store its output and update workflow nodes JSON
     const processCompletedNode = (nodeId: string, output: unknown) => {
       nodeOutputs[nodeId] = output;
 
@@ -358,13 +342,7 @@ export const workflowOrchestratorTask = task({
     };
 
     try {
-      // ========== MAIN FIRE-AND-POLL EXECUTION LOOP ==========
-      // Instead of sequential execution, we fire off all ready nodes in parallel
-      // and poll the database for completion, cascading to downstream nodes as
-      // their dependencies are satisfied.
-
       while (true) {
-        // 1. Skip blocked nodes: PENDING nodes with any FAILED or SKIPPED dependency
         const blockedNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
@@ -388,25 +366,21 @@ export const workflowOrchestratorTask = task({
           }
         }
 
-        // 2. Find ready nodes: PENDING with all execution-scope deps in SUCCESS
         const readyNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
-          // Only check dependencies that are within our execution scope.
-          // Dependencies outside scope (e.g. requestInput) are already satisfied.
+
           const executionDeps = deps.filter((depId) =>
             executionNodeIds.includes(depId),
           );
           return executionDeps.every((depId) => nodeState[depId] === "SUCCESS");
         });
 
-        // 3. Trigger all ready nodes (fire-and-forget)
         for (const nodeId of readyNodes) {
           await triggerNode(nodeId);
           nodeState[nodeId] = "TRIGGERED";
         }
 
-        // 4. Check if all nodes are done
         const allDone = executionNodeIds.every(
           (nodeId) =>
             nodeState[nodeId] === "SUCCESS" ||
@@ -415,7 +389,6 @@ export const workflowOrchestratorTask = task({
         );
         if (allDone) break;
 
-        // 5. Deadlock safety: no in-flight and no ready nodes but not all done
         const hasInFlight = executionNodeIds.some(
           (nodeId) => nodeState[nodeId] === "TRIGGERED",
         );
@@ -426,11 +399,9 @@ export const workflowOrchestratorTask = task({
           break;
         }
 
-        // 6. Wait (checkpoint-safe sleep) then poll DB for completion
         if (hasInFlight) {
           await wait.for({ seconds: 2 });
 
-          // 7. Poll DB for status updates on all NodeRun records
           const latestNodeRuns = await db.nodeRun.findMany({
             where: { workflowRunId },
           });
@@ -454,10 +425,8 @@ export const workflowOrchestratorTask = task({
               nodeState[nr.nodeId] = "FAILED";
               nodesUpdated = true;
             }
-            // If still RUNNING or PENDING in DB, keep waiting (next loop iteration)
           }
 
-          // 8. Batch update workflow nodes JSON if any nodes completed this cycle
           if (nodesUpdated) {
             await db.workflow.update({
               where: { id: workflow.id },
@@ -466,9 +435,7 @@ export const workflowOrchestratorTask = task({
           }
         }
       }
-      // ========== END FIRE-AND-POLL LOOP ==========
 
-      // 4. Update the Response node's output results dynamically at the end
       const responseNode = nodes.find((n) => n.type === "response");
       if (responseNode) {
         const incomingToResponse = edges.filter(
@@ -554,7 +521,6 @@ export const workflowOrchestratorTask = task({
           } as ResponseResultItem;
         });
 
-        // Save Response results to Workflow nodes in DB for UI visibility
         nodes = nodes.map((n) =>
           n.id === responseNode.id
             ? {
@@ -571,7 +537,6 @@ export const workflowOrchestratorTask = task({
           data: { nodes: nodes as unknown as Prisma.InputJsonValue },
         });
 
-        // Update the Response NodeRun
         const respNodeRun = nodeRuns.find(
           (nr) => nr.nodeId === responseNode.id,
         );
@@ -589,11 +554,9 @@ export const workflowOrchestratorTask = task({
         }
       }
 
-      // 5. Update WorkflowRun status
       const endTime = new Date();
       const runDuration = (endTime.getTime() - runStartTime.getTime()) / 1000;
 
-      // Determine final status: if any node failed, mark as FAILED
       const hasFailed = executionNodeIds.some(
         (nodeId) => nodeState[nodeId] === "FAILED",
       );

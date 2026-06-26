@@ -14,7 +14,7 @@ const UpdateWorkflowSchema = z.object({
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -32,23 +32,24 @@ export async function GET(
     });
 
     if (!workflow) {
-      return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(workflow);
   } catch (error) {
     console.error("GET /api/workflows/[id] error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch workflow";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch workflow";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -63,11 +64,10 @@ export async function PUT(
     if (!result.success) {
       return NextResponse.json(
         { error: "Invalid request payload", details: result.error.format() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Check ownership
     const existing = await db.workflow.findFirst({
       where: {
         id,
@@ -75,34 +75,43 @@ export async function PUT(
       },
     });
     if (!existing) {
-      return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 },
+      );
     }
 
     const updated = await db.workflow.update({
       where: { id },
       data: {
         ...(result.data.name !== undefined && { name: result.data.name }),
-        ...(result.data.description !== undefined && { description: result.data.description }),
-        ...(result.data.backgroundImage !== undefined && { backgroundImage: result.data.backgroundImage }),
-        ...(result.data.nodes !== undefined && { nodes: result.data.nodes as unknown as Prisma.InputJsonValue }),
-        ...(result.data.edges !== undefined && { edges: result.data.edges as unknown as Prisma.InputJsonValue }),
+        ...(result.data.description !== undefined && {
+          description: result.data.description,
+        }),
+        ...(result.data.backgroundImage !== undefined && {
+          backgroundImage: result.data.backgroundImage,
+        }),
+        ...(result.data.nodes !== undefined && {
+          nodes: result.data.nodes as unknown as Prisma.InputJsonValue,
+        }),
+        ...(result.data.edges !== undefined && {
+          edges: result.data.edges as unknown as Prisma.InputJsonValue,
+        }),
       },
     });
 
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT /api/workflows/[id] error:", error);
-    const message = error instanceof Error ? error.message : "Failed to update workflow";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to update workflow";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -119,7 +128,10 @@ export async function DELETE(
       },
     });
     if (!existing) {
-      return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 },
+      );
     }
 
     await db.workflow.delete({
@@ -129,10 +141,8 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("DELETE /api/workflows/[id] error:", error);
-    const message = error instanceof Error ? error.message : "Failed to delete workflow";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to delete workflow";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -2,13 +2,23 @@
 
 import * as React from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { Copy, Trash2, Check, MoreHorizontal, Video as VideoIcon, Music as MusicIcon } from "lucide-react";
+import {
+  Copy,
+  Trash2,
+  Check,
+  MoreHorizontal,
+  Video as VideoIcon,
+  Music as MusicIcon,
+} from "lucide-react";
 import { UploadButton } from "./UploadButton";
 import { cn } from "@/lib/utils";
 import { RequestInputNodeData, RequestInputField } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 
-export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeData>>) {
+export function RequestInputNode({
+  id,
+  data,
+}: NodeProps<Node<RequestInputNodeData>>) {
   const fields = data.fields || [
     { id: "text_field", type: "text_field", label: "Text Field", value: "" },
     { id: "image_field", type: "image_field", label: "Image Field", value: "" },
@@ -23,7 +33,10 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
     if (!showAddMenu) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as globalThis.Node)
+      ) {
         setShowAddMenu(false);
       }
     };
@@ -40,9 +53,13 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
     }
   };
 
-  const handleValueChange = (fieldId: string, value: string, fileName?: string) => {
+  const handleValueChange = (
+    fieldId: string,
+    value: string,
+    fileName?: string,
+  ) => {
     const updated = fields.map((f) =>
-      f.id === fieldId ? { ...f, value, fileName } : f
+      f.id === fieldId ? { ...f, value, fileName } : f,
     );
     updateFields(updated);
   };
@@ -54,15 +71,17 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
   };
 
   const handleDelete = (fieldId: string) => {
-    if (fields.length <= 1) return; // Must keep at least one field
+    if (fields.length <= 1) return;
     const updated = fields.filter((f) => f.id !== fieldId);
     updateFields(updated);
   };
 
-  const handleAddField = (type: "text_field" | "image_field" | "video_field" | "audio_field") => {
+  const handleAddField = (
+    type: "text_field" | "image_field" | "video_field" | "audio_field",
+  ) => {
     const timestamp = Date.now();
     const id = `${type}_${timestamp}`;
-    
+
     let label = "Text Field";
     if (type === "image_field") label = "Image Field";
     if (type === "video_field") label = "Video Field";
@@ -132,8 +151,10 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
       headerRightExtra={headerRightActions}
     >
       {fields.map((field) => (
-        <div key={field.id} className="relative flex flex-col gap-1.5 group/field">
-          {/* Field Header */}
+        <div
+          key={field.id}
+          className="relative flex flex-col gap-1.5 group/field"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
@@ -158,7 +179,7 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
                   className={cn(
                     "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
                     fields.length <= 1 &&
-                      "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400"
+                      "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
                   )}
                   title="Delete field"
                 >
@@ -168,7 +189,6 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
             </div>
           </div>
 
-          {/* Field Input Area */}
           {field.type === "text_field" ? (
             <textarea
               value={field.value}
@@ -181,9 +201,9 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
               {field.value ? (
                 <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    {/* Thumbnail preview */}
-                    <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                    <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
                       {field.type === "image_field" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={field.value}
                           alt="preview"
@@ -198,8 +218,13 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
                         <MusicIcon className="w-4 h-4 text-purple-500" />
                       )}
                     </div>
-                    <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[150px]">
-                      {field.fileName || (field.type === "image_field" ? "Uploaded Image" : field.type === "video_field" ? "Uploaded Video" : "Uploaded Audio")}
+                    <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
+                      {field.fileName ||
+                        (field.type === "image_field"
+                          ? "Uploaded Image"
+                          : field.type === "video_field"
+                            ? "Uploaded Video"
+                            : "Uploaded Audio")}
                     </span>
                   </div>
                   <button
@@ -212,7 +237,13 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
                 </div>
               ) : (
                 <UploadButton
-                  variant={field.type === "image_field" ? "image" : field.type === "video_field" ? "video" : "audio"}
+                  variant={
+                    field.type === "image_field"
+                      ? "image"
+                      : field.type === "video_field"
+                        ? "video"
+                        : "audio"
+                  }
                   onChange={(url, name) => {
                     handleValueChange(field.id, url, name);
                   }}
@@ -221,12 +252,11 @@ export function RequestInputNode({ id, data }: NodeProps<Node<RequestInputNodeDa
             </div>
           )}
 
-          {/* Handle on the right for connecting downstream */}
           <Handle
             type="source"
             position={Position.Right}
             id={field.id}
-            className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !rounded-full hover:!scale-125 !transition-transform !-mr-1.5"
+            className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5!"
           />
         </div>
       ))}

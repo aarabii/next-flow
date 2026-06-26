@@ -54,7 +54,6 @@ export default async function FlowsPage() {
 
   return (
     <div className="w-full pb-space-08 pl-15 pr-15 pt-space-08">
-      {/* Header */}
       <div className="flex flex-col gap-space-05 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex min-w-0 items-start gap-space-03">
@@ -74,7 +73,6 @@ export default async function FlowsPage() {
         </div>
       </div>
 
-      {/* User Workflows Section */}
       <div className="mt-space-09">
         <UserWorkflowsContainer initialWorkflows={workflows} />
       </div>

@@ -36,15 +36,20 @@ export function NodeSettings({
         className="w-full flex items-center justify-between text-xs font-semibold text-zinc-500 hover:text-zinc-700 cursor-pointer"
       >
         <span>Settings</span>
-        {settingsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        {settingsOpen ? (
+          <ChevronUp className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5" />
+        )}
       </button>
 
       {settingsOpen && (
         <div className="flex flex-col gap-3 mt-3 text-xs text-zinc-600 bg-zinc-50/40 p-2 rounded-lg border border-zinc-100">
-          {/* Model Selector Dropdown */}
           {models && model && (
             <div className="flex flex-col gap-1">
-              <span className="font-semibold text-[10px] text-zinc-500">Model</span>
+              <span className="font-semibold text-[10px] text-zinc-500">
+                Model
+              </span>
               <select
                 value={model}
                 onChange={(e) => onChange({ model: e.target.value })}
@@ -59,10 +64,11 @@ export function NodeSettings({
             </div>
           )}
 
-          {/* Aspect Ratio Selector (Optional) */}
           {aspectRatio !== undefined && (
             <div className="flex flex-col gap-1">
-              <span className="font-semibold text-[10px] text-zinc-500">Aspect Ratio</span>
+              <span className="font-semibold text-[10px] text-zinc-500">
+                Aspect Ratio
+              </span>
               <select
                 value={aspectRatio}
                 onChange={(e) => onChange({ aspectRatio: e.target.value })}
@@ -88,7 +94,9 @@ export function NodeSettings({
               max="2"
               step="0.1"
               value={temperature}
-              onChange={(e) => onChange({ temperature: parseFloat(e.target.value) })}
+              onChange={(e) =>
+                onChange({ temperature: parseFloat(e.target.value) })
+              }
               className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
             />
           </div>
@@ -114,7 +122,9 @@ export function NodeSettings({
             <input
               type="number"
               value={maxTokens}
-              onChange={(e) => onChange({ maxTokens: parseInt(e.target.value) || 1 })}
+              onChange={(e) =>
+                onChange({ maxTokens: parseInt(e.target.value) || 1 })
+              }
               className="w-16 p-1 border border-zinc-200 rounded text-right font-mono text-[11px] nodrag"
             />
           </div>

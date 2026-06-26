@@ -99,7 +99,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
           setRuns(runItems);
           setLoading(false);
 
-          // Poll every 1.5s if a run is running, otherwise every 3.5s
           const hasRunning = runItems.some((r) => r.status === "RUNNING");
           if (hasRunning) {
             timerId = setTimeout(fetchRuns, 1500);
@@ -166,25 +165,22 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
     switch (status) {
       case "SUCCESS":
         return (
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
         );
       case "FAILED":
-        return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />;
+        return <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />;
       case "RUNNING":
         return (
-          <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin flex-shrink-0" />
+          <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin shrink-0" />
         );
       case "SKIPPED":
       default:
-        return (
-          <AlertCircle className="w-3.5 h-3.5 text-zinc-300 flex-shrink-0" />
-        );
+        return <AlertCircle className="w-3.5 h-3.5 text-zinc-300 shrink-0" />;
     }
   };
 
   return (
     <div className="fixed top-16 right-0 w-80 h-[calc(100vh-64px)] bg-white border-l border-zinc-200 shadow-xl z-40 flex flex-col font-sans text-zinc-800 animate-in slide-in-from-right duration-200">
-      {/* Panel Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-zinc-50/50">
         <div className="flex items-center gap-1.5">
           <Clock className="w-4 h-4 text-purple-600" />
@@ -200,7 +196,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
         </button>
       </div>
 
-      {/* Runs List */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {loading && runs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -215,7 +210,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
             <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
               No Runs Yet
             </span>
-            <p className="text-xs text-zinc-400 max-w-[180px] mt-0.5">
+            <p className="text-xs text-zinc-400 max-w-45 mt-0.5">
               Run the workflow to see execution logs here
             </p>
           </div>
@@ -230,7 +225,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                   isExpanded && "border-purple-300/80 ring-2 ring-purple-100",
                 )}
               >
-                {/* Run Card Header (clickable to expand) */}
                 <button
                   onClick={() => toggleExpand(run.id)}
                   className="w-full text-left p-3.5 flex flex-col gap-2.5 hover:bg-zinc-50/30 cursor-pointer transition-colors"
@@ -238,7 +232,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                   <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <span
-                        className="text-xs font-bold text-zinc-700 block truncate max-w-[170px]"
+                        className="text-xs font-bold text-zinc-700 block truncate max-w-42"
                         title={run.id}
                       >
                         ID: {run.id.slice(0, 8)}...
@@ -276,7 +270,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                   </div>
                 </button>
 
-                {/* Expanded Node Runs Detail */}
                 {isExpanded && (
                   <div className="border-t border-zinc-100 bg-zinc-50/20 p-3.5 flex flex-col gap-3">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -303,7 +296,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                               >
                                 {node.nodeId || node.id}
                               </span>
-                              <span className="text-[10px] font-mono text-zinc-400 flex-shrink-0">
+                              <span className="text-[10px] font-mono text-zinc-400 shrink-0">
                                 {node.status === "SKIPPED"
                                   ? "-"
                                   : node.status === "RUNNING"
@@ -314,7 +307,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                               </span>
                             </div>
 
-                            {/* Inputs / Output Preview if successful */}
                             {node.status === "SUCCESS" &&
                               !!node.output &&
                               (() => {
@@ -384,7 +376,6 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                                 );
                               })()}
 
-                            {/* Error display if failed */}
                             {node.status === "FAILED" && node.error && (
                               <div className="bg-red-50/50 border border-red-100 rounded-md p-1.5 mt-0.5 text-[10px] text-red-500 leading-relaxed max-h-24 overflow-y-auto break-all pr-1">
                                 {node.error}
