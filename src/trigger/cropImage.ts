@@ -11,7 +11,13 @@ export interface CropImagePayload {
   height: number;
 }
 
-async function cropWithTransloadit(imageUrl: string, x: number, y: number, width: number, height: number): Promise<string> {
+async function cropWithTransloadit(
+  imageUrl: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): Promise<string> {
   const transloadit = new Transloadit({
     authKey: process.env.TRANSLOADIT_KEY || "",
     authSecret: process.env.TRANSLOADIT_SECRET || "",
@@ -40,18 +46,24 @@ async function cropWithTransloadit(imageUrl: string, x: number, y: number, width
     waitForCompletion: true,
   });
 
-  const url = status.results?.crop?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
+  const url =
+    status.results?.crop?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
   if (!url) throw new Error("Transloadit failed to return URL for crop");
   return url;
 }
 
 export const cropImageTask = task({
   id: "crop-image",
-  run: async (payload: CropImagePayload) => {
+  retry: {
+    maxAttempts: 3,
+    minTimeoutInMs: 2000,
+    maxTimeoutInMs: 10000,
+    factor: 2,
+  },
+  run: async (payload: CropImagePayload, { ctx }) => {
     const { nodeRunId, imageUrl, x, y, width, height } = payload;
     const startTime = new Date();
 
-    // 1. Update status to RUNNING
     await db.nodeRun.update({
       where: { id: nodeRunId },
       data: {
@@ -61,16 +73,21 @@ export const cropImageTask = task({
     });
 
     try {
-      // 2. 30+ second artificial delay (Mandatory Po.md constraint)
+      // 30s artificial delay
       await new Promise((resolve) => setTimeout(resolve, 31000));
 
       if (!imageUrl) {
         throw new Error("No input image URL provided");
       }
 
-      const outputImageUrl = await cropWithTransloadit(imageUrl, x, y, width, height);
+      const outputImageUrl = await cropWithTransloadit(
+        imageUrl,
+        x,
+        y,
+        width,
+        height,
+      );
 
-      // 3. Update status to SUCCESS
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
@@ -88,17 +105,31 @@ export const cropImageTask = task({
     } catch (error) {
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-      const message = error instanceof Error ? error.message : "An unknown error occurred during crop";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred during crop";
 
-      await db.nodeRun.update({
-        where: { id: nodeRunId },
-        data: {
-          status: "FAILED",
-          error: message,
-          completedAt: endTime,
-          duration,
-        },
-      });
+      const isLastAttempt = ctx.attempt.number >= (ctx.run.maxAttempts || 3);
+
+      if (isLastAttempt) {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            status: "FAILED",
+            error: message,
+            completedAt: endTime,
+            duration,
+          },
+        });
+      } else {
+        await db.nodeRun.update({
+          where: { id: nodeRunId },
+          data: {
+            error: `Attempt ${ctx.attempt.number} failed: ${message}. Retrying...`,
+          },
+        });
+      }
 
       throw error;
     }

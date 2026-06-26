@@ -10,12 +10,17 @@ export interface WorkflowState {
   onConnect: (connection: Connection) => void;
   onNodeDataChange: (nodeId: string, updatedData: Record<string, unknown>) => void;
   addNode: (
-    nodeType: "cropImage" | "gemini" | "textNode" | "imageNode" | "videoNode" | "audioNode"
+    nodeType: "cropImage" | "textNode" | "imageNode" | "videoNode" | "audioNode"
   ) => void;
   deleteEdge: (edgeId: string) => void;
   deleteNode: (nodeId: string) => void;
   resetStore: () => void;
   initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
+  past: { nodes: Node[]; edges: Edge[] }[];
+  future: { nodes: Node[]; edges: Edge[] }[];
+  takeSnapshot: () => void;
+  undo: () => void;
+  redo: () => void;
   lastRunOutputs: Record<string, unknown>;
   lastRunPrompts: Record<string, string>;
   setLastRunOutputs: (outputs: Record<string, unknown>) => void;

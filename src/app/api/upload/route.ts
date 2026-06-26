@@ -43,17 +43,20 @@ export async function POST(req: Request) {
 
     const status = await transloadit.createAssembly(options);
 
-    // Clean up temp file
     try {
       fs.unlinkSync(tempFilePath);
     } catch (e) {
       console.error("Failed to delete temp file:", e);
     }
 
-    const fileUrl = status.results?.store?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
+    const fileUrl =
+      status.results?.store?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
 
     if (!fileUrl) {
-      return NextResponse.json({ error: "Failed to get upload URL from Transloadit", status }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to get upload URL from Transloadit", status },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ url: fileUrl });

@@ -1,10 +1,20 @@
 export type WorkflowStatus = "IDLE" | "RUNNING" | "ERROR";
 
-export type WorkflowRunStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "PARTIAL";
+export type WorkflowRunStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "SUCCESS"
+  | "FAILED"
+  | "PARTIAL";
 
 export type WorkflowRunScope = "FULL" | "PARTIAL" | "SINGLE";
 
-export type NodeRunStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "SKIPPED";
+export type NodeRunStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "SUCCESS"
+  | "FAILED"
+  | "SKIPPED";
 
 export interface User {
   id: string;
@@ -23,8 +33,8 @@ export interface Workflow {
   description: string | null;
   backgroundImage: string | null;
   status: WorkflowStatus;
-  nodes: unknown; // Parsed as Node[] via Zod
-  edges: unknown; // Parsed as Edge[] via Zod
+  nodes: unknown;
+  edges: unknown;
   createdAt: Date;
   updatedAt: Date;
 }

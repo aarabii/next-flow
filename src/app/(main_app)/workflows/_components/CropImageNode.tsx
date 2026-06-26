@@ -8,7 +8,10 @@ import { CropImageNodeData } from "@/types/node.type";
 import { UploadButton } from "./UploadButton";
 import { NodeWrapper } from "./NodeWrapper";
 
-export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) {
+export function CropImageNode({
+  id,
+  data,
+}: NodeProps<Node<CropImageNodeData>>) {
   const x = data.x ?? 0;
   const y = data.y ?? 0;
   const width = data.width ?? 100;
@@ -36,10 +39,9 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
   const running = data.running ?? false;
   const onDeleteNode = data.onDeleteNode;
 
-  // Validation: input image must be present (or connected)
   const isValid = inputImage !== "" || isConnected("inputImage");
 
-  const headerRight = (
+  const headerRight = !data.isSystem && (
     <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600">
       <RotateCcw className="w-3.5 h-3.5" />
     </button>
@@ -56,7 +58,6 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
       onRunNode={onRunNode}
       onDeleteNode={onDeleteNode}
     >
-      {/* Input Image */}
       <div className="relative flex flex-col gap-1.5 group/field">
         <Handle
           type="target"
@@ -84,6 +85,7 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
             <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
               <div className="flex items-center gap-2 overflow-hidden">
                 <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={inputImage}
                     alt="input preview"
@@ -94,12 +96,18 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
                   Attached Image
                 </span>
               </div>
-              <button
-                onClick={() => updateData({ inputImage: "" })}
-                className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
-              >
-                Clear
-              </button>
+              {!data.isSystem && (
+                <button
+                  onClick={() => updateData({ inputImage: "" })}
+                  className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          ) : data.isSystem ? (
+            <div className="border border-dashed border-zinc-200 rounded-lg p-3 text-center bg-zinc-50/50 text-xs text-zinc-400">
+              Image source locked for system flow
             </div>
           ) : (
             <UploadButton
@@ -112,7 +120,6 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
         </div>
       </div>
 
-      {/* Sliders */}
       <div className="flex flex-col gap-3">
         {(
           [
@@ -159,8 +166,11 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
                   onChange={(e) =>
                     handleSliderChange(slider.id, parseInt(e.target.value))
                   }
-                  disabled={connected}
-                  className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag"
+                  disabled={connected || !!data.isSystem}
+                  className={cn(
+                    "w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-purple-500 nodrag",
+                    !!data.isSystem && "opacity-50 cursor-not-allowed",
+                  )}
                 />
               </div>
             </div>
@@ -168,10 +178,8 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
         })}
       </div>
 
-      {/* Horizontal Separator */}
       <div className="border-t border-zinc-100 my-1"></div>
 
-      {/* Output Section */}
       <div className="relative flex flex-col gap-1.5">
         <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -181,6 +189,7 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
         <div className="border border-zinc-100 rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-50/50 min-h-20">
           {outputImage ? (
             <div className="relative w-full h-20 rounded overflow-hidden border border-zinc-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={outputImage}
                 alt="output preview"
@@ -192,7 +201,6 @@ export function CropImageNode({ id, data }: NodeProps<Node<CropImageNodeData>>) 
           )}
         </div>
 
-        {/* Output Handle */}
         <Handle
           type="source"
           position={Position.Right}

@@ -105,7 +105,6 @@ export const Navigation = () => {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Heading / Logo */}
       <SidebarHeader className="border-b border-sidebar-border/50 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -122,7 +121,7 @@ export const Navigation = () => {
                 <>
                   <div className="flex items-center">
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <strong className="truncate font-semibold text-foreground">
+                      <strong className="truncate font-semibold text-foreground font-secondary">
                         NextFlow
                       </strong>
                       <span className="truncate text-xs text-muted-foreground">
@@ -138,7 +137,6 @@ export const Navigation = () => {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Content */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu className="gap-1 px-2 py-2">
@@ -206,7 +204,6 @@ export const Navigation = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer / User Profile */}
       <SidebarFooter className="border-t border-sidebar-border/50 p-2">
         <SidebarMenu>
           <SidebarMenuItem>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 
 export function ImportButton() {
   const router = useRouter();
@@ -36,7 +37,171 @@ export function ImportButton() {
             throw new Error("Missing or invalid 'nodes' array in JSON.");
           }
 
-          // Strip file extension to get default workflow name
+          let generationCount = 0;
+
+          const rawNodesList = parsed.nodes as Record<string, unknown>[];
+          const cleanedNodes = rawNodesList.map((node) => {
+            if (!node || typeof node !== "object") return node;
+
+            const cleanedNode = { ...node };
+
+            const rawPosition = cleanedNode.position as
+              | Record<string, unknown>
+              | undefined;
+            if (
+              !rawPosition ||
+              typeof rawPosition.x !== "number" ||
+              typeof rawPosition.y !== "number"
+            ) {
+              if (cleanedNode.type === "requestInput") {
+                cleanedNode.position = { x: 50, y: 150 };
+              } else if (cleanedNode.type === "response") {
+                cleanedNode.position = { x: 950, y: 250 };
+              } else {
+                cleanedNode.position = {
+                  x: 350 + (generationCount % 2) * 280,
+                  y: 150 + Math.floor(generationCount / 2) * 220,
+                };
+                generationCount++;
+              }
+            }
+
+            const data = {
+              ...((cleanedNode.data as Record<string, unknown>) || {}),
+            };
+            const type = cleanedNode.type as string;
+
+            if (type === "textNode") {
+              const config = GEMINI_MODEL_CONFIG.textNode;
+              data.model = data.model || config.defaultModelId;
+              data.temperature =
+                data.temperature !== undefined
+                  ? Number(data.temperature)
+                  : config.defaultTemperature;
+              data.topP =
+                data.topP !== undefined
+                  ? Number(data.topP)
+                  : config.defaultTopP;
+              data.maxTokens =
+                data.maxTokens !== undefined
+                  ? Number(data.maxTokens)
+                  : config.defaultMaxTokens;
+              data.systemPrompt =
+                data.systemPrompt !== undefined
+                  ? data.systemPrompt
+                  : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
+              if (!data.fields && !data.prompt) {
+                data.fields = [
+                  {
+                    id: "prompt",
+                    type: "text_field",
+                    label: "Prompt",
+                    value: "",
+                  },
+                ];
+              }
+            } else if (type === "imageNode") {
+              const config = GEMINI_MODEL_CONFIG.imageNode;
+              data.model = data.model || config.defaultModelId;
+              data.temperature =
+                data.temperature !== undefined
+                  ? Number(data.temperature)
+                  : config.defaultTemperature;
+              data.topP =
+                data.topP !== undefined
+                  ? Number(data.topP)
+                  : config.defaultTopP;
+              data.maxTokens =
+                data.maxTokens !== undefined
+                  ? Number(data.maxTokens)
+                  : config.defaultMaxTokens;
+              data.systemPrompt =
+                data.systemPrompt !== undefined
+                  ? data.systemPrompt
+                  : "Describe a detailed visual scene based on the input.";
+              data.aspectRatio = data.aspectRatio || "1:1";
+              if (!data.fields && !data.prompt) {
+                data.fields = [
+                  {
+                    id: "prompt",
+                    type: "text_field",
+                    label: "Prompt",
+                    value: "",
+                  },
+                ];
+              }
+            } else if (type === "videoNode") {
+              const config = GEMINI_MODEL_CONFIG.videoNode;
+              data.model = data.model || config.defaultModelId;
+              data.temperature =
+                data.temperature !== undefined
+                  ? Number(data.temperature)
+                  : config.defaultTemperature;
+              data.topP =
+                data.topP !== undefined
+                  ? Number(data.topP)
+                  : config.defaultTopP;
+              data.maxTokens =
+                data.maxTokens !== undefined
+                  ? Number(data.maxTokens)
+                  : config.defaultMaxTokens;
+              data.systemPrompt =
+                data.systemPrompt !== undefined
+                  ? data.systemPrompt
+                  : "You are a video scene writer. Outline a continuous video description sequence based on the input.";
+              if (!data.fields && !data.prompt) {
+                data.fields = [
+                  {
+                    id: "prompt",
+                    type: "text_field",
+                    label: "Prompt",
+                    value: "",
+                  },
+                ];
+              }
+            } else if (type === "audioNode") {
+              const config = GEMINI_MODEL_CONFIG.audioNode;
+              data.model = data.model || config.defaultModelId;
+              data.temperature =
+                data.temperature !== undefined
+                  ? Number(data.temperature)
+                  : config.defaultTemperature;
+              data.topP =
+                data.topP !== undefined
+                  ? Number(data.topP)
+                  : config.defaultTopP;
+              data.maxTokens =
+                data.maxTokens !== undefined
+                  ? Number(data.maxTokens)
+                  : config.defaultMaxTokens;
+              data.systemPrompt =
+                data.systemPrompt !== undefined
+                  ? data.systemPrompt
+                  : "You are a speech narrator. Write standard speech-to-text narrations.";
+              if (!data.fields && !data.prompt) {
+                data.fields = [
+                  {
+                    id: "prompt",
+                    type: "text_field",
+                    label: "Prompt",
+                    value: "",
+                  },
+                ];
+              }
+            } else if (type === "cropImage") {
+              data.x = data.x !== undefined ? Number(data.x) : 0;
+              data.y = data.y !== undefined ? Number(data.y) : 0;
+              data.width = data.width !== undefined ? Number(data.width) : 100;
+              data.height =
+                data.height !== undefined ? Number(data.height) : 100;
+              data.inputImage = data.inputImage || "";
+              data.outputImage = data.outputImage || "";
+            }
+
+            cleanedNode.data = data;
+            return cleanedNode;
+          });
+
           const baseName =
             file.name.substring(0, file.name.lastIndexOf(".")) ||
             "Imported Workflow";
@@ -46,7 +211,6 @@ export function ImportButton() {
           const capitalizedName =
             workflowName.charAt(0).toUpperCase() + workflowName.slice(1);
 
-          // Call the REST API endpoint instead of a Server Action
           const response = await fetch("/api/workflows/import", {
             method: "POST",
             headers: {
@@ -54,7 +218,7 @@ export function ImportButton() {
             },
             body: JSON.stringify({
               name: capitalizedName,
-              nodes: parsed.nodes,
+              nodes: cleanedNodes,
               edges: parsed.edges || [],
             }),
           });

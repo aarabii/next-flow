@@ -7,6 +7,7 @@ export interface RequestInputField {
   value: string;
   fileName?: string;
 }
+
 export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
   connectedInputs?: string[];
   onChange?: (id: string, updatedData: Partial<T>) => void;
@@ -15,6 +16,7 @@ export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
   onDeleteNode?: () => void;
   [key: string]: unknown;
 }
+
 export interface RequestInputNodeData extends BaseWorkflowNodeData<RequestInputNodeData> {
   fields?: RequestInputField[];
 }
@@ -28,32 +30,8 @@ export interface CropImageNodeData extends BaseWorkflowNodeData<CropImageNodeDat
   outputImage?: string;
 }
 
-export interface GeminiImageField {
-  id: string;
-  value: string;
-  fileName?: string;
-}
-
-export interface GeminiNodeData extends BaseWorkflowNodeData<GeminiNodeData> {
-  model?: string;
-  prompt?: string;
-  promptEnabled?: boolean;
-  systemPrompt?: string;
-  systemPromptEnabled?: boolean;
-  images?: GeminiImageField[];
-  video?: string;
-  videoFileName?: string;
-  videoEnabled?: boolean;
-  audio?: string;
-  audioFileName?: string;
-  audioEnabled?: boolean;
-  response?: string;
-  temperature?: number;
-  topP?: number;
-  maxTokens?: number;
-}
-
 export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -66,6 +44,7 @@ export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
 }
 
 export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -74,9 +53,12 @@ export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  fields?: RequestInputField[];
+  aspectRatio?: string;
 }
 
 export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   imageInput?: string;
@@ -85,15 +67,18 @@ export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  fields?: RequestInputField[];
 }
 
 export interface AudioNodeData extends BaseWorkflowNodeData<AudioNodeData> {
+  model?: string;
   prompt?: string;
   systemPrompt?: string;
   response?: string;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  fields?: RequestInputField[];
 }
 
 export interface ResponseResultItem {
@@ -113,7 +98,6 @@ export interface ResponseNodeData extends BaseWorkflowNodeData<ResponseNodeData>
 export type CustomNodeData =
   | RequestInputNodeData
   | CropImageNodeData
-  | GeminiNodeData
   | TextNodeData
   | ImageNodeData
   | VideoNodeData
@@ -122,7 +106,6 @@ export type CustomNodeData =
 
 export type RequestInputNode = Node<RequestInputNodeData, "requestInput">;
 export type CropImageNode = Node<CropImageNodeData, "cropImage">;
-export type GeminiNode = Node<GeminiNodeData, "gemini">;
 export type TextNode = Node<TextNodeData, "textNode">;
 export type ImageNode = Node<ImageNodeData, "imageNode">;
 export type VideoNode = Node<VideoNodeData, "videoNode">;
@@ -132,7 +115,6 @@ export type ResponseNode = Node<ResponseNodeData, "response">;
 export type AppNode =
   | RequestInputNode
   | CropImageNode
-  | GeminiNode
   | TextNode
   | ImageNode
   | VideoNode

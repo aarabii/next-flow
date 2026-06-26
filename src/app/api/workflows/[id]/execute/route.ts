@@ -12,7 +12,7 @@ const ExecutePayloadSchema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -27,13 +27,12 @@ export async function POST(
     if (!result.success) {
       return NextResponse.json(
         { error: "Invalid request payload", details: result.error.format() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { scope, targetNodeIds } = result.data;
 
-    // 1. Get the workflow
     const workflow = await db.workflow.findFirst({
       where: {
         id: workflowId,
@@ -42,10 +41,12 @@ export async function POST(
     });
 
     if (!workflow) {
-      return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 },
+      );
     }
 
-    // 2. Create the WorkflowRun
     const run = await db.workflowRun.create({
       data: {
         workflowId,
@@ -56,33 +57,38 @@ export async function POST(
       },
     });
 
-    // 3. Parse nodes to execute
     const nodes = workflow.nodes as unknown as Node[];
 
-    // Define target executable nodes
     let nodesToExecute = nodes.filter(
       (n) =>
         n.type === "cropImage" ||
-        n.type === "gemini" ||
         n.type === "textNode" ||
         n.type === "imageNode" ||
         n.type === "videoNode" ||
-        n.type === "audioNode"
+        n.type === "audioNode",
     );
 
     if (scope === "SINGLE" && targetNodeIds && targetNodeIds.length > 0) {
-      nodesToExecute = nodesToExecute.filter((n) => targetNodeIds.includes(n.id));
-    } else if (scope === "PARTIAL" && targetNodeIds && targetNodeIds.length > 0) {
-      nodesToExecute = nodesToExecute.filter((n) => targetNodeIds.includes(n.id));
+      nodesToExecute = nodesToExecute.filter((n) =>
+        targetNodeIds.includes(n.id),
+      );
+    } else if (
+      scope === "PARTIAL" &&
+      targetNodeIds &&
+      targetNodeIds.length > 0
+    ) {
+      nodesToExecute = nodesToExecute.filter((n) =>
+        targetNodeIds.includes(n.id),
+      );
     }
 
-    // 4. Create NodeRun records
     const localNodes = nodes.filter(
-      (n) => n.type === "requestInput" || n.type === "response"
+      (n) => n.type === "requestInput" || n.type === "response",
     );
 
     for (const node of localNodes) {
-      const label = node.id === "request_inputs" ? "Request Inputs" : "Response";
+      const label =
+        node.id === "request_inputs" ? "Request Inputs" : "Response";
       await db.nodeRun.create({
         data: {
           workflowRunId: run.id,
@@ -104,27 +110,23 @@ export async function POST(
         node.type === "cropImage"
           ? "Crop Image"
           : node.type === "textNode"
-          ? "Text Generation"
-          : node.type === "imageNode"
-          ? "Image Generation"
-          : node.type === "videoNode"
-          ? "Video Generation"
-          : node.type === "audioNode"
-          ? "Audio Generation"
-          : "Gemini LLM";
-      const nodeModel = (node.data as { model?: string }).model || "Gemini";
+            ? "Text Generation"
+            : node.type === "imageNode"
+              ? "Image Generation"
+              : node.type === "videoNode"
+                ? "Video Generation"
+                : "Audio Generation";
       await db.nodeRun.create({
         data: {
           workflowRunId: run.id,
           nodeId: node.id,
           nodeType: node.type || "",
-          nodeLabel: label === "Gemini LLM" ? `${nodeModel} LLM` : label,
+          nodeLabel: label,
           status: "PENDING",
         },
       });
     }
 
-    // 5. Trigger the orchestrator task
     const { workflowOrchestratorTask } = await import("@/trigger/orchestrator");
     await workflowOrchestratorTask.trigger({
       workflowRunId: run.id,
@@ -133,10 +135,8 @@ export async function POST(
     return NextResponse.json({ success: true, runId: run.id });
   } catch (error) {
     console.error("POST /api/workflows/[id]/execute error:", error);
-    const message = error instanceof Error ? error.message : "Failed to execute workflow";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to execute workflow";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

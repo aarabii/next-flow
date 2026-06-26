@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
+import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 
-// Inline Zod schemas for this endpoint's requests
 const CreateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").default("Untitled Workflow"),
   description: z.string().optional(),
@@ -20,10 +20,14 @@ const initialNodes = [
           id: "text_field",
           type: "text_field",
           label: "Text Field",
-          value:
-            "Product: Wireless Bluetooth Headphones. Features: Noise cancellation, 30-hour battery, foldable design.",
+          value: "",
         },
-        { id: "image_field", type: "image_field", label: "Image Field", value: "" },
+        {
+          id: "image_field",
+          type: "image_field",
+          label: "Image Field",
+          value: "",
+        },
       ],
     },
     deletable: false,
@@ -47,18 +51,23 @@ export async function GET() {
     }
 
     const workflows = await db.workflow.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        NOT: {
+          id: {
+            in: SYSTEM_WORKFLOW_IDS.map((sysId) => `${user.id}-${sysId}`),
+          },
+        },
+      },
       orderBy: { updatedAt: "desc" },
     });
 
     return NextResponse.json(workflows);
   } catch (error) {
     console.error("GET /api/workflows error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch workflows";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch workflows";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -72,16 +81,13 @@ export async function POST(req: Request) {
     let body = {};
     try {
       body = await req.json();
-    } catch {
-      // Allow empty bodies
-    }
+    } catch {}
 
-    // Validate body inline using Zod
     const result = CreateWorkflowSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
         { error: "Invalid request payload", details: result.error.format() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -100,10 +106,8 @@ export async function POST(req: Request) {
     return NextResponse.json(workflow);
   } catch (error) {
     console.error("POST /api/workflows error:", error);
-    const message = error instanceof Error ? error.message : "Failed to create workflow";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to create workflow";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

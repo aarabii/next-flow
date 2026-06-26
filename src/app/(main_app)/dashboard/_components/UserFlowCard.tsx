@@ -27,7 +27,9 @@ export const UserFlowCard = ({
 }: UserFlowCardProps) => {
   const router = useRouter();
   const { uploadingIds, setUploadingId } = useDashboardStore();
-  const [editingWorkflowId, setEditingWorkflowId] = React.useState<string | null>(null);
+  const [editingWorkflowId, setEditingWorkflowId] = React.useState<
+    string | null
+  >(null);
   const [editingWorkflowName, setEditingWorkflowName] = React.useState("");
   const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>(
     {},
@@ -43,7 +45,11 @@ export const UserFlowCard = ({
     setEditingWorkflowName("");
   };
 
-  const handleRename = async (id: string, currentTitle: string, nextTitle: string) => {
+  const handleRename = async (
+    id: string,
+    currentTitle: string,
+    nextTitle: string,
+  ) => {
     const newName = nextTitle.trim();
     if (!newName || newName === currentTitle) {
       cancelEditingRename();
@@ -102,7 +108,6 @@ export const UserFlowCard = ({
       const formData = new FormData();
       formData.append("file", file);
 
-      // Transloadit image upload endpoint
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -181,6 +186,7 @@ export const UserFlowCard = ({
             >
               {workflow.backgroundImage ? (
                 <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={workflow.backgroundImage}
                     alt={workflow.title}
@@ -285,7 +291,6 @@ export const UserFlowCard = ({
             </Link>
           </div>
 
-          {/* Left Action Button (Image Upload) */}
           <div className="absolute left-2 top-2 z-10">
             <div className="relative">
               <button
@@ -313,7 +318,6 @@ export const UserFlowCard = ({
             onChange={(e) => handleImageUpload(workflow.id, e)}
           />
 
-          {/* Right Action Button (Dropdown Menu) */}
           <div className="absolute right-2 top-2 z-10">
             <WorkflowActionsDropdown
               workflowId={workflow.id}
@@ -327,17 +331,22 @@ export const UserFlowCard = ({
             />
           </div>
 
-          {/* Card Info */}
           <div className="mt-2 px-1">
             {editingWorkflowId === workflow.id ? (
               <input
                 type="text"
                 value={editingWorkflowName}
                 onChange={(e) => setEditingWorkflowName(e.target.value)}
-                onBlur={() => handleRename(workflow.id, workflow.title, editingWorkflowName)}
+                onBlur={() =>
+                  handleRename(workflow.id, workflow.title, editingWorkflowName)
+                }
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleRename(workflow.id, workflow.title, editingWorkflowName);
+                    handleRename(
+                      workflow.id,
+                      workflow.title,
+                      editingWorkflowName,
+                    );
                   } else if (e.key === "Escape") {
                     cancelEditingRename();
                   }
@@ -347,9 +356,11 @@ export const UserFlowCard = ({
               />
             ) : (
               <div
-                className="truncate text-sm font-semibold text-zinc-700 cursor-text"
+                className="truncate text-sm font-semibold text-zinc-700 cursor-text font-secondary"
                 title={workflow.title}
-                onDoubleClick={() => startEditingRename(workflow.id, workflow.title)}
+                onDoubleClick={() =>
+                  startEditingRename(workflow.id, workflow.title)
+                }
               >
                 {workflow.title}
               </div>

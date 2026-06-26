@@ -9,13 +9,11 @@ export async function checkAndSyncUser() {
     redirect("/");
   }
 
-  // Check if user exists in the database
   let dbUser = await db.user.findUnique({
     where: { clerkId: userId },
   });
 
   if (!dbUser) {
-    // Fetch detailed user profile from Clerk
     const clerkUser = await currentUser();
     if (!clerkUser) {
       redirect("/");
