@@ -14,7 +14,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Copy } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Copy, Undo2, Redo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
@@ -80,6 +80,11 @@ export function WorkflowCanvas({
     resetStore,
     initializeWorkflow,
     setNodes,
+    past,
+    future,
+    takeSnapshot,
+    undo,
+    redo,
   } = useWorkflowStore();
 
   const [showPicker, setShowPicker] = React.useState(false);
@@ -91,6 +96,7 @@ export function WorkflowCanvas({
   const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
 
   const autoLayout = React.useCallback(() => {
+    takeSnapshot();
     // 1. Map connections
     const incoming = new Map<string, string[]>();
     nodes.forEach((n) => incoming.set(n.id, []));
@@ -125,38 +131,32 @@ export function WorkflowCanvas({
       groups.get(lvl)!.push(n.id);
     });
 
-    // 4. Calculate layout coordinate positions dynamically
-    const colWidth = 400;
-    const nodeSpacing = 50;
+    // 4. Position nodes
+    const colWidth = 360;
+    const startX = 100;
+    const centerY = 300;
 
+    // We want to center columns vertically
     const levelHeights = new Map<number, number>();
     const levelOffsets = new Map<number, number[]>();
 
-    const sortedLevels = Array.from(groups.keys()).sort((a, b) => a - b);
-    
-    sortedLevels.forEach((lvl) => {
-      const colNodeIds = groups.get(lvl) || [];
+    groups.forEach((nodeIds, lvl) => {
       let totalHeight = 0;
       const offsets: number[] = [];
       
-      colNodeIds.forEach((nodeId) => {
-        const node = nodes.find((n) => n.id === nodeId);
-        const nodeHeight = node?.measured?.height || (node?.type === "cropImage" ? 550 : 300);
+      nodeIds.forEach((_) => {
         offsets.push(totalHeight);
-        totalHeight += nodeHeight + nodeSpacing;
+        totalHeight += 180; // height + gap
       });
       
-      levelHeights.set(lvl, totalHeight - nodeSpacing);
+      levelHeights.set(lvl, totalHeight - 40); // remove trailing gap
       levelOffsets.set(lvl, offsets);
     });
 
-    const startX = 100;
-    const centerY = 350;
-
     const newNodes = nodes.map((node) => {
       const lvl = levels.get(node.id) || 0;
-      const colNodeIds = groups.get(lvl) || [];
-      const rowIndex = colNodeIds.indexOf(node.id);
+      const nodeIds = groups.get(lvl) || [];
+      const rowIndex = nodeIds.indexOf(node.id);
       
       const colHeight = levelHeights.get(lvl) || 0;
       const colOffsets = levelOffsets.get(lvl) || [];
@@ -178,7 +178,7 @@ export function WorkflowCanvas({
         reactFlowInstance.fitView({ padding: 0.15, duration: 800 });
       }
     }, 100);
-  }, [nodes, edges, setNodes, reactFlowInstance]);
+  }, [nodes, edges, setNodes, reactFlowInstance, takeSnapshot]);
 
   React.useEffect(() => {
     setLocalName(workflowName);
@@ -391,6 +391,41 @@ export function WorkflowCanvas({
 
     return () => clearTimeout(handler);
   }, [nodes, edges, workflowId, activeRunId]);
+
+  // Capture a snapshot before a user starts typing in any input/textarea
+  React.useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        takeSnapshot();
+      }
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [takeSnapshot]);
+
+  // Keyboard shortcuts for Undo (Ctrl+Z) and Redo (Ctrl+Y / Ctrl+Shift+Z)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl) {
+        if (e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+        } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+          e.preventDefault();
+          redo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [undo, redo]);
 
   // Dynamic values resolution for connected inputs & response collection
   const resolvedNodes = React.useMemo(() => {
@@ -775,9 +810,29 @@ export function WorkflowCanvas({
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportJSON}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer"
+            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer font-secondary"
           >
             Export JSON
+          </button>
+
+          <button
+            onClick={undo}
+            disabled={past.length === 0}
+            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
+            title="Undo last action (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            <span>Undo</span>
+          </button>
+
+          <button
+            onClick={redo}
+            disabled={future.length === 0}
+            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
+            title="Redo last action (Ctrl+Y)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+            <span>Redo</span>
           </button>
 
           <button
@@ -825,6 +880,8 @@ export function WorkflowCanvas({
             nodeTypes={nodeTypes}
             onInit={setReactFlowInstance}
             fitView
+            onNodeDragStart={takeSnapshot}
+            onSelectionDragStart={takeSnapshot}
             nodesDraggable={!isSystem}
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}

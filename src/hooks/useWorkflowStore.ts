@@ -54,6 +54,65 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   edges: [],
   lastRunOutputs: {},
   lastRunPrompts: {},
+  past: [],
+  future: [],
+
+  takeSnapshot: () => {
+    const { nodes, edges, past } = get();
+    const currentNodes = JSON.parse(JSON.stringify(nodes));
+    const currentEdges = JSON.parse(JSON.stringify(edges));
+
+    if (past.length > 0) {
+      const lastSnapshot = past[past.length - 1];
+      if (
+        JSON.stringify(lastSnapshot.nodes) === JSON.stringify(currentNodes) &&
+        JSON.stringify(lastSnapshot.edges) === JSON.stringify(currentEdges)
+      ) {
+        return;
+      }
+    }
+
+    set({
+      past: [...past, { nodes: currentNodes, edges: currentEdges }].slice(-50),
+      future: [],
+    });
+  },
+
+  undo: () => {
+    const { past, future, nodes, edges } = get();
+    if (past.length === 0) return;
+
+    const previous = past[past.length - 1];
+    const newPast = past.slice(0, past.length - 1);
+
+    const currentNodes = JSON.parse(JSON.stringify(nodes));
+    const currentEdges = JSON.parse(JSON.stringify(edges));
+
+    set({
+      nodes: previous.nodes,
+      edges: previous.edges,
+      past: newPast,
+      future: [{ nodes: currentNodes, edges: currentEdges }, ...future],
+    });
+  },
+
+  redo: () => {
+    const { past, future, nodes, edges } = get();
+    if (future.length === 0) return;
+
+    const next = future[0];
+    const newFuture = future.slice(1);
+
+    const currentNodes = JSON.parse(JSON.stringify(nodes));
+    const currentEdges = JSON.parse(JSON.stringify(edges));
+
+    set({
+      nodes: next.nodes,
+      edges: next.edges,
+      past: [...past, { nodes: currentNodes, edges: currentEdges }],
+      future: newFuture,
+    });
+  },
 
   setNodes: (nodes) => {
     set({
@@ -68,18 +127,27 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   onNodesChange: (changes: NodeChange[]) => {
+    const hasRemoval = changes.some((c) => c.type === "remove");
+    if (hasRemoval) {
+      get().takeSnapshot();
+    }
     set({
       nodes: applyNodeChanges(changes, get().nodes),
     });
   },
 
   onEdgesChange: (changes: EdgeChange[]) => {
+    const hasRemoval = changes.some((c) => c.type === "remove");
+    if (hasRemoval) {
+      get().takeSnapshot();
+    }
     set({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
 
   onConnect: (connection: Connection) => {
+    get().takeSnapshot();
     const edgeId = `edge_${connection.source}_${
       connection.sourceHandle || "default"
     }_to_${connection.target}_${connection.targetHandle || "default"}`;
@@ -115,6 +183,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   addNode: (nodeType) => {
+    get().takeSnapshot();
     const nodes = get().nodes;
     const id = `${nodeType}_${Date.now()}`;
     let data: Record<string, unknown> = {};
@@ -193,6 +262,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   deleteEdge: (edgeId: string) => {
+    get().takeSnapshot();
     set({
       edges: get().edges.filter((e) => e.id !== edgeId),
     });
@@ -200,6 +270,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   deleteNode: (nodeId: string) => {
     if (nodeId === "request_inputs" || nodeId === "response") return;
+    get().takeSnapshot();
     set({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
@@ -212,6 +283,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: [],
       lastRunOutputs: {},
       lastRunPrompts: {},
+      past: [],
+      future: [],
     });
   },
 

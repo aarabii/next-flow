@@ -16,6 +16,11 @@ export interface WorkflowState {
   deleteNode: (nodeId: string) => void;
   resetStore: () => void;
   initializeWorkflow: (nodes: Node[], edges: Edge[]) => void;
+  past: { nodes: Node[]; edges: Edge[] }[];
+  future: { nodes: Node[]; edges: Edge[] }[];
+  takeSnapshot: () => void;
+  undo: () => void;
+  redo: () => void;
   lastRunOutputs: Record<string, unknown>;
   lastRunPrompts: Record<string, string>;
   setLastRunOutputs: (outputs: Record<string, unknown>) => void;
