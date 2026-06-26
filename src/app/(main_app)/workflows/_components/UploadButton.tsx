@@ -88,8 +88,9 @@ export function UploadButton({ variant, onChange, className, disabled }: UploadB
 
       const data = await response.json();
       onChange?.(data.url, file.name);
-    } catch (err: any) {
-      alert(`Upload error: ${err.message}`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      alert(`Upload error: ${errorMessage}`);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

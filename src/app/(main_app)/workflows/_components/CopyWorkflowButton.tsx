@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { Copy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import type { Node, Edge } from "@xyflow/react";
+
 interface CopyWorkflowButtonProps {
   workflowName: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
   className?: string;
 }
 

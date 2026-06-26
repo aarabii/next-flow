@@ -2,13 +2,15 @@ import socialMediaPostData from "./system-workflows/social-media-post.json";
 import whoAmIData from "./system-workflows/who-am-i.json";
 import codeAuditData from "./system-workflows/code-audit.json";
 
+import type { Node, Edge } from "@xyflow/react";
+
 export interface SystemWorkflow {
   id: string;
   name: string;
   description: string | null;
   backgroundImage: string | null;
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
   gradient: string;
 }
 
