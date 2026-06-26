@@ -347,7 +347,7 @@ export const UserFlowCard = ({
               />
             ) : (
               <div
-                className="truncate text-sm font-semibold text-zinc-700 cursor-text"
+                className="truncate text-sm font-semibold text-zinc-700 cursor-text font-secondary"
                 title={workflow.title}
                 onDoubleClick={() => startEditingRename(workflow.id, workflow.title)}
               >

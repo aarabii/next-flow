@@ -52,7 +52,7 @@ export const SystemFlowCard = () => {
             )}
           </div>
           <div className="flex flex-col px-space-05 py-space-04">
-            <div className="truncate text-body text-text-primary font-medium">
+            <div className="truncate text-body text-text-primary font-medium font-secondary">
               {workflow.name}
             </div>
             {workflow.description && (

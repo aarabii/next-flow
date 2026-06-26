@@ -59,7 +59,7 @@ export default async function FlowsPage() {
         <div className="min-w-0">
           <div className="flex min-w-0 items-start gap-space-03">
             <div className="min-w-0">
-              <div className="font-body text-heading-lg-google font-semibold text-text-primary">
+              <div className="font-secondary text-heading-lg-google font-semibold text-text-primary">
                 Workflows
               </div>
               <div className="text-small text-text-secondary">

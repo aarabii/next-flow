@@ -122,7 +122,7 @@ export const Navigation = () => {
                 <>
                   <div className="flex items-center">
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <strong className="truncate font-semibold text-foreground">
+                      <strong className="truncate font-semibold text-foreground font-secondary">
                         NextFlow
                       </strong>
                       <span className="truncate text-xs text-muted-foreground">

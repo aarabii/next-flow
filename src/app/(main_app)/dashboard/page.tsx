@@ -60,7 +60,7 @@ export default async function DashboardPage() {
         <div className="min-w-0">
           <div className="flex min-w-0 items-start gap-space-03">
             <div className="min-w-0">
-              <div className="font-body text-heading-lg-google font-semibold text-text-primary --font-mono">
+              <div className="font-secondary text-heading-lg-google font-semibold text-text-primary">
                 Flow
               </div>
               <div className="text-small text-text-secondary">
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
       <div className="mt-space-09">
         <div className="flex items-start justify-between gap-space-03 sm:items-center">
           <div>
-            <div className="text-body text-text-primary font-medium">
+            <div className="text-body text-text-primary font-medium font-secondary">
               System Workflows
             </div>
             <div className="text-small text-text-secondary">

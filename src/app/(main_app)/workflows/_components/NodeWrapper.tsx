@@ -65,7 +65,7 @@ export function NodeWrapper({
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
         <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
           {headerLeftExtra || (
-            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate">
+            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary">
               {title}
             </span>
           )}

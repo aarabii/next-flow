@@ -740,7 +740,7 @@ export function WorkflowCanvas({
       {/* Workflow Header */}
       <div className="h-16 px-6 border-b border-zinc-200 bg-white flex items-center justify-between z-10 shadow-2xs">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-zinc-700">Workflow</span>
+          <span className="text-sm font-semibold text-zinc-700 font-secondary">Workflow</span>
           <span className="text-zinc-300">/</span>
           {isEditingName ? (
             <input
@@ -756,13 +756,13 @@ export function WorkflowCanvas({
                   setLocalName(workflowName);
                 }
               }}
-              className="text-sm font-semibold text-zinc-800 px-2 py-0.5 border border-purple-500 rounded-md outline-hidden bg-white w-48 focus:ring-2 focus:ring-purple-500/20"
+              className="text-sm font-semibold text-zinc-800 px-2 py-0.5 border border-purple-500 rounded-md outline-hidden bg-white w-48 focus:ring-2 focus:ring-purple-500/20 font-secondary"
               autoFocus
             />
           ) : (
             <span
               onDoubleClick={() => setIsEditingName(true)}
-              className="text-sm font-semibold text-zinc-800 cursor-pointer select-none hover:text-purple-600 transition-colors"
+              className="text-sm font-semibold text-zinc-800 cursor-pointer select-none hover:text-purple-600 transition-colors font-secondary"
               title="Double click to rename"
             >
               {localName}
