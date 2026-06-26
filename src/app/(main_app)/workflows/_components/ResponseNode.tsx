@@ -6,6 +6,7 @@ import { Trash2, Download, HelpCircle, FileText, Image as ImageIcon, Video as Vi
 import { cn } from "@/lib/utils";
 import { ResponseNodeData, ResponseResultItem } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
+import ReactMarkdown from "react-markdown";
 
 export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
   const results = data.results || [];
@@ -158,7 +159,9 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
                       </div>
                     ) : item.value ? (
                       <div className="flex flex-col gap-1.5">
-                        <p className="line-clamp-4 leading-relaxed whitespace-pre-wrap">{item.value}</p>
+                        <div className="line-clamp-4 leading-relaxed whitespace-pre-wrap">
+                          <ReactMarkdown>{item.value}</ReactMarkdown>
+                        </div>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(item.value || "");

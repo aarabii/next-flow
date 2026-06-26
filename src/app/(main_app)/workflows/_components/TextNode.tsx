@@ -8,6 +8,7 @@ import { TextNodeData, RequestInputField } from "@/types/node.type";
 import { DynamicFieldsList } from "./DynamicFieldsList";
 import { NodeWrapper } from "./NodeWrapper";
 import { NodeSettings } from "./NodeSettings";
+import ReactMarkdown from "react-markdown";
 
 export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
   const prompt = data.prompt || "";
@@ -201,7 +202,9 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
 
         <div className="border border-zinc-100 rounded-lg p-3 bg-zinc-50/50 min-h-[60px] text-xs text-zinc-600">
           {response ? (
-            <p className="whitespace-pre-wrap">{response}</p>
+            <div className="whitespace-pre-wrap">
+              <ReactMarkdown>{response}</ReactMarkdown>
+            </div>
           ) : (
             <span className="text-zinc-400 italic">No output yet</span>
           )}
