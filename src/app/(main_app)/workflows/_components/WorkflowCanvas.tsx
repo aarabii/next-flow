@@ -356,9 +356,36 @@ export function WorkflowCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, deleteEdge]);
 
+  const saveWorkflow = React.useCallback(async () => {
+    const { nodes: currentNodes, edges: currentEdges } = useWorkflowStore.getState();
+    if (currentNodes.length === 0) return;
+    if (activeRunId !== null) return;
+    try {
+      await fetch(`/api/workflows/${workflowId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nodes: currentNodes, edges: currentEdges }),
+      });
+    } catch (error) {
+      console.error("Auto-save error:", error);
+    }
+  }, [workflowId, activeRunId]);
+
   React.useEffect(() => {
     if (nodes.length === 0) return;
     if (activeRunId !== null) return;
+
+    // Do not auto-save on change if user is actively typing in an input or textarea
+    const activeEl = document.activeElement;
+    const isTyping =
+      activeEl &&
+      (activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        (activeEl as HTMLElement).isContentEditable);
+    
+    if (isTyping) return;
 
     const handler = setTimeout(async () => {
       try {
@@ -387,11 +414,22 @@ export function WorkflowCanvas({
       }
     };
 
+    const handleFocusOut = (e: FocusEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        saveWorkflow();
+      }
+    };
+
     document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
     return () => {
       document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
     };
-  }, [takeSnapshot]);
+  }, [takeSnapshot, saveWorkflow]);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
