@@ -106,7 +106,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
   const handleAddField = (
     type: "text_field" | "image_field" | "audio_field",
   ) => {
-    if (isLocked || fields.length >= 8) return;
+    if (isLocked || data.isSystem || fields.length >= 8) return;
 
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
@@ -129,7 +129,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
   };
 
   const handleDeleteField = (fieldId: string) => {
-    if (isLocked) return;
+    if (isLocked || data.isSystem) return;
     const updated = fields.filter((f) => f.id !== fieldId);
     updateData({ fields: updated });
   };
@@ -205,13 +205,15 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
           </button>
         }
         menuItems={
-          <DropdownMenuItem
-            onClick={handleDuplicate}
-            className="cursor-pointer text-zinc-700"
-          >
-            <Copy className="w-3.5 h-3.5 mr-2 text-zinc-500" />
-            <span>Duplicate this node</span>
-          </DropdownMenuItem>
+          !data.isSystem ? (
+            <DropdownMenuItem
+              onClick={handleDuplicate}
+              className="cursor-pointer text-zinc-700"
+            >
+              <Copy className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+              <span>Duplicate this node</span>
+            </DropdownMenuItem>
+          ) : undefined
         }
       >
         {/* System Prompt (Default) */}
@@ -252,13 +254,13 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
           isLocked={isLocked}
           isConnected={isConnected}
           onValueChange={handleValueChange}
-          onDeleteField={handleDeleteField}
+          onDeleteField={data.isSystem ? undefined : handleDeleteField}
           handleType="target"
           handlePosition={Position.Left}
         />
 
         {/* Add Field Button */}
-        {fields.length < 8 && !isLocked && (
+        {fields.length < 8 && !isLocked && !data.isSystem && (
           <div className="flex flex-col gap-1.5 mt-1 select-none">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -415,6 +415,7 @@ export function WorkflowCanvas({
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isSystem) return;
       if (e.key === "Backspace" || e.key === "Delete") {
         const target = e.target;
         if (
@@ -459,7 +460,7 @@ export function WorkflowCanvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [nodes, edges, setNodes, setEdges, takeSnapshot]);
+  }, [nodes, edges, setNodes, setEdges, takeSnapshot, isSystem]);
 
   const resolvedNodes = React.useMemo(() => {
     const resolveValue = (nodeId: string, handleId: string): string | null => {
@@ -726,9 +727,10 @@ export function WorkflowCanvas({
 
   const onEdgeDoubleClick = React.useCallback(
     (event: React.MouseEvent, edge: Edge) => {
+      if (isSystem) return;
       deleteEdge(edge.id);
     },
-    [deleteEdge],
+    [deleteEdge, isSystem],
   );
 
   const handleExportJSON = React.useCallback(() => {
@@ -894,7 +896,7 @@ export function WorkflowCanvas({
             fitView
             onNodeDragStart={takeSnapshot}
             onSelectionDragStart={takeSnapshot}
-            nodesDraggable={!isSystem}
+            nodesDraggable={true}
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
             deleteKeyCode={null}

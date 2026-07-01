@@ -15,7 +15,7 @@ interface DynamicFieldsListProps {
     fileName?: string,
     fileSize?: string
   ) => void;
-  onDeleteField: (fieldId: string) => void;
+  onDeleteField?: (fieldId: string) => void;
   handleType?: "source" | "target";
   handlePosition?: Position;
 }

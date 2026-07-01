@@ -52,7 +52,7 @@ export function RequestInputNode({
   };
 
   const handleDeleteField = (fieldId: string) => {
-    if (isLocked || fields.length <= 1) return;
+    if (isLocked || data.isSystem || fields.length <= 1) return;
     const updated = fields.filter((f) => f.id !== fieldId);
     updateFields(updated);
   };
@@ -60,7 +60,7 @@ export function RequestInputNode({
   const handleAddField = (
     type: "text_field" | "image_field" | "audio_field",
   ) => {
-    if (isLocked || fields.length >= 8) return;
+    if (isLocked || data.isSystem || fields.length >= 8) return;
 
     const timestamp = Date.now();
     const newId = `${type}_${timestamp}`;
@@ -117,13 +117,13 @@ export function RequestInputNode({
           isLocked={isLocked}
           isConnected={() => false}
           onValueChange={handleValueChange}
-          onDeleteField={handleDeleteField}
+          onDeleteField={data.isSystem ? undefined : handleDeleteField}
           handleType="source"
           handlePosition={Position.Right}
         />
 
         {/* Add Field Button */}
-        {fields.length < 8 && !isLocked && (
+        {fields.length < 8 && !isLocked && !data.isSystem && (
           <div className="flex flex-col gap-1.5 mt-4 select-none">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
