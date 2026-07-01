@@ -1,10 +1,7 @@
 import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
-import { Transloadit } from "@transloadit/node";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+
 
 export interface GeminiPayload {
   nodeRunId: string;
