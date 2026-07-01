@@ -300,7 +300,10 @@ export const workflowOrchestratorTask = task({
     };
 
     try {
-      while (true) {
+      const MAX_POLL_ITERATIONS = 300; // ~10 minutes at 2s intervals
+      let pollIteration = 0;
+
+      while (pollIteration++ < MAX_POLL_ITERATIONS) {
         const blockedNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
@@ -390,6 +393,27 @@ export const workflowOrchestratorTask = task({
               where: { id: workflow.id },
               data: { nodes: nodes as unknown as Prisma.InputJsonValue },
             });
+          }
+        }
+      }
+
+      // If the loop exhausted iterations, mark remaining in-flight nodes as timed out
+      if (pollIteration >= MAX_POLL_ITERATIONS) {
+        console.error("Orchestrator timed out after max poll iterations");
+        for (const nodeId of executionNodeIds) {
+          if (nodeState[nodeId] === "TRIGGERED" || nodeState[nodeId] === "PENDING") {
+            nodeState[nodeId] = "FAILED";
+            const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
+            if (nodeRun) {
+              await db.nodeRun.update({
+                where: { id: nodeRun.id },
+                data: {
+                  status: "FAILED",
+                  error: "Execution timed out",
+                  completedAt: new Date(),
+                },
+              });
+            }
           }
         }
       }
