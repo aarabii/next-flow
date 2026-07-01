@@ -20,8 +20,49 @@ export interface GeminiPayload {
   reasoning?: string;
 }
 
+function validateExternalUrl(rawUrl: string): string {
+  const cleaned = rawUrl.split("?")[0];
+  let parsed: URL;
+  try {
+    parsed = new URL(cleaned);
+  } catch {
+    throw new Error(`Invalid URL: ${cleaned}`);
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error(`Only HTTPS URLs are allowed: ${cleaned}`);
+  }
+
+  const hostname = parsed.hostname;
+
+  const privatePatterns = [
+    /^localhost$/i,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^0\./,
+    /^\[::1\]$/,
+    /^\[fc/i,
+    /^\[fd/i,
+    /^\[fe80/i,
+    /\.local$/i,
+    /\.internal$/i,
+    /\.localhost$/i,
+  ];
+
+  for (const pattern of privatePatterns) {
+    if (pattern.test(hostname)) {
+      throw new Error(`Private/internal URLs are not allowed: ${hostname}`);
+    }
+  }
+
+  return cleaned;
+}
+
 async function fetchFileAsInlineData(url: string) {
-  const fetchUrl = url.split("?")[0];
+  const fetchUrl = validateExternalUrl(url);
   const resp = await fetch(fetchUrl);
   if (!resp.ok) throw new Error(`Failed to fetch file: ${fetchUrl}`);
   const arrayBuffer = await resp.arrayBuffer();

@@ -14,6 +14,45 @@ export interface CropImagePayload {
 const R2_URL_PREFIX =
   "https://pub-9fa6062fc2e84197b79b0f5a74aafa86.r2.dev/";
 
+function validateExternalUrl(rawUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`Invalid URL: ${rawUrl}`);
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error(`Only HTTPS URLs are allowed: ${rawUrl}`);
+  }
+
+  const hostname = parsed.hostname;
+  const privatePatterns = [
+    /^localhost$/i,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^0\./,
+    /^\[::1\]$/,
+    /^\[fc/i,
+    /^\[fd/i,
+    /^\[fe80/i,
+    /\.local$/i,
+    /\.internal$/i,
+    /\.localhost$/i,
+  ];
+
+  for (const pattern of privatePatterns) {
+    if (pattern.test(hostname)) {
+      throw new Error(`Private/internal URLs are not allowed: ${hostname}`);
+    }
+  }
+
+  return rawUrl;
+}
+
 async function cropWithTransloadit(
   imageUrl: string,
   x: number,
@@ -21,6 +60,7 @@ async function cropWithTransloadit(
   width: number,
   height: number,
 ): Promise<string> {
+  const validatedUrl = validateExternalUrl(imageUrl);
   const transloadit = new Transloadit({
     authKey: process.env.TRANSLOADIT_KEY || "",
     authSecret: process.env.TRANSLOADIT_SECRET || "",
@@ -31,7 +71,7 @@ async function cropWithTransloadit(
       steps: {
         import: {
           robot: "/http/import",
-          url: imageUrl,
+          url: validatedUrl,
         },
         crop: {
           robot: "/image/resize",
