@@ -6,6 +6,7 @@ export interface RequestInputField {
   label: string;
   value: string;
   fileName?: string;
+  fileSize?: string;
 }
 
 export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
@@ -14,6 +15,9 @@ export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
   onRunNode?: () => void;
   running?: boolean;
   onDeleteNode?: () => void;
+  isLocked?: boolean;
+  isPositionLocked?: boolean;
+  description?: string;
   [key: string]: unknown;
 }
 
@@ -28,6 +32,7 @@ export interface CropImageNodeData extends BaseWorkflowNodeData<CropImageNodeDat
   width?: number;
   height?: number;
   outputImage?: string;
+  expandResponse?: boolean;
 }
 
 export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
@@ -40,44 +45,10 @@ export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  fields?: RequestInputField[];
-}
-
-export interface ImageNodeData extends BaseWorkflowNodeData<ImageNodeData> {
-  model?: string;
-  prompt?: string;
-  systemPrompt?: string;
-  imageInput?: string;
-  imageInputFileName?: string;
-  response?: string;
-  temperature?: number;
-  topP?: number;
-  maxTokens?: number;
-  fields?: RequestInputField[];
-  aspectRatio?: string;
-}
-
-export interface VideoNodeData extends BaseWorkflowNodeData<VideoNodeData> {
-  model?: string;
-  prompt?: string;
-  systemPrompt?: string;
-  imageInput?: string;
-  imageInputFileName?: string;
-  response?: string;
-  temperature?: number;
-  topP?: number;
-  maxTokens?: number;
-  fields?: RequestInputField[];
-}
-
-export interface AudioNodeData extends BaseWorkflowNodeData<AudioNodeData> {
-  model?: string;
-  prompt?: string;
-  systemPrompt?: string;
-  response?: string;
-  temperature?: number;
-  topP?: number;
-  maxTokens?: number;
+  reasoning?: string;
+  topK?: number;
+  isLocked?: boolean;
+  expandResponse?: boolean;
   fields?: RequestInputField[];
 }
 
@@ -88,6 +59,8 @@ export interface ResponseResultItem {
   label: string;
   value?: string;
   type?: "image" | "video" | "audio" | "text";
+  fileName?: string;
+  fileSize?: string;
 }
 
 export interface ResponseNodeData extends BaseWorkflowNodeData<ResponseNodeData> {
@@ -99,24 +72,15 @@ export type CustomNodeData =
   | RequestInputNodeData
   | CropImageNodeData
   | TextNodeData
-  | ImageNodeData
-  | VideoNodeData
-  | AudioNodeData
   | ResponseNodeData;
 
 export type RequestInputNode = Node<RequestInputNodeData, "requestInput">;
 export type CropImageNode = Node<CropImageNodeData, "cropImage">;
 export type TextNode = Node<TextNodeData, "textNode">;
-export type ImageNode = Node<ImageNodeData, "imageNode">;
-export type VideoNode = Node<VideoNodeData, "videoNode">;
-export type AudioNode = Node<AudioNodeData, "audioNode">;
 export type ResponseNode = Node<ResponseNodeData, "response">;
 
 export type AppNode =
   | RequestInputNode
   | CropImageNode
   | TextNode
-  | ImageNode
-  | VideoNode
-  | AudioNode
   | ResponseNode;

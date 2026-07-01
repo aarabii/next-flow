@@ -331,10 +331,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
                                   ) ||
                                     value.includes("transloadit") ||
                                     value.includes("picsum") ||
-                                    node.nodeType === "imageNode" ||
-                                    node.nodeType === "cropImage" ||
-                                    node.nodeType === "videoNode" ||
-                                    node.nodeType === "audioNode");
+                                    node.nodeType === "cropImage");
 
                                 return (
                                   <div className="flex flex-col gap-1.5 mt-1 bg-white border border-zinc-200/60 rounded-lg p-2 shadow-3xs">

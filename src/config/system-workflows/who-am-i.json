@@ -14,30 +14,20 @@
         ]
       },
       "type": "requestInput",
-      "measured": {
-        "width": 320,
-        "height": 158
-      },
       "position": {
-        "x": 50,
-        "y": 150
+        "x": 100,
+        "y": 200
       },
-      "selected": false,
       "deletable": false
     },
     {
       "id": "response",
       "data": {},
       "type": "response",
-      "measured": {
-        "width": 320,
-        "height": 182
-      },
       "position": {
         "x": 900,
-        "y": 250
+        "y": 200
       },
-      "selected": false,
       "deletable": false
     },
     {
@@ -62,16 +52,10 @@
         "imageInputFileName": ""
       },
       "type": "textNode",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 451
-      },
       "position": {
-        "x": 485,
-        "y": 8
-      },
-      "selected": false
+        "x": 500,
+        "y": 100
+      }
     }
   ],
   "edges": [

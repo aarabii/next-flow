@@ -12,16 +12,13 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Undo2, Redo2 } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Undo, Redo } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import DotField from "@/components/DotField";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
-import { ImageNode } from "./ImageNode";
-import { VideoNode } from "./VideoNode";
-import { AudioNode } from "./AudioNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
@@ -42,9 +39,6 @@ const nodeTypes = {
   requestInput: RequestInputNode,
   cropImage: CropImageNode,
   textNode: TextNode,
-  imageNode: ImageNode,
-  videoNode: VideoNode,
-  audioNode: AudioNode,
   response: ResponseNode,
 };
 
@@ -114,15 +108,22 @@ export function WorkflowCanvas({
     });
 
     const levels = new Map<string, number>();
+    const visited = new Set<string>();
     const getLevel = (nodeId: string): number => {
       if (levels.has(nodeId)) return levels.get(nodeId)!;
+      if (visited.has(nodeId)) {
+        return 0;
+      }
+      visited.add(nodeId);
       const parents = incoming.get(nodeId) || [];
       if (parents.length === 0) {
+        visited.delete(nodeId);
         levels.set(nodeId, 0);
         return 0;
       }
       const parentLevels = parents.map((p) => getLevel(p));
       const lvl = Math.max(...parentLevels) + 1;
+      visited.delete(nodeId);
       levels.set(nodeId, lvl);
       return lvl;
     };
@@ -136,7 +137,23 @@ export function WorkflowCanvas({
       groups.get(lvl)!.push(n.id);
     });
 
-    const colWidth = 360;
+    const getEstimatedNodeHeight = (nId: string): number => {
+      const node = nodes.find((n) => n.id === nId);
+      if (!node) return 200;
+      if (node.type === "textNode") return 480;
+      if (node.type === "cropImage") return 350;
+      if (node.type === "requestInput") {
+        const fieldsCount = ((node.data?.fields || []) as unknown[]).length;
+        return 150 + fieldsCount * 60;
+      }
+      if (node.type === "response") {
+        const resultsCount = ((node.data?.results || []) as unknown[]).length;
+        return 150 + Math.max(1, resultsCount) * 50;
+      }
+      return 200;
+    };
+
+    const colWidth = 380;
     const startX = 100;
     const centerY = 300;
 
@@ -147,9 +164,9 @@ export function WorkflowCanvas({
       let totalHeight = 0;
       const offsets: number[] = [];
 
-      nodeIds.forEach(() => {
+      nodeIds.forEach((nId) => {
         offsets.push(totalHeight);
-        totalHeight += 180;
+        totalHeight += getEstimatedNodeHeight(nId) + 40;
       });
 
       levelHeights.set(lvl, totalHeight - 40);
@@ -362,9 +379,36 @@ export function WorkflowCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, deleteEdge]);
 
+  const saveWorkflow = React.useCallback(async () => {
+    const { nodes: currentNodes, edges: currentEdges } = useWorkflowStore.getState();
+    if (currentNodes.length === 0) return;
+    if (activeRunId !== null) return;
+    try {
+      await fetch(`/api/workflows/${workflowId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nodes: currentNodes, edges: currentEdges }),
+      });
+    } catch (error) {
+      console.error("Auto-save error:", error);
+    }
+  }, [workflowId, activeRunId]);
+
   React.useEffect(() => {
     if (nodes.length === 0) return;
     if (activeRunId !== null) return;
+
+    // Do not auto-save on change if user is actively typing in an input or textarea
+    const activeEl = document.activeElement;
+    const isTyping =
+      activeEl &&
+      (activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        (activeEl as HTMLElement).isContentEditable);
+    
+    if (isTyping) return;
 
     const handler = setTimeout(async () => {
       try {
@@ -393,11 +437,22 @@ export function WorkflowCanvas({
       }
     };
 
+    const handleFocusOut = (e: FocusEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        saveWorkflow();
+      }
+    };
+
     document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
     return () => {
       document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
     };
-  }, [takeSnapshot]);
+  }, [takeSnapshot, saveWorkflow]);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -421,6 +476,7 @@ export function WorkflowCanvas({
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isSystem) return;
       if (e.key === "Backspace" || e.key === "Delete") {
         const target = e.target;
         if (
@@ -465,7 +521,7 @@ export function WorkflowCanvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [nodes, edges, setNodes, setEdges, takeSnapshot]);
+  }, [nodes, edges, setNodes, setEdges, takeSnapshot, isSystem]);
 
   const resolvedNodes = React.useMemo(() => {
     const resolveValue = (nodeId: string, handleId: string): string | null => {
@@ -491,10 +547,7 @@ export function WorkflowCanvas({
       }
       if (
         sourceNode.type === "gemini" ||
-        sourceNode.type === "textNode" ||
-        sourceNode.type === "imageNode" ||
-        sourceNode.type === "videoNode" ||
-        sourceNode.type === "audioNode"
+        sourceNode.type === "textNode"
       ) {
         return (sourceData.response as string) ?? null;
       }
@@ -554,7 +607,25 @@ export function WorkflowCanvas({
               );
               label = field?.label || "Input Field";
               val = field?.value || "";
-              type = field?.type === "image_field" ? "image" : "text";
+              type = field?.type === "image_field"
+                ? "image"
+                : field?.type === "audio_field"
+                  ? "audio"
+                  : "text";
+              
+              const fileName = field?.fileName;
+              const fileSize = field?.fileSize;
+              
+              return {
+                nodeId: edge.source,
+                edgeId: edge.id,
+                sourceHandleId: edge.sourceHandle,
+                label,
+                value: val,
+                type,
+                fileName,
+                fileSize,
+              } as ResponseResultItem;
             } else if (srcNode.type === "cropImage") {
               label = "Crop Image Output";
               val = (srcData.outputImage as string) || "";
@@ -563,18 +634,7 @@ export function WorkflowCanvas({
               label = "Text Output";
               val = (srcData.response as string) || "";
               type = "text";
-            } else if (srcNode.type === "imageNode") {
-              label = "Image Output";
-              val = (srcData.response as string) || "";
-              type = "image";
-            } else if (srcNode.type === "videoNode") {
-              label = "Video Output";
-              val = (srcData.response as string) || "";
-              type = "video";
-            } else if (srcNode.type === "audioNode") {
-              label = "Audio Output";
-              val = (srcData.response as string) || "";
-              type = "audio";
+
             } else if (srcNode.type === "gemini") {
               label = `${(srcData.model as string) || "Gemini"} Response`;
               val = (srcData.response as string) || "";
@@ -604,6 +664,7 @@ export function WorkflowCanvas({
 
       return {
         ...node,
+        draggable: resolvedData.isPositionLocked ? false : undefined,
         data: {
           ...resolvedData,
           isSystem,
@@ -679,7 +740,9 @@ export function WorkflowCanvas({
         const type = node.type;
 
         if (type === "requestInput") {
-          return handleId === "image_field" ? "image" : "text";
+          if (handleId?.startsWith("image_field")) return "image";
+          if (handleId?.startsWith("audio_field")) return "audio";
+          return "text";
         }
         if (type === "cropImage") {
           if (isSource) return "image";
@@ -689,25 +752,12 @@ export function WorkflowCanvas({
           if (isSource) return "text";
           if (handleId === "prompt" || handleId === "systemPrompt")
             return "text";
+          if (handleId?.startsWith("text_field")) return "text";
+          if (handleId?.startsWith("image_field")) return "image";
+          if (handleId?.startsWith("audio_field")) return "audio";
           if (handleId === "image_input") return "image";
         }
-        if (type === "imageNode") {
-          if (isSource) return "image";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-          if (handleId === "image_input") return "image";
-        }
-        if (type === "videoNode") {
-          if (isSource) return "video";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-          if (handleId === "image_input") return "image";
-        }
-        if (type === "audioNode") {
-          if (isSource) return "audio";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-        }
+
         if (type === "gemini") {
           if (isSource) return "text";
           if (handleId === "prompt" || handleId === "systemPrompt")
@@ -730,7 +780,7 @@ export function WorkflowCanvas({
         false,
       );
 
-      if (targetType === "any") return true;
+      if (targetType === "any" || sourceType === "any") return true;
       return sourceType === targetType;
     },
     [edges, nodes],
@@ -738,9 +788,10 @@ export function WorkflowCanvas({
 
   const onEdgeDoubleClick = React.useCallback(
     (event: React.MouseEvent, edge: Edge) => {
+      if (isSystem) return;
       deleteEdge(edge.id);
     },
-    [deleteEdge],
+    [deleteEdge, isSystem],
   );
 
   const handleExportJSON = React.useCallback(() => {
@@ -768,64 +819,11 @@ export function WorkflowCanvas({
           dataCopy.systemPrompt !== undefined
             ? dataCopy.systemPrompt
             : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
-      } else if (node.type === "imageNode") {
-        const config = GEMINI_MODEL_CONFIG.imageNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "Describe a detailed visual scene based on the input.";
-        dataCopy.aspectRatio = dataCopy.aspectRatio || "1:1";
-      } else if (node.type === "videoNode") {
-        const config = GEMINI_MODEL_CONFIG.videoNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "You are a video scene writer. Outline a continuous video description sequence based on the input.";
-      } else if (node.type === "audioNode") {
-        const config = GEMINI_MODEL_CONFIG.audioNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "You are a speech narrator. Write standard speech-to-text narrations.";
+        
+        // Strip transient runtime output states
+        delete dataCopy.response;
+        delete dataCopy.imageInput;
+        delete dataCopy.imageInputFileName;
       } else if (node.type === "cropImage") {
         dataCopy.x = dataCopy.x !== undefined ? Number(dataCopy.x) : 0;
         dataCopy.y = dataCopy.y !== undefined ? Number(dataCopy.y) : 0;
@@ -833,8 +831,21 @@ export function WorkflowCanvas({
           dataCopy.width !== undefined ? Number(dataCopy.width) : 100;
         dataCopy.height =
           dataCopy.height !== undefined ? Number(dataCopy.height) : 100;
-        dataCopy.inputImage = dataCopy.inputImage || "";
-        dataCopy.outputImage = dataCopy.outputImage || "";
+        
+        // Strip transient runtime output states
+        dataCopy.inputImage = "";
+        dataCopy.outputImage = "";
+      } else if (node.type === "response") {
+        // Strip transient response output states
+        dataCopy.results = [];
+      } else if (node.type === "requestInput") {
+        // Clear user input values
+        if (Array.isArray(dataCopy.fields)) {
+          dataCopy.fields = (dataCopy.fields as RequestInputField[]).map((f) => ({
+            ...f,
+            value: "",
+          }));
+        }
       }
 
       return {
@@ -901,26 +912,6 @@ export function WorkflowCanvas({
           </button>
 
           <button
-            onClick={undo}
-            disabled={past.length === 0}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
-            title="Undo last action (Ctrl+Z)"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-            <span>Undo</span>
-          </button>
-
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
-            title="Redo last action (Ctrl+Y)"
-          >
-            <Redo2 className="w-3.5 h-3.5" />
-            <span>Redo</span>
-          </button>
-
-          <button
             onClick={() => setHistoryOpen(!historyOpen)}
             className={cn(
               "px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5",
@@ -966,27 +957,48 @@ export function WorkflowCanvas({
             fitView
             onNodeDragStart={takeSnapshot}
             onSelectionDragStart={takeSnapshot}
-            nodesDraggable={!isSystem}
+            nodesDraggable={true}
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
             deleteKeyCode={null}
+            onPaneClick={() => setShowPicker(false)}
+            onNodeClick={() => setShowPicker(false)}
           >
             <DotField />
             <Controls className="bg-white! border-zinc-200! shadow-md! rounded-lg! overflow-hidden [&_button]:border-b-zinc-100!">
               <ControlButton onClick={autoLayout} title="Auto Layout">
                 <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 hover:text-purple-600 transition-colors" />
               </ControlButton>
+              <ControlButton
+                onClick={undo}
+                disabled={past.length === 0}
+                title="Undo last action (Ctrl+Z)"
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Undo className={cn("w-3.5 h-3.5 transition-colors", past.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
+              </ControlButton>
+              <ControlButton
+                onClick={redo}
+                disabled={future.length === 0}
+                title="Redo last action (Ctrl+Y)"
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Redo className={cn("w-3.5 h-3.5 transition-colors", future.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
+              </ControlButton>
             </Controls>
             <MiniMap className="bg-white! border-zinc-200! shadow-md! rounded-xl! bottom-4! right-4!" />
           </ReactFlow>
 
           {!isSystem && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
+            <div
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-4 z-40"
+              onMouseLeave={() => setShowPicker(false)}
+            >
               <button
                 id="add-node-button"
                 onClick={() => setShowPicker(!showPicker)}
                 className={cn(
-                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
+                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
                   showPicker &&
                     "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45",
                 )}
@@ -999,6 +1011,7 @@ export function WorkflowCanvas({
                 <NodePicker
                   onSelect={(type) => addNode(type)}
                   onClose={() => setShowPicker(false)}
+                  className="static translate-x-0 bottom-auto left-auto animate-in fade-in slide-in-from-bottom-2 duration-150"
                 />
               )}
             </div>

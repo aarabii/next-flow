@@ -10,7 +10,7 @@ export interface WorkflowState {
   onConnect: (connection: Connection) => void;
   onNodeDataChange: (nodeId: string, updatedData: Record<string, unknown>) => void;
   addNode: (
-    nodeType: "cropImage" | "textNode" | "imageNode" | "videoNode" | "audioNode"
+    nodeType: "cropImage" | "textNode"
   ) => void;
   deleteEdge: (edgeId: string) => void;
   deleteNode: (nodeId: string) => void;

@@ -31,6 +31,8 @@ interface ResolvedInputs {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  topK?: number;
+  reasoning?: string;
   model?: string;
   images: string[];
   video?: string;
@@ -101,12 +103,7 @@ export const workflowOrchestratorTask = task({
         resolved.width = data.width !== undefined ? Number(data.width) : 100;
         resolved.height = data.height !== undefined ? Number(data.height) : 100;
         resolved.imageUrl = data.inputImage || "";
-      } else if (
-        node.type === "textNode" ||
-        node.type === "imageNode" ||
-        node.type === "videoNode" ||
-        node.type === "audioNode"
-      ) {
+      } else if (node.type === "textNode") {
         const type = node.type as WorkflowNodeType;
         const config = GEMINI_MODEL_CONFIG[type];
         const data = node.data as TextNodeData;
@@ -121,12 +118,11 @@ export const workflowOrchestratorTask = task({
           data.maxTokens !== undefined
             ? Number(data.maxTokens)
             : config.defaultMaxTokens;
+        resolved.topK =
+          data.topK !== undefined ? Number(data.topK) : 40;
+        resolved.reasoning = data.reasoning || "Auto";
         resolved.model = data.model || config.defaultModelId;
         resolved.images = [];
-        resolved.video = "";
-        resolved.audio = "";
-        resolved.aspectRatio =
-          (data as { aspectRatio?: string }).aspectRatio || "1:1";
 
         const fieldsList = data.fields
           ? (JSON.parse(JSON.stringify(data.fields)) as RequestInputField[])
@@ -175,12 +171,7 @@ export const workflowOrchestratorTask = task({
             } else if (srcNode.type === "cropImage") {
               const srcData = srcNode.data as CropImageNodeData;
               sourceVal = srcData.outputImage || "";
-            } else if (
-              srcNode.type === "textNode" ||
-              srcNode.type === "imageNode" ||
-              srcNode.type === "videoNode" ||
-              srcNode.type === "audioNode"
-            ) {
+            } else if (srcNode.type === "textNode") {
               const srcData = srcNode.data as { response?: string };
               sourceVal = srcData.response || "";
             }
@@ -193,12 +184,7 @@ export const workflowOrchestratorTask = task({
           if (targetHandle === "y") resolved.y = Number(sourceVal);
           if (targetHandle === "width") resolved.width = Number(sourceVal);
           if (targetHandle === "height") resolved.height = Number(sourceVal);
-        } else if (
-          node.type === "textNode" ||
-          node.type === "imageNode" ||
-          node.type === "videoNode" ||
-          node.type === "audioNode"
-        ) {
+        } else if (node.type === "textNode") {
           const fieldsList = resolved.fieldsList as
             | RequestInputField[]
             | undefined;
@@ -218,12 +204,7 @@ export const workflowOrchestratorTask = task({
         }
       }
 
-      if (
-        node.type === "textNode" ||
-        node.type === "imageNode" ||
-        node.type === "videoNode" ||
-        node.type === "audioNode"
-      ) {
+      if (node.type === "textNode") {
         const fieldsList = resolved.fieldsList as
           | RequestInputField[]
           | undefined;
@@ -232,12 +213,8 @@ export const workflowOrchestratorTask = task({
           for (const field of fieldsList) {
             if (field.type === "text_field") {
               if (field.value) prompts.push(field.value);
-            } else if (field.type === "image_field") {
+            } else if (field.type === "image_field" || field.type === "audio_field") {
               if (field.value) resolved.images.push(field.value);
-            } else if (field.type === "video_field") {
-              if (field.value) resolved.video = field.value;
-            } else if (field.type === "audio_field") {
-              if (field.value) resolved.audio = field.value;
             }
           }
           if (prompts.length > 0) {
@@ -266,21 +243,8 @@ export const workflowOrchestratorTask = task({
           width: inputs.width || 100,
           height: inputs.height || 100,
         });
-      } else if (
-        node.type === "textNode" ||
-        node.type === "imageNode" ||
-        node.type === "videoNode" ||
-        node.type === "audioNode"
-      ) {
-        let defaultModelId = "";
-        if (node.type === "textNode")
-          defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
-        else if (node.type === "imageNode")
-          defaultModelId = GEMINI_MODEL_CONFIG.imageNode.defaultModelId;
-        else if (node.type === "videoNode")
-          defaultModelId = GEMINI_MODEL_CONFIG.videoNode.defaultModelId;
-        else if (node.type === "audioNode")
-          defaultModelId = GEMINI_MODEL_CONFIG.audioNode.defaultModelId;
+      } else if (node.type === "textNode") {
+        const defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
 
         const nodeModel =
           (node.data as { model?: string }).model || defaultModelId;
@@ -291,12 +255,11 @@ export const workflowOrchestratorTask = task({
           prompt: inputs.prompt,
           systemPrompt: inputs.systemPrompt,
           images: inputs.images,
-          video: inputs.video,
-          audio: inputs.audio,
           temperature: inputs.temperature,
           topP: inputs.topP,
           maxTokens: inputs.maxTokens,
-          aspectRatio: inputs.aspectRatio as string | undefined,
+          topK: inputs.topK,
+          reasoning: inputs.reasoning,
         });
       }
     };
@@ -320,12 +283,7 @@ export const workflowOrchestratorTask = task({
               }
             : n,
         );
-      } else if (
-        node.type === "textNode" ||
-        node.type === "imageNode" ||
-        node.type === "videoNode" ||
-        node.type === "audioNode"
-      ) {
+      } else if (node.type === "textNode") {
         const outputObj = output as { response: string };
         nodes = nodes.map((n) =>
           n.id === nodeId
@@ -342,7 +300,10 @@ export const workflowOrchestratorTask = task({
     };
 
     try {
-      while (true) {
+      const MAX_POLL_ITERATIONS = 300; // ~10 minutes at 2s intervals
+      let pollIteration = 0;
+
+      while (pollIteration++ < MAX_POLL_ITERATIONS) {
         const blockedNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
@@ -436,6 +397,27 @@ export const workflowOrchestratorTask = task({
         }
       }
 
+      // If the loop exhausted iterations, mark remaining in-flight nodes as timed out
+      if (pollIteration >= MAX_POLL_ITERATIONS) {
+        console.error("Orchestrator timed out after max poll iterations");
+        for (const nodeId of executionNodeIds) {
+          if (nodeState[nodeId] === "TRIGGERED" || nodeState[nodeId] === "PENDING") {
+            nodeState[nodeId] = "FAILED";
+            const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
+            if (nodeRun) {
+              await db.nodeRun.update({
+                where: { id: nodeRun.id },
+                data: {
+                  status: "FAILED",
+                  error: "Execution timed out",
+                  completedAt: new Date(),
+                },
+              });
+            }
+          }
+        }
+      }
+
       const responseNode = nodes.find((n) => n.type === "response");
       if (responseNode) {
         const incomingToResponse = edges.filter(
@@ -467,12 +449,7 @@ export const workflowOrchestratorTask = task({
               } else if (srcNode.type === "cropImage") {
                 const srcData = srcNode.data as CropImageNodeData;
                 val = srcData.outputImage || "";
-              } else if (
-                srcNode.type === "textNode" ||
-                srcNode.type === "imageNode" ||
-                srcNode.type === "videoNode" ||
-                srcNode.type === "audioNode"
-              ) {
+              } else if (srcNode.type === "textNode") {
                 const srcData = srcNode.data as { response?: string };
                 val = srcData.response || "";
               }
@@ -499,15 +476,6 @@ export const workflowOrchestratorTask = task({
             } else if (srcNode.type === "textNode") {
               label = "Text Output";
               type = "text";
-            } else if (srcNode.type === "imageNode") {
-              label = "Image Output";
-              type = "image";
-            } else if (srcNode.type === "videoNode") {
-              label = "Video Output";
-              type = "video";
-            } else if (srcNode.type === "audioNode") {
-              label = "Audio Output";
-              type = "audio";
             }
           }
 

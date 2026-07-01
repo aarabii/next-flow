@@ -3,6 +3,7 @@
 import React from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function NewWorkflowButton() {
   const router = useRouter();
@@ -36,15 +37,16 @@ export function NewWorkflowButton() {
 
   return (
     <form onSubmit={handleCreate}>
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-radius-l bg-surface-on-action text-icon-on-action transition-colors hover:opacity-90 disabled:opacity-40 cursor-pointer"
+        size="icon"
+        className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white border-0"
         title="Create a new workflow"
         aria-label="New workflow"
       >
         <Plus className="w-4 h-4" aria-hidden="true" />
-      </button>
+      </Button>
     </form>
   );
 }

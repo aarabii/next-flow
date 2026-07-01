@@ -1,19 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import {
-  Copy,
-  Trash2,
-  Check,
-  MoreHorizontal,
-  Video as VideoIcon,
-  Music as MusicIcon,
-} from "lucide-react";
-import { UploadButton } from "./UploadButton";
-import { cn } from "@/lib/utils";
+import { Position, type NodeProps, type Node } from "@xyflow/react";
 import { RequestInputNodeData, RequestInputField } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
+import { DynamicFieldsList } from "./DynamicFieldsList";
+import {
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Type,
+  Image as ImageIcon,
+  Music as MusicIcon,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 
 export function RequestInputNode({
   id,
@@ -24,28 +31,7 @@ export function RequestInputNode({
     { id: "image_field", type: "image_field", label: "Image Field", value: "" },
   ];
 
-  const [copiedId, setCopiedId] = React.useState<string | null>(null);
-  const [showAddMenu, setShowAddMenu] = React.useState(false);
-
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!showAddMenu) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as globalThis.Node)
-      ) {
-        setShowAddMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showAddMenu]);
+  const isLocked = data.isLocked ?? false;
 
   const updateFields = (newFields: RequestInputField[]) => {
     if (data.onChange) {
@@ -57,209 +43,128 @@ export function RequestInputNode({
     fieldId: string,
     value: string,
     fileName?: string,
+    fileSize?: string,
   ) => {
     const updated = fields.map((f) =>
-      f.id === fieldId ? { ...f, value, fileName } : f,
+      f.id === fieldId ? { ...f, value, fileName, fileSize } : f,
     );
     updateFields(updated);
   };
 
-  const handleCopy = (field: RequestInputField) => {
-    navigator.clipboard.writeText(field.value || field.label);
-    setCopiedId(field.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleDelete = (fieldId: string) => {
-    if (fields.length <= 1) return;
+  const handleDeleteField = (fieldId: string) => {
+    if (isLocked || data.isSystem || fields.length <= 1) return;
     const updated = fields.filter((f) => f.id !== fieldId);
     updateFields(updated);
   };
 
   const handleAddField = (
-    type: "text_field" | "image_field" | "video_field" | "audio_field",
+    type: "text_field" | "image_field" | "audio_field",
   ) => {
+    if (isLocked || data.isSystem || fields.length >= 8) return;
+
     const timestamp = Date.now();
-    const id = `${type}_${timestamp}`;
+    const newId = `${type}_${timestamp}`;
 
     let label = "Text Field";
     if (type === "image_field") label = "Image Field";
-    if (type === "video_field") label = "Video Field";
     if (type === "audio_field") label = "Audio Field";
 
     const typeCount = fields.filter((f) => f.type === type).length;
     const finalLabel = typeCount > 0 ? `${label} ${typeCount + 1}` : label;
 
     const newField: RequestInputField = {
-      id,
+      id: newId,
       type,
       label: finalLabel,
       value: "",
     };
 
     updateFields([...fields, newField]);
-    setShowAddMenu(false);
   };
 
-  const headerRightActions = !data.isSystem && (
-    <div className="flex items-center gap-1">
-      <div className="relative font-sans text-zinc-700" ref={menuRef}>
-        <button
-          onClick={() => setShowAddMenu(!showAddMenu)}
-          className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-500"
-          title="Field options"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+  const handleReset = () => {
+    const resetFields = fields.map((f) => ({
+      ...f,
+      value: "",
+      fileName: "",
+      fileSize: "",
+    }));
+    updateFields(resetFields);
+  };
 
-        {showAddMenu && (
-          <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700">
-            <button
-              onClick={() => handleAddField("text_field")}
-              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
-            >
-              Add Text Field
-            </button>
-            <button
-              onClick={() => handleAddField("image_field")}
-              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
-            >
-              Add Image Field
-            </button>
-            <button
-              onClick={() => handleAddField("video_field")}
-              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
-            >
-              Add Video Field
-            </button>
-            <button
-              onClick={() => handleAddField("audio_field")}
-              className="w-full text-left px-3 py-2 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer"
-            >
-              Add Audio Field
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+  const headerRight = (
+    <button
+      type="button"
+      onClick={handleReset}
+      disabled={isLocked}
+      title="Reset all values"
+      className="p-1.5 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-650 disabled:opacity-40 disabled:pointer-events-none border-0 bg-transparent nodrag shrink-0 flex items-center justify-center"
+    >
+      <RotateCcw className="w-3.5 h-3.5" />
+    </button>
   );
 
   return (
-    <NodeWrapper
-      id={id}
-      title="Request Inputs"
-      headerRightExtra={headerRightActions}
-    >
-      {fields.map((field) => (
-        <div
-          key={field.id}
-          className="relative flex flex-col gap-1.5 group/field"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
-              {field.label}
-            </span>
-            <div className="flex items-center gap-1 opacity-0 group-hover/field:opacity-100 transition-opacity">
-              <button
-                onClick={() => handleCopy(field)}
-                className="p-0.5 hover:bg-zinc-100 rounded text-zinc-400 hover:text-zinc-600 cursor-pointer"
-                title="Copy value"
-              >
-                {copiedId === field.id ? (
-                  <Check className="w-3.5 h-3.5 text-green-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-              {!data.isSystem && (
+    <TooltipProvider>
+      <NodeWrapper
+        id={id}
+        title="Request Inputs"
+        description="Request Inputs node is used to define dynamic text, image, or audio input fields that feed into the workflow."
+        headerRightExtra={headerRight}
+      >
+        <DynamicFieldsList
+          fields={fields}
+          isLocked={isLocked}
+          isConnected={() => false}
+          onValueChange={handleValueChange}
+          onDeleteField={data.isSystem ? undefined : handleDeleteField}
+          handleType="source"
+          handlePosition={Position.Right}
+        />
+
+        {/* Add Field Button */}
+        {fields.length < 8 && !isLocked && !data.isSystem && (
+          <div className="flex flex-col gap-1.5 mt-4 select-none">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
-                  onClick={() => handleDelete(field.id)}
-                  disabled={fields.length <= 1}
-                  className={cn(
-                    "p-0.5 hover:bg-red-50 rounded text-zinc-400 hover:text-red-600 cursor-pointer",
-                    fields.length <= 1 &&
-                      "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-zinc-400",
-                  )}
-                  title="Delete field"
+                  type="button"
+                  className="w-full border border-dashed border-zinc-300 hover:border-purple-500 rounded-lg py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-purple-600 transition-colors cursor-pointer bg-zinc-50/50 nodrag"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Field</span>
                 </button>
-              )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48 bg-white border border-zinc-200">
+                <DropdownMenuItem
+                  onClick={() => handleAddField("text_field")}
+                  className="cursor-pointer"
+                >
+                  <Type className="w-3.5 h-3.5 mr-2 text-purple-600" />
+                  <span>Add Text Field</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleAddField("image_field")}
+                  className="cursor-pointer"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" />
+                  <span>Add Image Field</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleAddField("audio_field")}
+                  className="cursor-pointer"
+                >
+                  <MusicIcon className="w-3.5 h-3.5 mr-2 text-amber-600" />
+                  <span>Add Audio Field</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="text-center text-[10px] text-zinc-400 font-semibold">
+              You can add up to 8 fields. ({fields.length}/8)
             </div>
           </div>
-
-          {field.type === "text_field" ? (
-            <textarea
-              value={field.value}
-              onChange={(e) => handleValueChange(field.id, e.target.value)}
-              placeholder="Enter text..."
-              className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none h-20 text-zinc-700 bg-zinc-50/20"
-            />
-          ) : (
-            <div className="w-full font-sans text-zinc-700">
-              {field.value ? (
-                <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
-                      {field.type === "image_field" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={field.value}
-                          alt="preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      ) : field.type === "video_field" ? (
-                        <VideoIcon className="w-4 h-4 text-blue-500" />
-                      ) : (
-                        <MusicIcon className="w-4 h-4 text-purple-500" />
-                      )}
-                    </div>
-                    <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
-                      {field.fileName ||
-                        (field.type === "image_field"
-                          ? "Uploaded Image"
-                          : field.type === "video_field"
-                            ? "Uploaded Video"
-                            : "Uploaded Audio")}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleValueChange(field.id, "", "")}
-                    className="p-1 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors"
-                    title="Clear file"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <UploadButton
-                  variant={
-                    field.type === "image_field"
-                      ? "image"
-                      : field.type === "video_field"
-                        ? "video"
-                        : "audio"
-                  }
-                  onChange={(url, name) => {
-                    handleValueChange(field.id, url, name);
-                  }}
-                />
-              )}
-            </div>
-          )}
-
-          <Handle
-            type="source"
-            position={Position.Right}
-            id={field.id}
-            className="w-3! h-3! bg-amber-500! border-2! border-white! rounded-full! hover:scale-125! transition-transform! -mr-1.5!"
-          />
-        </div>
-      ))}
-    </NodeWrapper>
+        )}
+      </NodeWrapper>
+    </TooltipProvider>
   );
 }

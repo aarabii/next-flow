@@ -1,6 +1,27 @@
 import * as React from "react";
-import { Play, MoreHorizontal, Trash2, AlertCircle } from "lucide-react";
+import { Play, MoreHorizontal, Trash2, AlertCircle, Lock, Unlock, Info, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkflowStore } from "@/hooks/useWorkflowStore";
+import { BaseWorkflowNodeData } from "@/types/node.type";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NodeWrapperProps {
   id: string;
@@ -13,11 +34,14 @@ interface NodeWrapperProps {
   onDeleteNode?: () => void;
   headerLeftExtra?: React.ReactNode;
   headerRightExtra?: React.ReactNode;
+  description?: string;
   menuItems?: React.ReactNode | ((closeMenu: () => void) => React.ReactNode);
   children: React.ReactNode;
+  className?: string;
 }
 
 export function NodeWrapper({
+  id,
   title,
   badge,
   running = false,
@@ -27,30 +51,20 @@ export function NodeWrapper({
   onDeleteNode,
   headerLeftExtra,
   headerRightExtra,
+  description,
   menuItems,
   children,
+  className,
 }: NodeWrapperProps) {
-  const [showDeleteMenu, setShowDeleteMenu] = React.useState(false);
+  const node = useWorkflowStore((state) => state.nodes.find((n) => n.id === id));
+  const onNodeDataChange = useWorkflowStore((state) => state.onNodeDataChange);
+  const nodeData = node?.data as BaseWorkflowNodeData | undefined;
+  const isPositionLocked = nodeData?.isPositionLocked ?? false;
+  const isLocked = nodeData?.isLocked ?? false;
 
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!showDeleteMenu) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as globalThis.Node)
-      ) {
-        setShowDeleteMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showDeleteMenu]);
+  const [isEditingDescription, setIsEditingDescription] = React.useState(false);
+  const [tempDescription, setTempDescription] = React.useState("");
+  const currentDescription = (nodeData?.description as string | undefined) ?? description ?? "";
 
   return (
     <div
@@ -58,16 +72,39 @@ export function NodeWrapper({
         "w-80 bg-white border rounded-xl shadow-md overflow-visible font-sans text-zinc-800 transition-all duration-300",
         running
           ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] animate-pulse"
-          : !isValid
-            ? "border-amber-300 shadow-sm"
-            : "border-zinc-200",
+          : (isLocked || isPositionLocked)
+            ? "border-zinc-300 bg-zinc-50/10 shadow-xs"
+            : !isValid
+              ? "border-amber-300 shadow-sm"
+              : "border-zinc-200",
+        className,
       )}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl select-none">
         <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
           {headerLeftExtra || (
-            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary">
-              {title}
+            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary flex items-center gap-1.5 flex-1 min-w-0">
+              <span className="truncate">{title}</span>
+              {isLocked && (
+                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              )}
+              {isPositionLocked && (
+                <Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              )}
+              {description && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-pointer text-zinc-400 hover:text-zinc-600 p-0.5 shrink-0 nodrag">
+                        <Info className="w-3.5 h-3.5" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] font-sans text-xs normal-case">
+                      {currentDescription}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </span>
           )}
           {badge && (
@@ -104,58 +141,141 @@ export function NodeWrapper({
             </button>
           )}
 
-          {onDeleteNode && (
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowDeleteMenu(!showDeleteMenu)}
-                className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-              {showDeleteMenu && (
-                <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700 font-sans">
-                  {menuItems &&
-                    (typeof menuItems === "function"
-                      ? menuItems(() => setShowDeleteMenu(false))
-                      : menuItems)}
-                  {onRunNode && (
-                    <button
-                      onClick={() => {
-                        onRunNode();
-                        setShowDeleteMenu(false);
-                      }}
-                      disabled={running || !isValid}
-                      className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-zinc-500 stroke-none" />
-                      <span>Run Node</span>
-                    </button>
+          {(onDeleteNode || id) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600 border-0 bg-transparent nodrag flex items-center justify-center"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-white border border-zinc-200 z-50">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setTempDescription(currentDescription);
+                    setIsEditingDescription(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                  <span>Edit Description</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => onNodeDataChange(id, { isLocked: !isLocked })}
+                  className="cursor-pointer"
+                >
+                  {isLocked ? (
+                    <>
+                      <Unlock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Unlock Node</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Lock Node</span>
+                    </>
                   )}
-                  <button
-                    onClick={() => {
-                      onDeleteNode();
-                      setShowDeleteMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => onNodeDataChange(id, { isPositionLocked: !isPositionLocked })}
+                  className="cursor-pointer"
+                >
+                  {isPositionLocked ? (
+                    <>
+                      <Unlock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Unlock Position</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Lock Position</span>
+                    </>
+                  )}
+                </DropdownMenuItem>
+
+                {menuItems &&
+                  (typeof menuItems === "function" ? menuItems(() => {}) : menuItems)}
+
+                {onRunNode && (
+                  <DropdownMenuItem
+                    onClick={onRunNode}
+                    disabled={running || !isValid}
+                    className="cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Play className="w-3.5 h-3.5 mr-2 fill-zinc-500 stroke-none" />
+                    <span>Run Node</span>
+                  </DropdownMenuItem>
+                )}
+
+                {onDeleteNode && (
+                  <DropdownMenuItem
+                    onClick={onDeleteNode}
+                    disabled={isLocked}
+                    className="cursor-pointer text-red-650 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
                     <span>Delete Node</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
 
       {!isValid && (
-        <div className="px-4 pt-3 flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50/30">
+        <div className="px-4 pt-3 flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50/30 select-none">
           <AlertCircle className="w-3.5 h-3.5" />
           <span>{validationError || "Inputs are required."}</span>
         </div>
       )}
 
       <div className="p-4 flex flex-col gap-4">{children}</div>
+
+      {/* Edit Description Dialog */}
+      {isEditingDescription && (
+        <Dialog open={isEditingDescription} onOpenChange={(open) => !open && setIsEditingDescription(false)}>
+          <DialogContent className="sm:max-w-md bg-white border border-zinc-200">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold text-zinc-800">
+                Edit Description - {title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <textarea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                placeholder="Enter description..."
+                className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 min-h-[120px] text-zinc-700 bg-zinc-50/20 resize-y"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setIsEditingDescription(false)}
+                className="text-xs px-3 py-1.5 rounded-lg cursor-pointer border border-zinc-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  onNodeDataChange(id, { description: tempDescription });
+                  setIsEditingDescription(false);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0"
+              >
+                Save
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

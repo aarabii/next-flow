@@ -4,12 +4,34 @@ import { db } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "../../../../../generated/prisma/client";
 
+const NodeSchema = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  position: z.object({
+    x: z.number(),
+    y: z.number(),
+  }),
+  data: z.record(z.unknown()).optional().default({}),
+  deletable: z.boolean().optional(),
+});
+
+const EdgeSchema = z.object({
+  id: z.string().min(1),
+  source: z.string().min(1),
+  target: z.string().min(1),
+  sourceHandle: z.string().nullable().optional(),
+  targetHandle: z.string().nullable().optional(),
+  type: z.string().optional(),
+  animated: z.boolean().optional(),
+  style: z.record(z.unknown()).optional(),
+});
+
 const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name cannot be empty").optional(),
   description: z.string().nullable().optional(),
   backgroundImage: z.string().nullable().optional(),
-  nodes: z.array(z.unknown()).optional(),
-  edges: z.array(z.unknown()).optional(),
+  nodes: z.array(NodeSchema).optional(),
+  edges: z.array(EdgeSchema).optional(),
 });
 
 export async function GET(
