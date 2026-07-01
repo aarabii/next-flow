@@ -11,6 +11,9 @@ export interface CropImagePayload {
   height: number;
 }
 
+const R2_URL_PREFIX =
+  "https://pub-9fa6062fc2e84197b79b0f5a74aafa86.r2.dev/";
+
 async function cropWithTransloadit(
   imageUrl: string,
   x: number,
@@ -41,13 +44,23 @@ async function cropWithTransloadit(
           },
           result: true,
         },
+        store: {
+          robot: "/cloudflare/store",
+          use: "crop",
+          credentials: "next-flow",
+          path: "crops/${unique_prefix}/${file.url_name}",
+          url_prefix: R2_URL_PREFIX,
+          result: true,
+        },
       },
     },
     waitForCompletion: true,
   });
 
   const url =
-    status.results?.crop?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
+    status.results?.store?.[0]?.ssl_url ||
+    status.results?.store?.[0]?.url ||
+    status.results?.crop?.[0]?.ssl_url;
   if (!url) throw new Error("Transloadit failed to return URL for crop");
   return url;
 }

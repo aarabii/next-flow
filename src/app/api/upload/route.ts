@@ -4,6 +4,48 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+const R2_URL_PREFIX =
+  "https://pub-9fa6062fc2e84197b79b0f5a74aafa86.r2.dev/";
+
+function buildSteps(fileType: string) {
+  const isImage = fileType.startsWith("image/");
+  const isAudio = fileType.startsWith("audio/");
+
+  // Determine the R2 folder based on file type
+  const folder = isAudio ? "audio" : isImage ? "uploads" : "files";
+
+  if (isImage) {
+    // Images: resize then store
+    return {
+      resize: {
+        robot: "/image/resize",
+        use: ":original",
+        result: true,
+      },
+      store: {
+        robot: "/cloudflare/store",
+        use: "resize",
+        credentials: "next-flow",
+        path: `${folder}/\${unique_prefix}/\${file.url_name}`,
+        url_prefix: R2_URL_PREFIX,
+        result: true,
+      },
+    };
+  }
+
+  // Audio & other files: store directly without processing
+  return {
+    store: {
+      robot: "/cloudflare/store",
+      use: ":original",
+      credentials: "next-flow",
+      path: `${folder}/\${unique_prefix}/\${file.url_name}`,
+      url_prefix: R2_URL_PREFIX,
+      result: true,
+    },
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -25,18 +67,14 @@ export async function POST(req: Request) {
       authSecret: process.env.TRANSLOADIT_SECRET || "",
     });
 
+    const steps = buildSteps(file.type);
+
     const options = {
       files: {
         file: tempFilePath,
       },
       params: {
-        steps: {
-          store: {
-            robot: "/image/resize",
-            use: ":original",
-            result: true,
-          },
-        },
+        steps,
       },
       waitForCompletion: true,
     };
@@ -49,8 +87,12 @@ export async function POST(req: Request) {
       console.error("Failed to delete temp file:", e);
     }
 
+    // Extract the R2 URL from whichever step produced the result
     const fileUrl =
-      status.results?.store?.[0]?.ssl_url || status.uploads?.[0]?.ssl_url;
+      status.results?.store?.[0]?.ssl_url ||
+      status.results?.store?.[0]?.url ||
+      status.results?.resize?.[0]?.ssl_url ||
+      status.uploads?.[0]?.ssl_url;
 
     if (!fileUrl) {
       return NextResponse.json(
@@ -66,3 +108,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
