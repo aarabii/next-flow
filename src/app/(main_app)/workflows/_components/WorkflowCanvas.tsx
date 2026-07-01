@@ -130,7 +130,23 @@ export function WorkflowCanvas({
       groups.get(lvl)!.push(n.id);
     });
 
-    const colWidth = 360;
+    const getEstimatedNodeHeight = (nId: string): number => {
+      const node = nodes.find((n) => n.id === nId);
+      if (!node) return 200;
+      if (node.type === "textNode") return 480;
+      if (node.type === "cropImage") return 350;
+      if (node.type === "requestInput") {
+        const fieldsCount = ((node.data?.fields || []) as unknown[]).length;
+        return 150 + fieldsCount * 60;
+      }
+      if (node.type === "response") {
+        const resultsCount = ((node.data?.results || []) as unknown[]).length;
+        return 150 + Math.max(1, resultsCount) * 50;
+      }
+      return 200;
+    };
+
+    const colWidth = 380;
     const startX = 100;
     const centerY = 300;
 
@@ -141,9 +157,9 @@ export function WorkflowCanvas({
       let totalHeight = 0;
       const offsets: number[] = [];
 
-      nodeIds.forEach(() => {
+      nodeIds.forEach((nId) => {
         offsets.push(totalHeight);
-        totalHeight += 180;
+        totalHeight += getEstimatedNodeHeight(nId) + 40;
       });
 
       levelHeights.set(lvl, totalHeight - 40);
