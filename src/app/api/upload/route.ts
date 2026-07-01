@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { Transloadit } from "@transloadit/node";
 import * as fs from "fs";
 import * as path from "path";
@@ -48,6 +49,11 @@ function buildSteps(fileType: string) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
