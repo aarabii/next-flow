@@ -16,6 +16,8 @@ export interface GeminiPayload {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  topK?: number;
+  reasoning?: string;
 }
 
 async function fetchFileAsInlineData(url: string) {
@@ -55,6 +57,8 @@ export const geminiTask = task({
       temperature,
       topP,
       maxTokens,
+      topK,
+      reasoning,
     } = payload;
     const startTime = new Date();
 
@@ -110,6 +114,8 @@ export const geminiTask = task({
         temperature?: number;
         topP?: number;
         maxOutputTokens?: number;
+        topK?: number;
+        thinkingConfig?: { thinkingBudget?: number };
       } = {};
       if (systemPrompt && systemPrompt.trim()) {
         config.systemInstruction = systemPrompt;
@@ -117,6 +123,13 @@ export const geminiTask = task({
       if (temperature !== undefined) config.temperature = temperature;
       if (topP !== undefined) config.topP = topP;
       if (maxTokens !== undefined) config.maxOutputTokens = maxTokens;
+      if (topK !== undefined) config.topK = topK;
+      if (reasoning && reasoning !== "Auto") {
+        let budget = 1024;
+        if (reasoning === "Medium") budget = 4096;
+        if (reasoning === "High") budget = 8192;
+        config.thinkingConfig = { thinkingBudget: budget };
+      }
 
       let outputResponse = "";
 

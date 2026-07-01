@@ -545,7 +545,25 @@ export function WorkflowCanvas({
               );
               label = field?.label || "Input Field";
               val = field?.value || "";
-              type = field?.type === "image_field" ? "image" : "text";
+              type = field?.type === "image_field"
+                ? "image"
+                : field?.type === "audio_field"
+                  ? "audio"
+                  : "text";
+              
+              const fileName = field?.fileName;
+              const fileSize = field?.fileSize;
+              
+              return {
+                nodeId: edge.source,
+                edgeId: edge.id,
+                sourceHandleId: edge.sourceHandle,
+                label,
+                value: val,
+                type,
+                fileName,
+                fileSize,
+              } as ResponseResultItem;
             } else if (srcNode.type === "cropImage") {
               label = "Crop Image Output";
               val = (srcData.outputImage as string) || "";
@@ -584,6 +602,7 @@ export function WorkflowCanvas({
 
       return {
         ...node,
+        draggable: resolvedData.isPositionLocked ? false : undefined,
         data: {
           ...resolvedData,
           isSystem,
@@ -659,7 +678,9 @@ export function WorkflowCanvas({
         const type = node.type;
 
         if (type === "requestInput") {
-          return handleId === "image_field" ? "image" : "text";
+          if (handleId?.startsWith("image_field")) return "image";
+          if (handleId?.startsWith("audio_field")) return "audio";
+          return "text";
         }
         if (type === "cropImage") {
           if (isSource) return "image";
@@ -669,6 +690,9 @@ export function WorkflowCanvas({
           if (isSource) return "text";
           if (handleId === "prompt" || handleId === "systemPrompt")
             return "text";
+          if (handleId?.startsWith("text_field")) return "text";
+          if (handleId?.startsWith("image_field")) return "image";
+          if (handleId?.startsWith("audio_field")) return "audio";
           if (handleId === "image_input") return "image";
         }
 
@@ -694,7 +718,7 @@ export function WorkflowCanvas({
         false,
       );
 
-      if (targetType === "any") return true;
+      if (targetType === "any" || sourceType === "any") return true;
       return sourceType === targetType;
     },
     [edges, nodes],

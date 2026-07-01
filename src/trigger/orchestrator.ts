@@ -31,6 +31,8 @@ interface ResolvedInputs {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  topK?: number;
+  reasoning?: string;
   model?: string;
   images: string[];
   video?: string;
@@ -116,6 +118,9 @@ export const workflowOrchestratorTask = task({
           data.maxTokens !== undefined
             ? Number(data.maxTokens)
             : config.defaultMaxTokens;
+        resolved.topK =
+          data.topK !== undefined ? Number(data.topK) : 40;
+        resolved.reasoning = data.reasoning || "Auto";
         resolved.model = data.model || config.defaultModelId;
         resolved.images = [];
 
@@ -208,7 +213,7 @@ export const workflowOrchestratorTask = task({
           for (const field of fieldsList) {
             if (field.type === "text_field") {
               if (field.value) prompts.push(field.value);
-            } else if (field.type === "image_field") {
+            } else if (field.type === "image_field" || field.type === "audio_field") {
               if (field.value) resolved.images.push(field.value);
             }
           }
@@ -253,6 +258,8 @@ export const workflowOrchestratorTask = task({
           temperature: inputs.temperature,
           topP: inputs.topP,
           maxTokens: inputs.maxTokens,
+          topK: inputs.topK,
+          reasoning: inputs.reasoning,
         });
       }
     };

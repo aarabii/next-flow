@@ -6,6 +6,7 @@ export interface RequestInputField {
   label: string;
   value: string;
   fileName?: string;
+  fileSize?: string;
 }
 
 export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
@@ -14,6 +15,8 @@ export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
   onRunNode?: () => void;
   running?: boolean;
   onDeleteNode?: () => void;
+  isLocked?: boolean;
+  isPositionLocked?: boolean;
   [key: string]: unknown;
 }
 
@@ -40,6 +43,10 @@ export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  reasoning?: string;
+  topK?: number;
+  isLocked?: boolean;
+  expandResponse?: boolean;
   fields?: RequestInputField[];
 }
 
@@ -50,6 +57,8 @@ export interface ResponseResultItem {
   label: string;
   value?: string;
   type?: "image" | "video" | "audio" | "text";
+  fileName?: string;
+  fileSize?: string;
 }
 
 export interface ResponseNodeData extends BaseWorkflowNodeData<ResponseNodeData> {
