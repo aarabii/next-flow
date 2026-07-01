@@ -108,15 +108,22 @@ export function WorkflowCanvas({
     });
 
     const levels = new Map<string, number>();
+    const visited = new Set<string>();
     const getLevel = (nodeId: string): number => {
       if (levels.has(nodeId)) return levels.get(nodeId)!;
+      if (visited.has(nodeId)) {
+        return 0;
+      }
+      visited.add(nodeId);
       const parents = incoming.get(nodeId) || [];
       if (parents.length === 0) {
+        visited.delete(nodeId);
         levels.set(nodeId, 0);
         return 0;
       }
       const parentLevels = parents.map((p) => getLevel(p));
       const lvl = Math.max(...parentLevels) + 1;
+      visited.delete(nodeId);
       levels.set(nodeId, lvl);
       return lvl;
     };
