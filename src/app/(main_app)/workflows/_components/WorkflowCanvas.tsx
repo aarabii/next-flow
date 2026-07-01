@@ -756,7 +756,11 @@ export function WorkflowCanvas({
           dataCopy.systemPrompt !== undefined
             ? dataCopy.systemPrompt
             : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
-
+        
+        // Strip transient runtime output states
+        delete dataCopy.response;
+        delete dataCopy.imageInput;
+        delete dataCopy.imageInputFileName;
       } else if (node.type === "cropImage") {
         dataCopy.x = dataCopy.x !== undefined ? Number(dataCopy.x) : 0;
         dataCopy.y = dataCopy.y !== undefined ? Number(dataCopy.y) : 0;
@@ -764,8 +768,21 @@ export function WorkflowCanvas({
           dataCopy.width !== undefined ? Number(dataCopy.width) : 100;
         dataCopy.height =
           dataCopy.height !== undefined ? Number(dataCopy.height) : 100;
-        dataCopy.inputImage = dataCopy.inputImage || "";
-        dataCopy.outputImage = dataCopy.outputImage || "";
+        
+        // Strip transient runtime output states
+        dataCopy.inputImage = "";
+        dataCopy.outputImage = "";
+      } else if (node.type === "response") {
+        // Strip transient response output states
+        dataCopy.results = [];
+      } else if (node.type === "requestInput") {
+        // Clear user input values
+        if (Array.isArray(dataCopy.fields)) {
+          dataCopy.fields = (dataCopy.fields as RequestInputField[]).map((f) => ({
+            ...f,
+            value: "",
+          }));
+        }
       }
 
       return {
@@ -881,6 +898,8 @@ export function WorkflowCanvas({
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
             deleteKeyCode={null}
+            onPaneClick={() => setShowPicker(false)}
+            onNodeClick={() => setShowPicker(false)}
           >
             <DotField />
             <Controls className="bg-white! border-zinc-200! shadow-md! rounded-lg! overflow-hidden [&_button]:border-b-zinc-100!">
@@ -908,12 +927,15 @@ export function WorkflowCanvas({
           </ReactFlow>
 
           {!isSystem && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-40">
+            <div
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-4 z-40"
+              onMouseLeave={() => setShowPicker(false)}
+            >
               <button
                 id="add-node-button"
                 onClick={() => setShowPicker(!showPicker)}
                 className={cn(
-                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200",
+                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
                   showPicker &&
                     "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45",
                 )}
@@ -926,6 +948,7 @@ export function WorkflowCanvas({
                 <NodePicker
                   onSelect={(type) => addNode(type)}
                   onClose={() => setShowPicker(false)}
+                  className="static translate-x-0 bottom-auto left-auto animate-in fade-in slide-in-from-bottom-2 duration-150"
                 />
               )}
             </div>

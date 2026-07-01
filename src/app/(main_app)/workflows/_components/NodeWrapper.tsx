@@ -16,6 +16,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NodeWrapperProps {
   id: string;
@@ -31,6 +37,7 @@ interface NodeWrapperProps {
   description?: string;
   menuItems?: React.ReactNode | ((closeMenu: () => void) => React.ReactNode);
   children: React.ReactNode;
+  className?: string;
 }
 
 export function NodeWrapper({
@@ -47,10 +54,8 @@ export function NodeWrapper({
   description,
   menuItems,
   children,
+  className,
 }: NodeWrapperProps) {
-  const [showDeleteMenu, setShowDeleteMenu] = React.useState(false);
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
   const node = useWorkflowStore((state) => state.nodes.find((n) => n.id === id));
   const onNodeDataChange = useWorkflowStore((state) => state.onNodeDataChange);
   const nodeData = node?.data as BaseWorkflowNodeData | undefined;
@@ -60,24 +65,6 @@ export function NodeWrapper({
   const [isEditingDescription, setIsEditingDescription] = React.useState(false);
   const [tempDescription, setTempDescription] = React.useState("");
   const currentDescription = (nodeData?.description as string | undefined) ?? description ?? "";
-
-  React.useEffect(() => {
-    if (!showDeleteMenu) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as globalThis.Node)
-      ) {
-        setShowDeleteMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showDeleteMenu]);
 
   return (
     <div
@@ -90,9 +77,10 @@ export function NodeWrapper({
             : !isValid
               ? "border-amber-300 shadow-sm"
               : "border-zinc-200",
+        className,
       )}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl select-none">
         <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
           {headerLeftExtra || (
             <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary flex items-center gap-1.5 flex-1 min-w-0">
@@ -154,110 +142,93 @@ export function NodeWrapper({
           )}
 
           {(onDeleteNode || id) && (
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowDeleteMenu(!showDeleteMenu)}
-                className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600 border-0 bg-transparent"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-              {showDeleteMenu && (
-                <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700 font-sans">
-                  {/* Edit Description Item */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTempDescription(currentDescription);
-                      setIsEditingDescription(true);
-                      setShowDeleteMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer border-0 bg-transparent text-zinc-700"
-                  >
-                    <Edit className="w-3.5 h-3.5 text-zinc-500" />
-                    <span>Edit Description</span>
-                  </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600 border-0 bg-transparent nodrag flex items-center justify-center"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-white border border-zinc-200 z-50">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setTempDescription(currentDescription);
+                    setIsEditingDescription(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                  <span>Edit Description</span>
+                </DropdownMenuItem>
 
-                  {/* Lock Node Item */}
-                  <button
-                    onClick={() => {
-                      onNodeDataChange(id, { isLocked: !isLocked });
-                      setShowDeleteMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer border-0 bg-transparent text-zinc-700"
-                  >
-                    {isLocked ? (
-                      <>
-                        <Unlock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Unlock Node</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Lock Node</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Position Lock Item */}
-                  <button
-                    onClick={() => {
-                      onNodeDataChange(id, { isPositionLocked: !isPositionLocked });
-                      setShowDeleteMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer border-0 bg-transparent text-zinc-700"
-                  >
-                    {isPositionLocked ? (
-                      <>
-                        <Unlock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Unlock Position</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Lock Position</span>
-                      </>
-                    )}
-                  </button>
-
-                  {menuItems &&
-                    (typeof menuItems === "function"
-                      ? menuItems(() => setShowDeleteMenu(false))
-                      : menuItems)}
-                  {onRunNode && (
-                    <button
-                      onClick={() => {
-                        onRunNode();
-                        setShowDeleteMenu(false);
-                      }}
-                      disabled={running || !isValid}
-                      className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer disabled:opacity-50 disabled:pointer-events-none border-0 bg-transparent text-zinc-700"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-zinc-500 stroke-none" />
-                      <span>Run Node</span>
-                    </button>
+                <DropdownMenuItem
+                  onClick={() => onNodeDataChange(id, { isLocked: !isLocked })}
+                  className="cursor-pointer"
+                >
+                  {isLocked ? (
+                    <>
+                      <Unlock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Unlock Node</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Lock Node</span>
+                    </>
                   )}
-                  {onDeleteNode && (
-                    <button
-                      onClick={() => {
-                        onDeleteNode();
-                        setShowDeleteMenu(false);
-                      }}
-                      disabled={isLocked}
-                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer border-0 bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete Node</span>
-                    </button>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => onNodeDataChange(id, { isPositionLocked: !isPositionLocked })}
+                  className="cursor-pointer"
+                >
+                  {isPositionLocked ? (
+                    <>
+                      <Unlock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Unlock Position</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                      <span>Lock Position</span>
+                    </>
                   )}
-                </div>
-              )}
-            </div>
+                </DropdownMenuItem>
+
+                {menuItems &&
+                  (typeof menuItems === "function" ? menuItems(() => {}) : menuItems)}
+
+                {onRunNode && (
+                  <DropdownMenuItem
+                    onClick={onRunNode}
+                    disabled={running || !isValid}
+                    className="cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-2 fill-zinc-500 stroke-none" />
+                    <span>Run Node</span>
+                  </DropdownMenuItem>
+                )}
+
+                {onDeleteNode && (
+                  <DropdownMenuItem
+                    onClick={onDeleteNode}
+                    disabled={isLocked}
+                    className="cursor-pointer text-red-650 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    <span>Delete Node</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
 
       {!isValid && (
-        <div className="px-4 pt-3 flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50/30">
+        <div className="px-4 pt-3 flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50/30 select-none">
           <AlertCircle className="w-3.5 h-3.5" />
           <span>{validationError || "Inputs are required."}</span>
         </div>

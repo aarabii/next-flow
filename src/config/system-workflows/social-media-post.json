@@ -20,32 +20,20 @@
         ]
       },
       "type": "requestInput",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 262
-      },
       "position": {
-        "x": 100,
-        "y": 211
+        "x": 50,
+        "y": 300
       },
-      "selected": false,
       "deletable": false
     },
     {
       "id": "response",
       "data": {},
       "type": "response",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 182
-      },
       "position": {
-        "x": 1700,
-        "y": 224
+        "x": 1650,
+        "y": 350
       },
-      "selected": false,
       "deletable": false
     },
     {
@@ -70,16 +58,10 @@
         "imageInputFileName": ""
       },
       "type": "textNode",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 451
-      },
       "position": {
-        "x": 500,
-        "y": -587
-      },
-      "selected": false
+        "x": 450,
+        "y": -250
+      }
     },
     {
       "id": "textNode_1782387694346",
@@ -103,16 +85,10 @@
         "imageInputFileName": ""
       },
       "type": "textNode",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 451
-      },
       "position": {
-        "x": 902,
-        "y": -576.25
-      },
-      "selected": false
+        "x": 850,
+        "y": -250
+      }
     },
     {
       "id": "cropImage_1782387908383",
@@ -125,16 +101,10 @@
         "outputImage": ""
       },
       "type": "cropImage",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 550
-      },
       "position": {
-        "x": 500,
-        "y": 71
-      },
-      "selected": false
+        "x": 450,
+        "y": 250
+      }
     },
     {
       "id": "cropImage_1782387910775",
@@ -147,16 +117,10 @@
         "outputImage": ""
       },
       "type": "cropImage",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 550
-      },
       "position": {
-        "x": 500,
-        "y": 704
-      },
-      "selected": false
+        "x": 450,
+        "y": 850
+      }
     },
     {
       "id": "textNode_1782388393611",
@@ -192,16 +156,10 @@
         "imageInputFileName": ""
       },
       "type": "textNode",
-      "dragging": false,
-      "measured": {
-        "width": 320,
-        "height": 606
-      },
       "position": {
-        "x": 1320,
-        "y": -119.5
-      },
-      "selected": false
+        "x": 1250,
+        "y": 150
+      }
     }
   ],
   "edges": [
@@ -282,19 +240,6 @@
       "animated": true,
       "sourceHandle": "response",
       "targetHandle": "result"
-    },
-    {
-      "id": "edge_cropImage_1782387908383_outputImage_to_textNode_1782388393611_image_input",
-      "type": "smoothstep",
-      "style": {
-        "stroke": "#a855f7",
-        "strokeWidth": 2
-      },
-      "source": "cropImage_1782387908383",
-      "target": "textNode_1782388393611",
-      "animated": true,
-      "sourceHandle": "outputImage",
-      "targetHandle": "image_input"
     },
     {
       "id": "edge_cropImage_1782387908383_outputImage_to_textNode_1782388393611_image_field_1782388858611",

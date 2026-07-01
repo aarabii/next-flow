@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { Scissors, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface NodePickerProps {
   onSelect: (nodeType: "cropImage" | "textNode") => void;
   onClose: () => void;
+  className?: string;
 }
 
-export function NodePicker({ onSelect, onClose }: NodePickerProps) {
+export function NodePicker({ onSelect, onClose, className }: NodePickerProps) {
   const pickerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -29,7 +31,10 @@ export function NodePicker({ onSelect, onClose }: NodePickerProps) {
   return (
     <div
       ref={pickerRef}
-      className="absolute bottom-20 left-1/2 -translate-x-1/2 w-64 bg-white border border-zinc-200/80 rounded-xl shadow-2xl flex flex-col p-2.5 z-50 font-sans animate-in fade-in slide-in-from-bottom-4 duration-200"
+      className={cn(
+        "absolute bottom-20 left-1/2 -translate-x-1/2 w-64 bg-white border border-zinc-200/80 rounded-xl shadow-2xl flex flex-col p-2.5 z-50 font-sans animate-in fade-in slide-in-from-bottom-4 duration-200",
+        className
+      )}
     >
       <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-2 py-1 select-none">
         Add Component

@@ -6,7 +6,6 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import {
   Trash2,
   Download,
-  HelpCircle,
   FileText,
   Image as ImageIcon,
   Video as VideoIcon,
@@ -14,8 +13,6 @@ import {
   Copy,
   Check,
   Maximize2,
-  Play,
-  Pause,
 } from "lucide-react";
 import { ResponseNodeData, ResponseResultItem } from "@/types/node.type";
 import { AudioPlayer } from "./AudioPlayer";
@@ -28,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+
 
 
 

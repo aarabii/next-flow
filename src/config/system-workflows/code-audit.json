@@ -20,14 +20,10 @@
       },
       "type": "requestInput",
       "position": {
-        "x": 50,
-        "y": 150
+        "x": 100,
+        "y": 200
       },
-      "deletable": false,
-      "measured": {
-        "width": 320,
-        "height": 262
-      }
+      "deletable": false
     },
     {
       "id": "response",
@@ -35,38 +31,28 @@
       "type": "response",
       "position": {
         "x": 900,
-        "y": 250
+        "y": 200
       },
-      "deletable": false,
-      "measured": {
-        "width": 320,
-        "height": 182
-      }
+      "deletable": false
     },
     {
       "id": "textNode_1782405210098",
       "type": "textNode",
       "position": {
-        "x": 469.9484536082474,
-        "y": 21.932989690721662
+        "x": 500,
+        "y": 100
       },
       "data": {
         "model": "gemini-3.1-flash-lite",
         "prompt": "",
-        "systemPrompt": "Explain the provided code in detail, including its overall purpose, architecture, execution flow, function and class responsibilities, variable usage, algorithms, design patterns, dependencies, and how each part interacts, with a step-by-step breakdown suitable for a complete understanding.\"",
+        "systemPrompt": "Explain the provided code in detail, including its overall purpose, architecture, execution flow, function and class responsibilities, variable usage, algorithms, design patterns, dependencies, and how each part interacts, with a step-by-step breakdown suitable for a complete understanding.",
         "imageInput": "",
         "imageInputFileName": "",
         "response": "",
         "temperature": 0.7,
         "topP": 0.95,
         "maxTokens": 2048
-      },
-      "measured": {
-        "width": 320,
-        "height": 451
-      },
-      "selected": false,
-      "dragging": false
+      }
     }
   ],
   "edges": [

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
+import { Button } from "@/components/ui/button";
 
 export function ImportButton() {
   const router = useRouter();
@@ -37,83 +37,6 @@ export function ImportButton() {
             throw new Error("Missing or invalid 'nodes' array in JSON.");
           }
 
-          let generationCount = 0;
-
-          const rawNodesList = parsed.nodes as Record<string, unknown>[];
-          const cleanedNodes = rawNodesList.map((node) => {
-            if (!node || typeof node !== "object") return node;
-
-            const cleanedNode = { ...node };
-
-            const rawPosition = cleanedNode.position as
-              | Record<string, unknown>
-              | undefined;
-            if (
-              !rawPosition ||
-              typeof rawPosition.x !== "number" ||
-              typeof rawPosition.y !== "number"
-            ) {
-              if (cleanedNode.type === "requestInput") {
-                cleanedNode.position = { x: 50, y: 150 };
-              } else if (cleanedNode.type === "response") {
-                cleanedNode.position = { x: 950, y: 250 };
-              } else {
-                cleanedNode.position = {
-                  x: 350 + (generationCount % 2) * 280,
-                  y: 150 + Math.floor(generationCount / 2) * 220,
-                };
-                generationCount++;
-              }
-            }
-
-            const data = {
-              ...((cleanedNode.data as Record<string, unknown>) || {}),
-            };
-            const type = cleanedNode.type as string;
-
-            if (type === "textNode") {
-              const config = GEMINI_MODEL_CONFIG.textNode;
-              data.model = data.model || config.defaultModelId;
-              data.temperature =
-                data.temperature !== undefined
-                  ? Number(data.temperature)
-                  : config.defaultTemperature;
-              data.topP =
-                data.topP !== undefined
-                  ? Number(data.topP)
-                  : config.defaultTopP;
-              data.maxTokens =
-                data.maxTokens !== undefined
-                  ? Number(data.maxTokens)
-                  : config.defaultMaxTokens;
-              data.systemPrompt =
-                data.systemPrompt !== undefined
-                  ? data.systemPrompt
-                  : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
-              if (!data.fields && !data.prompt) {
-                data.fields = [
-                  {
-                    id: "prompt",
-                    type: "text_field",
-                    label: "Prompt",
-                    value: "",
-                  },
-                ];
-              }
-            } else if (type === "cropImage") {
-              data.x = data.x !== undefined ? Number(data.x) : 0;
-              data.y = data.y !== undefined ? Number(data.y) : 0;
-              data.width = data.width !== undefined ? Number(data.width) : 100;
-              data.height =
-                data.height !== undefined ? Number(data.height) : 100;
-              data.inputImage = data.inputImage || "";
-              data.outputImage = data.outputImage || "";
-            }
-
-            cleanedNode.data = data;
-            return cleanedNode;
-          });
-
           const baseName =
             file.name.substring(0, file.name.lastIndexOf(".")) ||
             "Imported Workflow";
@@ -130,7 +53,7 @@ export function ImportButton() {
             },
             body: JSON.stringify({
               name: capitalizedName,
-              nodes: cleanedNodes,
+              nodes: parsed.nodes,
               edges: parsed.edges || [],
             }),
           });
@@ -171,16 +94,17 @@ export function ImportButton() {
         accept=".json"
         className="hidden"
       />
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={handleButtonClick}
         disabled={isImporting}
-        className="inline-flex h-9 items-center gap-space-03 rounded-radius-l bg-surface-primary px-space-04 text-button text-text-primary transition-colors hover:bg-surface-secondary disabled:opacity-40 cursor-pointer"
+        className="cursor-pointer"
         title="Import workflow JSON"
       >
-        <Upload className="w-4 h-4 text-icon-primary" aria-hidden="true" />
-        {isImporting ? "Importing..." : "Import"}
-      </button>
+        <Upload className="w-4 h-4" aria-hidden="true" />
+        <span>{isImporting ? "Importing..." : "Import"}</span>
+      </Button>
     </>
   );
 }
