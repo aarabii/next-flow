@@ -36,6 +36,8 @@ export const SystemFlowCard = () => {
                   src={workflow.backgroundImage}
                   alt={workflow.name}
                   fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  loading="lazy"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/5 transition-opacity group-hover:bg-black/10" />

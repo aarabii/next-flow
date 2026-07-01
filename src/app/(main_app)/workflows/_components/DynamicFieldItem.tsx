@@ -238,6 +238,8 @@ export function DynamicFieldItem({
                           alt="Uploaded thumbnail"
                           fill
                           unoptimized
+                          sizes="40px"
+                          loading="lazy"
                           className="object-cover"
                         />
                       ) : (

@@ -185,6 +185,8 @@ export function CropImageNode({
                       alt="input preview"
                       fill
                       unoptimized
+                      sizes="40px"
+                      loading="lazy"
                       className="object-cover"
                     />
                   </div>
@@ -334,6 +336,8 @@ export function CropImageNode({
                   alt="output preview"
                   fill
                   unoptimized
+                  sizes="(max-width: 768px) 100vw, 380px"
+                  loading="lazy"
                   className="object-contain"
                 />
               </div>

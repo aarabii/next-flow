@@ -197,6 +197,8 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
                                 alt={item.label}
                                 fill
                                 unoptimized
+                                sizes="40px"
+                                loading="lazy"
                                 className="object-cover"
                               />
                             </div>
