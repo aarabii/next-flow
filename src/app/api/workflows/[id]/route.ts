@@ -11,7 +11,7 @@ const NodeSchema = z.object({
     x: z.number(),
     y: z.number(),
   }),
-  data: z.record(z.unknown()).optional().default({}),
+  data: z.record(z.string(), z.unknown()).optional().default({}),
   deletable: z.boolean().optional(),
 });
 
@@ -23,7 +23,7 @@ const EdgeSchema = z.object({
   targetHandle: z.string().nullable().optional(),
   type: z.string().optional(),
   animated: z.boolean().optional(),
-  style: z.record(z.unknown()).optional(),
+  style: z.record(z.string(), z.unknown()).optional(),
 });
 
 const UpdateWorkflowSchema = z.object({
