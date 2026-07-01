@@ -1,0 +1,85 @@
+{
+  "nodes": [
+    {
+      "id": "request_inputs",
+      "data": {
+        "fields": [
+          {
+            "id": "audio_field_1782921526135",
+            "type": "audio_field",
+            "label": "Audio Field",
+            "value": ""
+          }
+        ]
+      },
+      "type": "requestInput",
+      "position": {
+        "x": 50,
+        "y": 150
+      },
+      "deletable": false
+    },
+    {
+      "id": "response",
+      "data": {},
+      "type": "response",
+      "position": {
+        "x": 900,
+        "y": 250
+      },
+      "deletable": false
+    },
+    {
+      "id": "textNode_1782921516781",
+      "type": "textNode",
+      "position": {
+        "x": 424.7164948453608,
+        "y": 41.65914948453607
+      },
+      "data": {
+        "model": "gemini-3.1-flash-lite",
+        "prompt": "",
+        "systemPrompt": "Find me this music. If its not a music then describe the audio file.",
+        "temperature": 0.7,
+        "topP": 0.95,
+        "maxTokens": 2048,
+        "fields": [
+          {
+            "id": "audio_field_1782921531084",
+            "type": "audio_field",
+            "label": "Audio Field",
+            "value": ""
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "request_inputs",
+      "sourceHandle": "audio_field_1782921526135",
+      "target": "textNode_1782921516781",
+      "targetHandle": "audio_field_1782921531084",
+      "id": "edge_request_inputs_audio_field_1782921526135_to_textNode_1782921516781_audio_field_1782921531084",
+      "type": "smoothstep",
+      "animated": true,
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      }
+    },
+    {
+      "source": "textNode_1782921516781",
+      "sourceHandle": "response",
+      "target": "response",
+      "targetHandle": "result",
+      "id": "edge_textNode_1782921516781_response_to_response_result",
+      "type": "smoothstep",
+      "animated": true,
+      "style": {
+        "stroke": "#a855f7",
+        "strokeWidth": 2
+      }
+    }
+  ]
+}

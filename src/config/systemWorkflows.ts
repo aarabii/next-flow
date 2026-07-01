@@ -1,6 +1,7 @@
 import socialMediaPostData from "./system-workflows/social-media-post.json";
 import whoAmIData from "./system-workflows/who-am-i.json";
 import codeAuditData from "./system-workflows/code-audit.json";
+import miniShazamData from "./system-workflows/mini-shazam.json";
 
 import type { Node, Edge } from "@xyflow/react";
 
@@ -41,6 +42,15 @@ export const SYSTEM_WORKFLOWS: SystemWorkflow[] = [
     nodes: codeAuditData.nodes,
     edges: codeAuditData.edges,
     gradient: "from-emerald-500/20 via-teal-500/20 to-cyan-500/10",
+  },
+  {
+    id: "mini-shazam",
+    name: "Mini Shazam",
+    description: "Identify background music or describe audio files using Gemini",
+    backgroundImage: "/assets/mini-sazam.png",
+    nodes: miniShazamData.nodes,
+    edges: miniShazamData.edges,
+    gradient: "from-blue-500/20 via-sky-500/20 to-indigo-500/10",
   },
 ];
 

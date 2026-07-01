@@ -32,6 +32,7 @@ export interface CropImageNodeData extends BaseWorkflowNodeData<CropImageNodeDat
   width?: number;
   height?: number;
   outputImage?: string;
+  expandResponse?: boolean;
 }
 
 export interface TextNodeData extends BaseWorkflowNodeData<TextNodeData> {

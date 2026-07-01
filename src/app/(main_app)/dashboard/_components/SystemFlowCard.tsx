@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SYSTEM_WORKFLOWS } from "@/config/systemWorkflows";
-import { Sparkles, Wand2, Laptop, Code2 } from "lucide-react";
+import { Sparkles, Wand2, Laptop, Code2, Music } from "lucide-react";
 
 const getIcon = (id: string) => {
   switch (id) {
@@ -13,6 +13,8 @@ const getIcon = (id: string) => {
       return <Wand2 className="w-12 h-12 text-pink-500/70" />;
     case "code-audit":
       return <Code2 className="w-12 h-12 text-emerald-500/70" />;
+    case "mini-shazam":
+      return <Music className="w-12 h-12 text-blue-500/70" />;
     default:
       return <Laptop className="w-12 h-12 text-emerald-500/70" />;
   }
@@ -20,16 +22,12 @@ const getIcon = (id: string) => {
 
 export const SystemFlowCard = () => {
   return (
-    <div
-      className="flex gap-space-07 overflow-x-auto scroll-smooth pb-space-02 scrollbar-none"
-      style={{ scrollSnapType: "x mandatory" }}
-    >
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-space-06 w-full">
       {SYSTEM_WORKFLOWS.map((workflow) => (
         <Link
           key={workflow.id}
-          className="group w-[80vw] max-w-xs flex-none overflow-hidden rounded-radius-xxl border border-width-s border-boarder-tertiary bg-surface-main-background-2 text-left transition-colors hover:border-boarder-secondary sm:w-72 lg:w-80"
+          className="group w-full overflow-hidden rounded-radius-xxl border border-width-s border-boarder-tertiary bg-surface-main-background-2 text-left transition-colors hover:border-boarder-secondary"
           href={`/workflows/${workflow.id}`}
-          style={{ scrollSnapAlign: "start" }}
         >
           <div className={`relative ${workflow.backgroundImage ? "aspect-square" : "aspect-288/196"} bg-surface-main-background-3 flex items-center justify-center bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] overflow-hidden bg-size-[16px_16px]`}>
             {workflow.backgroundImage ? (
