@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -84,12 +85,13 @@ export function CropImageNode({
           ) : inputImage ? (
             <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
               <div className="flex items-center gap-2 overflow-hidden">
-                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center relative">
+                  <Image
                     src={inputImage}
                     alt="input preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
                 </div>
                 <span className="text-[11px] font-medium text-zinc-600 truncate max-w-37">
@@ -189,11 +191,12 @@ export function CropImageNode({
         <div className="border border-zinc-100 rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-50/50 min-h-20">
           {outputImage ? (
             <div className="relative w-full h-20 rounded overflow-hidden border border-zinc-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={outputImage}
                 alt="output preview"
-                className="w-full h-full object-contain"
+                fill
+                unoptimized
+                className="object-contain"
               />
             </div>
           ) : (

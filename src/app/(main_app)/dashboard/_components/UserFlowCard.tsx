@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Search } from "lucide-react";
@@ -186,11 +187,12 @@ export const UserFlowCard = ({
             >
               {workflow.backgroundImage ? (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={workflow.backgroundImage}
                     alt={workflow.title}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105"
+                    fill
+                    unoptimized
+                    className="object-cover transition-transform duration-300 group-hover/card:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/10 transition-opacity group-hover/card:bg-black/20" />
                 </>

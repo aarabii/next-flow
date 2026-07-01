@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       waitForCompletion: true,
     };
 
-    const status = await transloadit.createAssembly(options);
+    const status = await transloadit.createAssembly(options as any);
 
     try {
       fs.unlinkSync(tempFilePath);

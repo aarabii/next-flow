@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { SYSTEM_WORKFLOWS } from "@/config/systemWorkflows";
 import { Sparkles, Wand2, Laptop, Code2 } from "lucide-react";
 
@@ -33,10 +34,11 @@ export const SystemFlowCard = () => {
           <div className={`relative ${workflow.backgroundImage ? "aspect-square" : "aspect-288/196"} bg-surface-main-background-3 flex items-center justify-center bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] overflow-hidden bg-size-[16px_16px]`}>
             {workflow.backgroundImage ? (
               <>
-                <img
+                <Image
                   src={workflow.backgroundImage}
                   alt={workflow.name}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/5 transition-opacity group-hover:bg-black/10" />
               </>

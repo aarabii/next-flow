@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import {
   Copy,
@@ -201,15 +202,16 @@ export function RequestInputNode({
               {field.value ? (
                 <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center">
+                    <div className="w-8 h-8 rounded border border-zinc-100 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center relative">
                       {field.type === "image_field" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={field.value}
                           alt="preview"
-                          className="w-full h-full object-cover"
+                          fill
+                          unoptimized
+                          className="object-cover"
                           onError={(e) => {
-                            (e.target as HTMLElement).style.display = "none";
+                            (e.currentTarget as HTMLElement).style.display = "none";
                           }}
                         />
                       ) : field.type === "video_field" ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import {
   Trash2,
@@ -133,11 +134,12 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
                     {type === "image" && item.value ? (
                       <div className="flex flex-col gap-1.5">
                         <div className="relative w-full h-28 rounded-lg overflow-hidden border border-zinc-100 bg-zinc-50 flex items-center justify-center">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={item.value}
                             alt={item.label}
-                            className="w-full h-full object-contain"
+                            fill
+                            unoptimized
+                            className="object-contain"
                           />
                         </div>
                         <button
