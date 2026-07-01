@@ -42,6 +42,7 @@ import {
   Plus,
   Trash2,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 
 
@@ -169,9 +170,36 @@ export function RequestInputNode({
     updateFields([...fields, newField]);
   };
 
+  const handleReset = () => {
+    const resetFields = fields.map((f) => ({
+      ...f,
+      value: "",
+      fileName: "",
+      fileSize: "",
+    }));
+    updateFields(resetFields);
+  };
+
+  const headerRight = (
+    <button
+      type="button"
+      onClick={handleReset}
+      disabled={isLocked}
+      title="Reset all values"
+      className="p-1.5 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 hover:text-zinc-650 disabled:opacity-40 disabled:pointer-events-none border-0 bg-transparent nodrag shrink-0"
+    >
+      <RotateCcw className="w-3.5 h-3.5" />
+    </button>
+  );
+
   return (
     <TooltipProvider>
-      <NodeWrapper id={id} title="Request Inputs">
+      <NodeWrapper
+        id={id}
+        title="Request Inputs"
+        description="Request Inputs node is used to define dynamic text, image, or audio input fields that feed into the workflow."
+        headerRightExtra={headerRight}
+      >
         <div className="flex flex-col gap-3">
           {fields.map((field) => (
             <div

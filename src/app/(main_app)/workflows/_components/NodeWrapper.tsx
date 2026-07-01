@@ -1,8 +1,21 @@
 import * as React from "react";
-import { Play, MoreHorizontal, Trash2, AlertCircle, Lock, Unlock } from "lucide-react";
+import { Play, MoreHorizontal, Trash2, AlertCircle, Lock, Unlock, Info, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
 import { BaseWorkflowNodeData } from "@/types/node.type";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface NodeWrapperProps {
   id: string;
@@ -15,6 +28,7 @@ interface NodeWrapperProps {
   onDeleteNode?: () => void;
   headerLeftExtra?: React.ReactNode;
   headerRightExtra?: React.ReactNode;
+  description?: string;
   menuItems?: React.ReactNode | ((closeMenu: () => void) => React.ReactNode);
   children: React.ReactNode;
 }
@@ -30,6 +44,7 @@ export function NodeWrapper({
   onDeleteNode,
   headerLeftExtra,
   headerRightExtra,
+  description,
   menuItems,
   children,
 }: NodeWrapperProps) {
@@ -41,6 +56,10 @@ export function NodeWrapper({
   const nodeData = node?.data as BaseWorkflowNodeData | undefined;
   const isPositionLocked = nodeData?.isPositionLocked ?? false;
   const isLocked = nodeData?.isLocked ?? false;
+
+  const [isEditingDescription, setIsEditingDescription] = React.useState(false);
+  const [tempDescription, setTempDescription] = React.useState("");
+  const currentDescription = (nodeData?.description as string | undefined) ?? description ?? "";
 
   React.useEffect(() => {
     if (!showDeleteMenu) return;
@@ -76,13 +95,27 @@ export function NodeWrapper({
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-xl">
         <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
           {headerLeftExtra || (
-            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary flex items-center gap-1.5">
-              {title}
+            <span className="font-bold text-xs text-zinc-700 tracking-wide uppercase truncate font-secondary flex items-center gap-1.5 flex-1 min-w-0">
+              <span className="truncate">{title}</span>
               {isLocked && (
                 <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               )}
               {isPositionLocked && (
                 <Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              )}
+              {description && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-pointer text-zinc-400 hover:text-zinc-600 p-0.5 shrink-0 nodrag">
+                        <Info className="w-3.5 h-3.5" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] font-sans text-xs normal-case">
+                      {currentDescription}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </span>
           )}
@@ -130,6 +163,20 @@ export function NodeWrapper({
               </button>
               {showDeleteMenu && (
                 <div className="absolute right-0 mt-1 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 z-50 text-xs text-zinc-700 font-sans">
+                  {/* Edit Description Item */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempDescription(currentDescription);
+                      setIsEditingDescription(true);
+                      setShowDeleteMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-zinc-50 transition-colors flex items-center gap-1.5 font-medium cursor-pointer border-0 bg-transparent text-zinc-700"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-zinc-500" />
+                    <span>Edit Description</span>
+                  </button>
+
                   {/* Lock Node Item */}
                   <button
                     onClick={() => {
@@ -217,6 +264,47 @@ export function NodeWrapper({
       )}
 
       <div className="p-4 flex flex-col gap-4">{children}</div>
+
+      {/* Edit Description Dialog */}
+      {isEditingDescription && (
+        <Dialog open={isEditingDescription} onOpenChange={(open) => !open && setIsEditingDescription(false)}>
+          <DialogContent className="sm:max-w-md bg-white border border-zinc-200">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold text-zinc-800">
+                Edit Description - {title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <textarea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                placeholder="Enter description..."
+                className="w-full text-xs p-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 min-h-[120px] text-zinc-700 bg-zinc-50/20 resize-y"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setIsEditingDescription(false)}
+                className="text-xs px-3 py-1.5 rounded-lg cursor-pointer border border-zinc-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  onNodeDataChange(id, { description: tempDescription });
+                  setIsEditingDescription(false);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0"
+              >
+                Save
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

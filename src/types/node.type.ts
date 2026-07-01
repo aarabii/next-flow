@@ -17,6 +17,7 @@ export interface BaseWorkflowNodeData<T = Record<string, unknown>> {
   onDeleteNode?: () => void;
   isLocked?: boolean;
   isPositionLocked?: boolean;
+  description?: string;
   [key: string]: unknown;
 }
 

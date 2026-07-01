@@ -12,7 +12,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Undo2, Redo2 } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Undo, Redo } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import DotField from "@/components/DotField";
@@ -832,26 +832,6 @@ export function WorkflowCanvas({
           </button>
 
           <button
-            onClick={undo}
-            disabled={past.length === 0}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
-            title="Undo last action (Ctrl+Z)"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-            <span>Undo</span>
-          </button>
-
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 font-secondary"
-            title="Redo last action (Ctrl+Y)"
-          >
-            <Redo2 className="w-3.5 h-3.5" />
-            <span>Redo</span>
-          </button>
-
-          <button
             onClick={() => setHistoryOpen(!historyOpen)}
             className={cn(
               "px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5",
@@ -906,6 +886,22 @@ export function WorkflowCanvas({
             <Controls className="bg-white! border-zinc-200! shadow-md! rounded-lg! overflow-hidden [&_button]:border-b-zinc-100!">
               <ControlButton onClick={autoLayout} title="Auto Layout">
                 <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 hover:text-purple-600 transition-colors" />
+              </ControlButton>
+              <ControlButton
+                onClick={undo}
+                disabled={past.length === 0}
+                title="Undo last action (Ctrl+Z)"
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Undo className={cn("w-3.5 h-3.5 transition-colors", past.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
+              </ControlButton>
+              <ControlButton
+                onClick={redo}
+                disabled={future.length === 0}
+                title="Redo last action (Ctrl+Y)"
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Redo className={cn("w-3.5 h-3.5 transition-colors", future.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
               </ControlButton>
             </Controls>
             <MiniMap className="bg-white! border-zinc-200! shadow-md! rounded-xl! bottom-4! right-4!" />

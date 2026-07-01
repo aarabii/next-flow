@@ -100,14 +100,12 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
     }, 1500);
   };
 
-  const headerRight = (
-    <button className="p-1 hover:bg-zinc-200/60 rounded-md transition-colors cursor-pointer text-zinc-400 border-0 bg-transparent">
-      <HelpCircle className="w-4 h-4" />
-    </button>
-  );
-
   return (
-    <NodeWrapper id={id} title="Response" headerRightExtra={headerRight}>
+    <NodeWrapper
+      id={id}
+      title="Response"
+      description="Response node collects and displays the final outputs of connected workflow components."
+    >
       <Handle
         type="target"
         position={Position.Left}
