@@ -89,7 +89,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       nodes: previous.nodes,
       edges: previous.edges,
       past: newPast,
-      future: [{ nodes: currentNodes, edges: currentEdges }, ...future],
+      future: [{ nodes: currentNodes, edges: currentEdges }, ...future].slice(0, 50),
     });
   },
 
@@ -106,7 +106,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     set({
       nodes: next.nodes,
       edges: next.edges,
-      past: [...past, { nodes: currentNodes, edges: currentEdges }],
+      past: [...past, { nodes: currentNodes, edges: currentEdges }].slice(-50),
       future: newFuture,
     });
   },
