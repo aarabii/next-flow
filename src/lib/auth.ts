@@ -28,8 +28,10 @@ export async function checkAndSyncUser() {
       .filter(Boolean)
       .join(" ");
 
-    dbUser = await db.user.create({
-      data: {
+    dbUser = await db.user.upsert({
+      where: { clerkId: userId },
+      update: {},
+      create: {
         clerkId: userId,
         email: email,
         name: fullName || null,
@@ -60,8 +62,10 @@ export async function getAuthenticatedUser() {
       .filter(Boolean)
       .join(" ");
 
-    dbUser = await db.user.create({
-      data: {
+    dbUser = await db.user.upsert({
+      where: { clerkId: userId },
+      update: {},
+      create: {
         clerkId: userId,
         email: email,
         name: fullName || null,
@@ -72,4 +76,3 @@ export async function getAuthenticatedUser() {
 
   return dbUser;
 }
-
