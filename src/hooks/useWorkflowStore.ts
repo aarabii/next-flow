@@ -15,9 +15,6 @@ import {
   RequestInputField,
   CropImageNodeData,
   TextNodeData,
-  ImageNodeData,
-  VideoNodeData,
-  AudioNodeData,
 } from "@/types/node.type";
 
 const initialNodes: Node[] = [
@@ -210,43 +207,6 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         topP: GEMINI_MODEL_CONFIG.textNode.defaultTopP,
         maxTokens: GEMINI_MODEL_CONFIG.textNode.defaultMaxTokens,
       } as TextNodeData;
-    } else if (nodeType === "imageNode") {
-      data = {
-        model: GEMINI_MODEL_CONFIG.imageNode.defaultModelId,
-        prompt: "",
-        systemPrompt: "Describe a detailed visual scene based on the input.",
-        imageInput: "",
-        imageInputFileName: "",
-        response: "",
-        temperature: GEMINI_MODEL_CONFIG.imageNode.defaultTemperature,
-        topP: GEMINI_MODEL_CONFIG.imageNode.defaultTopP,
-        maxTokens: GEMINI_MODEL_CONFIG.imageNode.defaultMaxTokens,
-        aspectRatio: "1:1",
-      } as ImageNodeData;
-    } else if (nodeType === "videoNode") {
-      data = {
-        model: GEMINI_MODEL_CONFIG.videoNode.defaultModelId,
-        prompt: "",
-        systemPrompt:
-          "You are a video scene writer. Outline a continuous video description sequence based on the input.",
-        imageInput: "",
-        imageInputFileName: "",
-        response: "",
-        temperature: GEMINI_MODEL_CONFIG.videoNode.defaultTemperature,
-        topP: GEMINI_MODEL_CONFIG.videoNode.defaultTopP,
-        maxTokens: GEMINI_MODEL_CONFIG.videoNode.defaultMaxTokens,
-      } as VideoNodeData;
-    } else if (nodeType === "audioNode") {
-      data = {
-        model: GEMINI_MODEL_CONFIG.audioNode.defaultModelId,
-        prompt: "",
-        systemPrompt:
-          "You are a speech narrator. Write standard speech-to-text narrations.",
-        response: "",
-        temperature: GEMINI_MODEL_CONFIG.audioNode.defaultTemperature,
-        topP: GEMINI_MODEL_CONFIG.audioNode.defaultTopP,
-        maxTokens: GEMINI_MODEL_CONFIG.audioNode.defaultMaxTokens,
-      } as AudioNodeData;
     }
 
     const newNode: Node = {

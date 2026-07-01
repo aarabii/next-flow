@@ -19,9 +19,6 @@ import DotField from "@/components/DotField";
 import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
-import { ImageNode } from "./ImageNode";
-import { VideoNode } from "./VideoNode";
-import { AudioNode } from "./AudioNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
@@ -42,9 +39,6 @@ const nodeTypes = {
   requestInput: RequestInputNode,
   cropImage: CropImageNode,
   textNode: TextNode,
-  imageNode: ImageNode,
-  videoNode: VideoNode,
-  audioNode: AudioNode,
   response: ResponseNode,
 };
 
@@ -491,10 +485,7 @@ export function WorkflowCanvas({
       }
       if (
         sourceNode.type === "gemini" ||
-        sourceNode.type === "textNode" ||
-        sourceNode.type === "imageNode" ||
-        sourceNode.type === "videoNode" ||
-        sourceNode.type === "audioNode"
+        sourceNode.type === "textNode"
       ) {
         return (sourceData.response as string) ?? null;
       }
@@ -563,18 +554,7 @@ export function WorkflowCanvas({
               label = "Text Output";
               val = (srcData.response as string) || "";
               type = "text";
-            } else if (srcNode.type === "imageNode") {
-              label = "Image Output";
-              val = (srcData.response as string) || "";
-              type = "image";
-            } else if (srcNode.type === "videoNode") {
-              label = "Video Output";
-              val = (srcData.response as string) || "";
-              type = "video";
-            } else if (srcNode.type === "audioNode") {
-              label = "Audio Output";
-              val = (srcData.response as string) || "";
-              type = "audio";
+
             } else if (srcNode.type === "gemini") {
               label = `${(srcData.model as string) || "Gemini"} Response`;
               val = (srcData.response as string) || "";
@@ -691,23 +671,7 @@ export function WorkflowCanvas({
             return "text";
           if (handleId === "image_input") return "image";
         }
-        if (type === "imageNode") {
-          if (isSource) return "image";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-          if (handleId === "image_input") return "image";
-        }
-        if (type === "videoNode") {
-          if (isSource) return "video";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-          if (handleId === "image_input") return "image";
-        }
-        if (type === "audioNode") {
-          if (isSource) return "audio";
-          if (handleId === "prompt" || handleId === "systemPrompt")
-            return "text";
-        }
+
         if (type === "gemini") {
           if (isSource) return "text";
           if (handleId === "prompt" || handleId === "systemPrompt")
@@ -768,64 +732,7 @@ export function WorkflowCanvas({
           dataCopy.systemPrompt !== undefined
             ? dataCopy.systemPrompt
             : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
-      } else if (node.type === "imageNode") {
-        const config = GEMINI_MODEL_CONFIG.imageNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "Describe a detailed visual scene based on the input.";
-        dataCopy.aspectRatio = dataCopy.aspectRatio || "1:1";
-      } else if (node.type === "videoNode") {
-        const config = GEMINI_MODEL_CONFIG.videoNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "You are a video scene writer. Outline a continuous video description sequence based on the input.";
-      } else if (node.type === "audioNode") {
-        const config = GEMINI_MODEL_CONFIG.audioNode;
-        dataCopy.model = dataCopy.model || config.defaultModelId;
-        dataCopy.temperature =
-          dataCopy.temperature !== undefined
-            ? Number(dataCopy.temperature)
-            : config.defaultTemperature;
-        dataCopy.topP =
-          dataCopy.topP !== undefined
-            ? Number(dataCopy.topP)
-            : config.defaultTopP;
-        dataCopy.maxTokens =
-          dataCopy.maxTokens !== undefined
-            ? Number(dataCopy.maxTokens)
-            : config.defaultMaxTokens;
-        dataCopy.systemPrompt =
-          dataCopy.systemPrompt !== undefined
-            ? dataCopy.systemPrompt
-            : "You are a speech narrator. Write standard speech-to-text narrations.";
+
       } else if (node.type === "cropImage") {
         dataCopy.x = dataCopy.x !== undefined ? Number(dataCopy.x) : 0;
         dataCopy.y = dataCopy.y !== undefined ? Number(dataCopy.y) : 0;

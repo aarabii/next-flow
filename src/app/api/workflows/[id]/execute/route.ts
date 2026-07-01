@@ -62,10 +62,7 @@ export async function POST(
     let nodesToExecute = nodes.filter(
       (n) =>
         n.type === "cropImage" ||
-        n.type === "textNode" ||
-        n.type === "imageNode" ||
-        n.type === "videoNode" ||
-        n.type === "audioNode",
+        n.type === "textNode",
     );
 
     if (scope === "SINGLE" && targetNodeIds && targetNodeIds.length > 0) {
@@ -109,13 +106,7 @@ export async function POST(
       const label =
         node.type === "cropImage"
           ? "Crop Image"
-          : node.type === "textNode"
-            ? "Text Generation"
-            : node.type === "imageNode"
-              ? "Image Generation"
-              : node.type === "videoNode"
-                ? "Video Generation"
-                : "Audio Generation";
+          : "Text Generation";
       await db.nodeRun.create({
         data: {
           workflowRunId: run.id,

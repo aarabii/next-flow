@@ -18,10 +18,7 @@ export interface NodePickerProps {
   onSelect: (
     nodeType:
       | "cropImage"
-      | "textNode"
-      | "imageNode"
-      | "videoNode"
-      | "audioNode",
+      | "textNode",
   ) => void;
   onClose: () => void;
 }
@@ -29,7 +26,7 @@ export interface NodePickerProps {
 type CategoryId = "recent" | "image" | "video" | "audio" | "others";
 
 interface PickerItem {
-  id: "cropImage" | "textNode" | "imageNode" | "videoNode" | "audioNode";
+  id: "cropImage" | "textNode";
   title: string;
   description: string;
   category: CategoryId;
@@ -71,27 +68,6 @@ export function NodePicker({ onSelect, onClose }: NodePickerProps) {
       description: "Generate high-quality text output using Gemini",
       category: "others",
       icon: <FileText className="w-4 h-4 text-amber-500" />,
-    },
-    {
-      id: "imageNode",
-      title: "Image Node",
-      description: "Generate images from text prompts or input images",
-      category: "image",
-      icon: <ImageIcon className="w-4 h-4 text-blue-500" />,
-    },
-    {
-      id: "videoNode",
-      title: "Video Node",
-      description: "Generate videos from text prompts or input images",
-      category: "video",
-      icon: <VideoIcon className="w-4 h-4 text-indigo-500" />,
-    },
-    {
-      id: "audioNode",
-      title: "Audio Node",
-      description: "Generate audio speech from text prompts",
-      category: "audio",
-      icon: <MusicIcon className="w-4 h-4 text-rose-500" />,
     },
   ];
 
