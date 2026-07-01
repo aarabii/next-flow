@@ -159,7 +159,7 @@ export async function POST(req: Request) {
         targetHandle: typeof edge.targetHandle === "string" ? edge.targetHandle : undefined,
         type: typeof edge.type === "string" ? edge.type : "smoothstep",
         animated: typeof edge.animated === "boolean" ? edge.animated : true,
-        style: (edge.style && typeof edge.style === "object" ? edge.style : { stroke: "#a855f7", strokeWidth: 2 }) as Record<string, unknown>,
+        style: (edge.style && typeof edge.style === "object" ? edge.style : { stroke: "#a855f7", strokeWidth: 2 }) as React.CSSProperties,
       });
     }
 
