@@ -57,7 +57,10 @@ export async function POST(
       },
     });
 
-    const nodes = workflow.nodes as unknown as Node[];
+    const VALID_NODE_TYPES = ["requestInput", "response", "cropImage", "textNode"];
+    const nodes = (workflow.nodes as unknown as Node[]).filter(
+      (n) => n && typeof n === "object" && VALID_NODE_TYPES.includes(n.type || ""),
+    );
 
     let nodesToExecute = nodes.filter(
       (n) =>
