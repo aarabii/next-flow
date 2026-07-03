@@ -99,7 +99,7 @@ export function ImportButton() {
         variant="outline"
         onClick={handleButtonClick}
         disabled={isImporting}
-        className="cursor-pointer"
+        className="cursor-pointer rounded-md bg-slate-100"
         title="Import workflow JSON"
       >
         <Upload className="w-4 h-4" aria-hidden="true" />
