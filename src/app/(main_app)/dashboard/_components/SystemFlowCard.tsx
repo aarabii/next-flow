@@ -22,7 +22,7 @@ const getIcon = (id: string) => {
 
 export const SystemFlowCard = () => {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-space-06 w-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-06 w-full">
       {SYSTEM_WORKFLOWS.map((workflow) => (
         <Link
           key={workflow.id}

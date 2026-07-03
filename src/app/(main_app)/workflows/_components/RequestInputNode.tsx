@@ -5,6 +5,7 @@ import { Position, type NodeProps, type Node } from "@xyflow/react";
 import { RequestInputNodeData, RequestInputField } from "@/types/node.type";
 import { NodeWrapper } from "./NodeWrapper";
 import { DynamicFieldsList } from "./DynamicFieldsList";
+import { useWorkflowStore } from "@/hooks/useWorkflowStore";
 import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
@@ -26,6 +27,9 @@ export function RequestInputNode({
   id,
   data,
 }: NodeProps<Node<RequestInputNodeData>>) {
+  const setEdges = useWorkflowStore((state) => state.setEdges);
+  const takeSnapshot = useWorkflowStore((state) => state.takeSnapshot);
+
   const fields = data.fields || [
     { id: "text_field", type: "text_field", label: "Text Field", value: "" },
     { id: "image_field", type: "image_field", label: "Image Field", value: "" },
@@ -53,8 +57,12 @@ export function RequestInputNode({
 
   const handleDeleteField = (fieldId: string) => {
     if (isLocked || data.isSystem || fields.length <= 1) return;
+    takeSnapshot();
     const updated = fields.filter((f) => f.id !== fieldId);
     updateFields(updated);
+    setEdges((eds) => eds.filter(
+      (edge) => !(edge.source === id && edge.sourceHandle === fieldId)
+    ));
   };
 
   const handleAddField = (

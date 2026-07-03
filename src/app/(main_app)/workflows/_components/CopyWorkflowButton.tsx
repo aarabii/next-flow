@@ -12,6 +12,7 @@ interface CopyWorkflowButtonProps {
   nodes: Node[];
   edges: Edge[];
   className?: string;
+  variant?: "default" | "icon";
 }
 
 export function CopyWorkflowButton({
@@ -19,6 +20,7 @@ export function CopyWorkflowButton({
   nodes,
   edges,
   className,
+  variant = "default",
 }: CopyWorkflowButtonProps) {
   const router = useRouter();
   const [isCopying, setIsCopying] = useState(false);
@@ -52,7 +54,9 @@ export function CopyWorkflowButton({
       onClick={handleCopyWorkflow}
       disabled={isCopying}
       className={cn(
-        "px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed",
+        variant === "icon"
+          ? "p-2 hover:bg-zinc-50 rounded-lg text-zinc-650 hover:text-purple-600 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          : "px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed",
         className
       )}
     >
@@ -61,7 +65,7 @@ export function CopyWorkflowButton({
       ) : (
         <Copy className="w-3.5 h-3.5" />
       )}
-      <span>Copy</span>
+      {variant !== "icon" && <span className="hidden sm:inline">Copy</span>}
     </button>
   );
 }

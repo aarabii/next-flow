@@ -70,6 +70,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
 
   const nodes = useWorkflowStore((state) => state.nodes);
   const setNodes = useWorkflowStore((state) => state.setNodes);
+  const setEdges = useWorkflowStore((state) => state.setEdges);
   const takeSnapshot = useWorkflowStore((state) => state.takeSnapshot);
 
   const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -130,8 +131,12 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
 
   const handleDeleteField = (fieldId: string) => {
     if (isLocked || data.isSystem) return;
+    takeSnapshot();
     const updated = fields.filter((f) => f.id !== fieldId);
     updateData({ fields: updated });
+    setEdges((eds) => eds.filter(
+      (edge) => !(edge.target === id && edge.targetHandle === fieldId)
+    ));
   };
 
   const handleReset = () => {

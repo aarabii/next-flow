@@ -180,7 +180,7 @@ export function HistoryPanel({ workflowId, onClose }: HistoryPanelProps) {
   };
 
   return (
-    <div className="fixed top-16 right-0 w-80 h-[calc(100vh-64px)] bg-white border-l border-zinc-200 shadow-xl z-40 flex flex-col font-sans text-zinc-800 animate-in slide-in-from-right duration-200">
+    <div className="fixed top-0 md:top-16 right-0 w-full sm:w-80 h-full md:h-[calc(100vh-64px)] bg-white border-l border-zinc-200 shadow-xl z-50 md:z-40 flex flex-col font-sans text-zinc-800 animate-in slide-in-from-right duration-200">
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-zinc-50/50">
         <div className="flex items-center gap-1.5">
           <Clock className="w-4 h-4 text-purple-600" />
