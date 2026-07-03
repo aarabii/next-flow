@@ -35,7 +35,7 @@ export function CropImageNode({
   const outputImage = data.outputImage || "";
   const connectedInputs = data.connectedInputs || [];
   const expandResponse = data.expandResponse ?? false;
-  const isLocked = data.isLocked ?? false;
+  const isLocked = !!(data.isLocked || data.isSystem);
 
   const description =
     data.description ??

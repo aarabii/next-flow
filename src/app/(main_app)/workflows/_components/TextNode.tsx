@@ -52,7 +52,7 @@ export function TextNode({ id, data }: NodeProps<Node<TextNodeData>>) {
     data.maxTokens ?? GEMINI_MODEL_CONFIG.textNode.defaultMaxTokens;
   const topK = data.topK ?? 40;
   const reasoning = data.reasoning ?? "Auto";
-  const isLocked = data.isLocked ?? false;
+  const isLocked = !!(data.isLocked || data.isSystem);
   const expandResponse = data.expandResponse ?? false;
 
   const description = data.description ?? "TextNode is used to send text, image, or audio inputs to the model and generate a text response.";

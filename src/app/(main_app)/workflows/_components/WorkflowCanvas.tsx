@@ -909,9 +909,12 @@ export function WorkflowCanvas({
               />
             ) : (
               <span
-                onDoubleClick={() => setIsEditingName(true)}
-                className="cursor-pointer select-none hover:text-purple-600 transition-colors truncate max-w-[150px] sm:max-w-xs"
-                title="Double click to rename"
+                onDoubleClick={() => !isSystem && setIsEditingName(true)}
+                className={cn(
+                  "select-none truncate max-w-[150px] sm:max-w-xs transition-colors",
+                  isSystem ? "cursor-default text-zinc-500" : "cursor-pointer hover:text-purple-600"
+                )}
+                title={isSystem ? undefined : "Double click to rename"}
               >
                 {localName}
               </span>
