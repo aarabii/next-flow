@@ -12,7 +12,16 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Undo, Redo, Download, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Clock,
+  Play,
+  LayoutGrid,
+  Undo,
+  Redo,
+  Download,
+  ArrowLeft,
+} from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import DotField from "@/components/DotField";
@@ -22,7 +31,11 @@ import { TextNode } from "./TextNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
 import { RequestInputField, ResponseResultItem } from "@/types/node.type";
@@ -383,7 +396,8 @@ export function WorkflowCanvas({
   }, [edges, deleteEdge]);
 
   const saveWorkflow = React.useCallback(async () => {
-    const { nodes: currentNodes, edges: currentEdges } = useWorkflowStore.getState();
+    const { nodes: currentNodes, edges: currentEdges } =
+      useWorkflowStore.getState();
     if (currentNodes.length === 0) return;
     if (activeRunId !== null) return;
     try {
@@ -410,7 +424,7 @@ export function WorkflowCanvas({
       (activeEl instanceof HTMLInputElement ||
         activeEl instanceof HTMLTextAreaElement ||
         (activeEl as HTMLElement).isContentEditable);
-    
+
     if (isTyping) return;
 
     const handler = setTimeout(async () => {
@@ -548,10 +562,7 @@ export function WorkflowCanvas({
       if (sourceNode.type === "cropImage") {
         return (sourceData.outputImage as string) ?? null;
       }
-      if (
-        sourceNode.type === "gemini" ||
-        sourceNode.type === "textNode"
-      ) {
+      if (sourceNode.type === "gemini" || sourceNode.type === "textNode") {
         return (sourceData.response as string) ?? null;
       }
       return null;
@@ -610,15 +621,16 @@ export function WorkflowCanvas({
               );
               label = field?.label || "Input Field";
               val = field?.value || "";
-              type = field?.type === "image_field"
-                ? "image"
-                : field?.type === "audio_field"
-                  ? "audio"
-                  : "text";
-              
+              type =
+                field?.type === "image_field"
+                  ? "image"
+                  : field?.type === "audio_field"
+                    ? "audio"
+                    : "text";
+
               const fileName = field?.fileName;
               const fileSize = field?.fileSize;
-              
+
               return {
                 nodeId: edge.source,
                 edgeId: edge.id,
@@ -637,7 +649,6 @@ export function WorkflowCanvas({
               label = "Text Output";
               val = (srcData.response as string) || "";
               type = "text";
-
             } else if (srcNode.type === "gemini") {
               label = `${(srcData.model as string) || "Gemini"} Response`;
               val = (srcData.response as string) || "";
@@ -822,7 +833,7 @@ export function WorkflowCanvas({
           dataCopy.systemPrompt !== undefined
             ? dataCopy.systemPrompt
             : "You are a helpful text generator assistant. Provide concise and accurate text responses.";
-        
+
         // Strip transient runtime output states
         delete dataCopy.response;
         delete dataCopy.imageInput;
@@ -834,7 +845,7 @@ export function WorkflowCanvas({
           dataCopy.width !== undefined ? Number(dataCopy.width) : 100;
         dataCopy.height =
           dataCopy.height !== undefined ? Number(dataCopy.height) : 100;
-        
+
         // Strip transient runtime output states
         dataCopy.inputImage = "";
         dataCopy.outputImage = "";
@@ -844,10 +855,12 @@ export function WorkflowCanvas({
       } else if (node.type === "requestInput") {
         // Clear user input values
         if (Array.isArray(dataCopy.fields)) {
-          dataCopy.fields = (dataCopy.fields as RequestInputField[]).map((f) => ({
-            ...f,
-            value: "",
-          }));
+          dataCopy.fields = (dataCopy.fields as RequestInputField[]).map(
+            (f) => ({
+              ...f,
+              value: "",
+            }),
+          );
         }
       }
 
@@ -880,7 +893,7 @@ export function WorkflowCanvas({
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="flex items-center justify-center w-10 h-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95 text-zinc-650 hover:text-purple-600 shrink-0 border-0"
+                className="flex items-center justify-center w-10 h-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95 text-zinc-650 hover:text-purple-600 shrink-0"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
@@ -911,8 +924,10 @@ export function WorkflowCanvas({
               <span
                 onDoubleClick={() => !isSystem && setIsEditingName(true)}
                 className={cn(
-                  "select-none truncate max-w-[150px] sm:max-w-xs transition-colors",
-                  isSystem ? "cursor-default text-zinc-500" : "cursor-pointer hover:text-purple-600"
+                  "select-none truncate max-w-37 sm:max-w-xs transition-colors",
+                  isSystem
+                    ? "cursor-default text-zinc-500"
+                    : "cursor-pointer hover:text-purple-600",
                 )}
                 title={isSystem ? undefined : "Double click to rename"}
               >
@@ -962,13 +977,22 @@ export function WorkflowCanvas({
                 disabled={activeRunId !== null}
                 className={cn(
                   "p-2 rounded-lg text-zinc-655 hover:text-emerald-650 disabled:opacity-50 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center",
-                  activeRunId !== null && "animate-pulse"
+                  activeRunId !== null && "animate-pulse",
                 )}
               >
-                <Play className={cn("w-4 h-4", activeRunId === null ? "fill-zinc-600 stroke-none hover:fill-emerald-600" : "fill-emerald-600 stroke-none")} />
+                <Play
+                  className={cn(
+                    "w-4 h-4",
+                    activeRunId === null
+                      ? "fill-zinc-600 stroke-none hover:fill-emerald-600"
+                      : "fill-emerald-600 stroke-none",
+                  )}
+                />
               </button>
             </TooltipTrigger>
-            <TooltipContent>{activeRunId !== null ? "Running..." : "Run Workflow"}</TooltipContent>
+            <TooltipContent>
+              {activeRunId !== null ? "Running..." : "Run Workflow"}
+            </TooltipContent>
           </Tooltip>
 
           {/* History Button */}
@@ -981,7 +1005,7 @@ export function WorkflowCanvas({
                   "p-2 rounded-lg transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center",
                   historyOpen
                     ? "bg-purple-50 text-purple-600 hover:bg-purple-100/50"
-                    : "text-zinc-655 hover:text-purple-600"
+                    : "text-zinc-655 hover:text-purple-600",
                 )}
               >
                 <Clock className="w-4 h-4" />
@@ -1025,7 +1049,14 @@ export function WorkflowCanvas({
                 title="Undo last action (Ctrl+Z)"
                 className="disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Undo className={cn("w-3.5 h-3.5 transition-colors", past.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
+                <Undo
+                  className={cn(
+                    "w-3.5 h-3.5 transition-colors",
+                    past.length > 0
+                      ? "text-zinc-600 hover:text-purple-600"
+                      : "text-zinc-300",
+                  )}
+                />
               </ControlButton>
               <ControlButton
                 onClick={redo}
@@ -1033,7 +1064,14 @@ export function WorkflowCanvas({
                 title="Redo last action (Ctrl+Y)"
                 className="disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Redo className={cn("w-3.5 h-3.5 transition-colors", future.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
+                <Redo
+                  className={cn(
+                    "w-3.5 h-3.5 transition-colors",
+                    future.length > 0
+                      ? "text-zinc-600 hover:text-purple-600"
+                      : "text-zinc-300",
+                  )}
+                />
               </ControlButton>
             </Controls>
             <MiniMap className="hidden sm:block bg-white! border-zinc-200! shadow-md! rounded-xl! bottom-4! right-4!" />
@@ -1048,7 +1086,7 @@ export function WorkflowCanvas({
                 id="add-node-button"
                 onClick={() => setShowPicker(!showPicker)}
                 className={cn(
-                  "p-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
+                  "p-3.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
                   showPicker &&
                     "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45",
                 )}
