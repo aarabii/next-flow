@@ -12,7 +12,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Undo, Redo, Download } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Undo, Redo, Download, ArrowLeft } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import DotField from "@/components/DotField";
@@ -22,10 +22,12 @@ import { TextNode } from "./TextNode";
 import { ResponseNode } from "./ResponseNode";
 import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/hooks/useWorkflowStore";
 import { RequestInputField, ResponseResultItem } from "@/types/node.type";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
+import { useRouter } from "next/navigation";
 
 interface RunStatusResponse {
   status: string;
@@ -55,6 +57,7 @@ export function WorkflowCanvas({
   initialNodes,
   initialEdges,
 }: WorkflowCanvasProps) {
+  const router = useRouter();
   const isSystem = SYSTEM_WORKFLOW_IDS.some((sysId) =>
     workflowId.endsWith(sysId),
   );
@@ -867,81 +870,122 @@ export function WorkflowCanvas({
 
   return (
     <div className="relative w-full h-full flex-1 bg-zinc-50 flex flex-col text-zinc-900 overflow-hidden">
-      <div className="min-h-16 h-auto py-3 px-4 sm:px-6 border-b border-zinc-200 bg-white flex flex-col sm:flex-row gap-3 sm:gap-0 items-start sm:items-center justify-between z-10 shadow-2xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-zinc-700 font-secondary">
-            Workflow
-          </span>
-          <span className="text-zinc-300">/</span>
-          {isEditingName ? (
-            <input
-              type="text"
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              onBlur={handleRename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleRename();
-                } else if (e.key === "Escape") {
-                  setIsEditingName(false);
-                  setLocalName(workflowName);
-                }
-              }}
-              className="text-sm font-semibold text-zinc-800 px-2 py-0.5 border border-purple-500 rounded-md outline-hidden bg-white w-48 focus:ring-2 focus:ring-purple-500/20 font-secondary"
-              autoFocus
-            />
-          ) : (
-            <span
-              onDoubleClick={() => setIsEditingName(true)}
-              className="text-sm font-semibold text-zinc-800 cursor-pointer select-none hover:text-purple-600 transition-colors font-secondary"
-              title="Double click to rename"
-            >
-              {localName}
-            </span>
-          )}
-          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40 truncate max-w-[120px] sm:max-w-none" title={workflowId}>
-            {workflowId}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end w-full sm:w-auto">
-          <button
-            onClick={handleExportJSON}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer font-secondary flex items-center gap-1.5"
-            title="Export workflow to JSON"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export JSON</span>
-          </button>
+      {/* Floating Header Navigation */}
+      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none gap-2 flex-wrap sm:flex-nowrap">
+        {/* Left side floating tabs */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Back Tab */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="flex items-center justify-center w-10 h-10 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95 text-zinc-650 hover:text-purple-600 shrink-0 border-0"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Back to Dashboard</TooltipContent>
+          </Tooltip>
 
-          <button
-            onClick={() => setHistoryOpen(!historyOpen)}
-            className={cn(
-              "px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5",
-              historyOpen
-                ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100/50"
-                : "border-zinc-200 hover:bg-zinc-50 text-zinc-600",
+          {/* Workflow Name Card */}
+          <div className="flex items-center h-10 px-4 bg-white border border-zinc-200 rounded-xl shadow-md select-none font-secondary text-sm font-semibold text-zinc-800">
+            {isEditingName ? (
+              <input
+                type="text"
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                onBlur={handleRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRename();
+                  } else if (e.key === "Escape") {
+                    setIsEditingName(false);
+                    setLocalName(workflowName);
+                  }
+                }}
+                className="text-sm font-semibold text-zinc-800 px-1 py-0.5 border border-purple-500 rounded outline-hidden bg-white w-32 focus:ring-2 focus:ring-purple-500/20 font-secondary"
+                autoFocus
+              />
+            ) : (
+              <span
+                onDoubleClick={() => setIsEditingName(true)}
+                className="cursor-pointer select-none hover:text-purple-600 transition-colors truncate max-w-[150px] sm:max-w-xs"
+                title="Double click to rename"
+              >
+                {localName}
+              </span>
             )}
-            title="Toggle runs history panel"
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">History</span>
-          </button>
+          </div>
+        </div>
 
-          <button
-            onClick={() => handleRunWorkflow("FULL")}
-            disabled={activeRunId !== null}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
-            title="Execute the full workflow DAG"
-          >
-            <Play className="w-3 h-3 fill-white stroke-none" />
-            <span className="hidden sm:inline">{activeRunId !== null ? "Running..." : "Run"}</span>
-          </button>
+        {/* Right side actions tab */}
+        <div className="flex items-center gap-1 p-1 bg-white border border-zinc-200 rounded-xl shadow-md pointer-events-auto shrink-0">
+          {/* Export JSON Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={handleExportJSON}
+                className="p-2 hover:bg-zinc-50 rounded-lg text-zinc-655 hover:text-purple-600 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Export JSON</TooltipContent>
+          </Tooltip>
 
-          <CopyWorkflowButton
-            workflowName={workflowName}
-            nodes={nodes}
-            edges={edges}
-          />
+          {/* Copy Workflow Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-block">
+                <CopyWorkflowButton
+                  workflowName={workflowName}
+                  nodes={nodes}
+                  edges={edges}
+                  variant="icon"
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Copy Workflow</TooltipContent>
+          </Tooltip>
+
+          {/* Run Workflow Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => handleRunWorkflow("FULL")}
+                disabled={activeRunId !== null}
+                className={cn(
+                  "p-2 rounded-lg text-zinc-655 hover:text-emerald-650 disabled:opacity-50 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center",
+                  activeRunId !== null && "animate-pulse"
+                )}
+              >
+                <Play className={cn("w-4 h-4", activeRunId === null ? "fill-zinc-600 stroke-none hover:fill-emerald-600" : "fill-emerald-600 stroke-none")} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{activeRunId !== null ? "Running..." : "Run Workflow"}</TooltipContent>
+          </Tooltip>
+
+          {/* History Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(!historyOpen)}
+                className={cn(
+                  "p-2 rounded-lg transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center",
+                  historyOpen
+                    ? "bg-purple-50 text-purple-600 hover:bg-purple-100/50"
+                    : "text-zinc-655 hover:text-purple-600"
+                )}
+              >
+                <Clock className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Runs History</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
