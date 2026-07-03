@@ -234,6 +234,13 @@ export const workflowOrchestratorTask = task({
 
       const inputs = await resolveInputs(nodeId, node);
 
+      await db.nodeRun.update({
+        where: { id: nodeRun.id },
+        data: {
+          inputs: inputs as unknown as Prisma.InputJsonValue,
+        },
+      });
+
       if (node.type === "cropImage") {
         await cropImageTask.trigger({
           nodeRunId: nodeRun.id,

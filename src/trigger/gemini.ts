@@ -180,6 +180,13 @@ export const geminiTask = task({
       const responseText = response.text || "No response received";
       outputResponse = responseText;
 
+      const usageMetadata = response.usageMetadata;
+      const usage = usageMetadata ? {
+        prompt_tokens: usageMetadata.promptTokenCount,
+        completion_tokens: usageMetadata.candidatesTokenCount,
+        total_tokens: usageMetadata.totalTokenCount,
+      } : undefined;
+
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
@@ -187,7 +194,10 @@ export const geminiTask = task({
         where: { id: nodeRunId },
         data: {
           status: "SUCCESS",
-          output: { response: outputResponse },
+          output: { 
+            response: outputResponse,
+            usage,
+          },
           completedAt: endTime,
           duration,
         },
