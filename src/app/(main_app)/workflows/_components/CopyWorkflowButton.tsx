@@ -61,7 +61,7 @@ export function CopyWorkflowButton({
       ) : (
         <Copy className="w-3.5 h-3.5" />
       )}
-      <span>Copy</span>
+      <span className="hidden sm:inline">Copy</span>
     </button>
   );
 }

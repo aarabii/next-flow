@@ -12,7 +12,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Plus, Clock, Play, LayoutGrid, Undo, Redo } from "lucide-react";
+import { Plus, Clock, Play, LayoutGrid, Undo, Redo, Download } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
 import DotField from "@/components/DotField";
@@ -866,9 +866,9 @@ export function WorkflowCanvas({
   }, [nodes, edges, workflowName]);
 
   return (
-    <div className="relative w-full h-screen bg-zinc-50 flex flex-col text-zinc-900 overflow-hidden">
-      <div className="h-16 px-6 border-b border-zinc-200 bg-white flex items-center justify-between z-10 shadow-2xs">
-        <div className="flex items-center gap-2">
+    <div className="relative w-full h-full flex-1 bg-zinc-50 flex flex-col text-zinc-900 overflow-hidden">
+      <div className="min-h-16 h-auto py-3 px-4 sm:px-6 border-b border-zinc-200 bg-white flex flex-col sm:flex-row gap-3 sm:gap-0 items-start sm:items-center justify-between z-10 shadow-2xs">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-zinc-700 font-secondary">
             Workflow
           </span>
@@ -899,16 +899,18 @@ export function WorkflowCanvas({
               {localName}
             </span>
           )}
-          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40">
+          <span className="text-xs font-mono text-zinc-400 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200/40 truncate max-w-[120px] sm:max-w-none" title={workflowId}>
             {workflowId}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end w-full sm:w-auto">
           <button
             onClick={handleExportJSON}
-            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer font-secondary"
+            className="px-3 py-1.5 border border-zinc-200 hover:bg-zinc-50 rounded-lg text-xs font-semibold text-zinc-600 transition-colors shadow-2xs cursor-pointer font-secondary flex items-center gap-1.5"
+            title="Export workflow to JSON"
           >
-            Export JSON
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export JSON</span>
           </button>
 
           <button
@@ -919,9 +921,10 @@ export function WorkflowCanvas({
                 ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100/50"
                 : "border-zinc-200 hover:bg-zinc-50 text-zinc-600",
             )}
+            title="Toggle runs history panel"
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>History</span>
+            <span className="hidden sm:inline">History</span>
           </button>
 
           <button
@@ -931,7 +934,7 @@ export function WorkflowCanvas({
             title="Execute the full workflow DAG"
           >
             <Play className="w-3 h-3 fill-white stroke-none" />
-            <span>{activeRunId !== null ? "Running..." : "Run"}</span>
+            <span className="hidden sm:inline">{activeRunId !== null ? "Running..." : "Run"}</span>
           </button>
 
           <CopyWorkflowButton
@@ -986,7 +989,7 @@ export function WorkflowCanvas({
                 <Redo className={cn("w-3.5 h-3.5 transition-colors", future.length > 0 ? "text-zinc-600 hover:text-purple-600" : "text-zinc-300")} />
               </ControlButton>
             </Controls>
-            <MiniMap className="bg-white! border-zinc-200! shadow-md! rounded-xl! bottom-4! right-4!" />
+            <MiniMap className="hidden sm:block bg-white! border-zinc-200! shadow-md! rounded-xl! bottom-4! right-4!" />
           </ReactFlow>
 
           {!isSystem && (

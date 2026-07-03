@@ -22,6 +22,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   useSidebar,
+  SidebarInput,
 } from "@/components/ui/sidebar";
 import {
   PanelRightOpen,
@@ -32,6 +33,8 @@ import {
   LogOut,
   GitBranch,
   type LucideIcon,
+  Search,
+  X,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { usePathname, useRouter } from "next/navigation";
@@ -76,6 +79,30 @@ export const Navigation = () => {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isPending, setIsPending] = React.useState(false);
+  const [workflows, setWorkflows] = React.useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  React.useEffect(() => {
+    const fetchWorkflows = async () => {
+      try {
+        const response = await fetch("/api/workflows");
+        if (response.ok) {
+          const data = await response.json();
+          setWorkflows(data);
+        }
+      } catch (error) {
+        console.error("Error fetching workflows in navigation:", error);
+      }
+    };
+    fetchWorkflows();
+  }, [pathname]);
+
+  const filteredWorkflows = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return workflows.filter((flow) =>
+      flow.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [workflows, searchQuery]);
 
   const handleCreate = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -138,6 +165,67 @@ export const Navigation = () => {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Search Bar */}
+        {!isCollapsed && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <SidebarInput
+                type="text"
+                placeholder="Search flows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-7 text-xs h-8 bg-zinc-50 border-zinc-200 focus:bg-white rounded-lg focus-visible:ring-1 focus-visible:ring-purple-500"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-semibold p-0.5 hover:bg-zinc-150 rounded cursor-pointer border-0 bg-transparent flex items-center justify-center"
+                  title="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Search Results */}
+        {searchQuery && !isCollapsed && (
+          <SidebarGroup className="py-1">
+            <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-3 py-1.5 select-none">
+              Search Results
+            </div>
+            <SidebarMenu className="gap-1 px-2">
+              {filteredWorkflows.length > 0 ? (
+                filteredWorkflows.map((flow) => (
+                  <SidebarMenuItem key={flow.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === `/workflows/${flow.id}`}
+                      tooltip={flow.name}
+                      className="h-8"
+                    >
+                      <a
+                        href={`/workflows/${flow.id}`}
+                        className="font-medium flex items-center gap-2 text-xs truncate w-full"
+                      >
+                        <GitBranch className="h-3.5 w-3.5 shrink-0 text-purple-500" />
+                        <span className="truncate">{flow.name}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              ) : (
+                <div className="text-[10px] text-zinc-450 px-3 py-1 select-none font-medium">
+                  No matching flows
+                </div>
+              )}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarMenu className="gap-1 px-2 py-2">
             {navigationData.map((item) => {

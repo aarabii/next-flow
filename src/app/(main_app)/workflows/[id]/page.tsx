@@ -55,7 +55,7 @@ export default async function WorkflowCanvasPage({ params }: PageProps) {
   const initialEdges = (workflow.edges as unknown as Edge[]) || [];
 
   return (
-    <div className="relative w-full h-full min-h-screen bg-zinc-50 flex flex-col text-zinc-900">
+    <div className="relative w-full h-full bg-zinc-50 flex flex-col text-zinc-900">
       <WorkflowCanvas
         workflowId={targetId}
         workflowName={workflow.name}

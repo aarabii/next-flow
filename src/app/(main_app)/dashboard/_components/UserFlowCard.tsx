@@ -179,7 +179,7 @@ export const UserFlowCard = ({
   return (
     <div className="mt-space-06 grid grid-cols-1 gap-space-07 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
       {workflows.map((workflow) => (
-        <div key={workflow.id} className="group/card relative max-w-62 w-full">
+        <div key={workflow.id} className="group/card relative w-full max-w-none sm:max-w-62">
           <div className="relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md bg-white">
             <Link
               className="block aspect-250/162 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[12px_12px] overflow-hidden relative"
