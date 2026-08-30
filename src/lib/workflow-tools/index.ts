@@ -23,6 +23,16 @@ export const geminiWorkflowToolDeclarations: Tool[] = [
         parameters: {
           type: Type.OBJECT,
           properties: {
+            name: {
+              type: Type.STRING,
+              description:
+                "A concise, descriptive, and catchy title for the workflow (e.g. 'Social Media Studio', 'Visual Document Auditor').",
+            },
+            description: {
+              type: Type.STRING,
+              description:
+                "An optional 1-sentence description explaining what the workflow accomplishes.",
+            },
             nodes: {
               type: Type.ARRAY,
               description:

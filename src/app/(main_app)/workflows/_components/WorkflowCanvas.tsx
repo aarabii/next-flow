@@ -20,6 +20,8 @@ import {
   Redo,
   Download,
   ArrowLeft,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
@@ -99,6 +101,7 @@ export function WorkflowCanvas({
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
   const [isEditingName, setIsEditingName] = React.useState(false);
+  const [isDeletingWorkflow, setIsDeletingWorkflow] = React.useState(false);
   const [localName, setLocalName] = React.useState(workflowName);
   const [prevWorkflowName, setPrevWorkflowName] = React.useState(workflowName);
 
@@ -109,6 +112,32 @@ export function WorkflowCanvas({
 
   const [reactFlowInstance, setReactFlowInstance] =
     React.useState<ReactFlowInstance | null>(null);
+
+  const handleDeleteWorkflow = React.useCallback(async () => {
+    if (isSystem || isDeletingWorkflow) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${workflowName}"? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingWorkflow(true);
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete workflow");
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Error deleting workflow:", err);
+      alert("Failed to delete workflow. Please try again.");
+      setIsDeletingWorkflow(false);
+    }
+  }, [isSystem, isDeletingWorkflow, workflowName, workflowId, router]);
 
   const handleWorkflowUpdated = React.useCallback(
     (newNodes: Node[], newEdges: Edge[]) => {
@@ -709,6 +738,26 @@ export function WorkflowCanvas({
     handleRunWorkflow,
   ]);
 
+  const resolvedEdges = React.useMemo(() => {
+    const seenIds = new Set<string>();
+    const validEdges: Edge[] = [];
+    (edges || []).forEach((edge) => {
+      if (!edge || !edge.source || !edge.target) return;
+      const baseId =
+        edge.id ||
+        `edge_${edge.source}_${edge.sourceHandle || "default"}_to_${edge.target}_${edge.targetHandle || "default"}`;
+      let finalId = baseId;
+      let counter = 1;
+      while (seenIds.has(finalId)) {
+        finalId = `${baseId}_dup${counter}`;
+        counter++;
+      }
+      seenIds.add(finalId);
+      validEdges.push(finalId === edge.id ? edge : { ...edge, id: finalId });
+    });
+    return validEdges;
+  }, [edges]);
+
   const isValidConnection = React.useCallback(
     (connection: Connection | Edge) => {
       if (!connection.source || !connection.target) return false;
@@ -1020,6 +1069,29 @@ export function WorkflowCanvas({
             </TooltipTrigger>
             <TooltipContent>Runs History</TooltipContent>
           </Tooltip>
+
+          {/* Delete Workflow Button (Red) */}
+          {!isSystem && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleDeleteWorkflow}
+                  disabled={isDeletingWorkflow || activeRunId !== null}
+                  className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-red-500 hover:text-red-600 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center disabled:opacity-50"
+                >
+                  {isDeletingWorkflow ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-red-500 hover:text-red-600" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-red-600 font-medium">
+                {isDeletingWorkflow ? "Deleting..." : "Delete Workflow"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
 
@@ -1027,7 +1099,7 @@ export function WorkflowCanvas({
         <div className="flex-1 h-full relative">
           <ReactFlow
             nodes={resolvedNodes}
-            edges={edges}
+            edges={resolvedEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
