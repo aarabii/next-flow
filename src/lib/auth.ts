@@ -4,25 +4,45 @@ import { db } from "./prisma";
 import type { User } from "../../generated/prisma/client";
 
 async function findOrCreateUser(clerkUserId: string): Promise<User | null> {
+  // First, try to find the user by Clerk ID
   const existingUser = await db.user.findUnique({
     where: { clerkId: clerkUserId },
   });
+
   if (existingUser) return existingUser;
 
   const clerkUser = await currentUser();
+
   if (!clerkUser) return null;
 
   const email = clerkUser.emailAddresses[0]?.emailAddress;
+
   if (!email) return null;
 
   const fullName = [clerkUser.firstName, clerkUser.lastName]
     .filter(Boolean)
     .join(" ");
 
-  return db.user.upsert({
-    where: { clerkId: clerkUserId },
-    update: {},
-    create: {
+  // Check whether this email already exists in the database
+  const existingEmailUser = await db.user.findUnique({
+    where: { email },
+  });
+
+  // If the email exists, link it to the current Clerk account
+  if (existingEmailUser) {
+    return db.user.update({
+      where: { email },
+      data: {
+        clerkId: clerkUserId,
+        name: fullName || existingEmailUser.name,
+        imageUrl: clerkUser.imageUrl || existingEmailUser.imageUrl,
+      },
+    });
+  }
+
+  // Otherwise, create a completely new user
+  return db.user.create({
+    data: {
       clerkId: clerkUserId,
       email,
       name: fullName || null,
