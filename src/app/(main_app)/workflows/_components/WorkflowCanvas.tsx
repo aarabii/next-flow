@@ -13,7 +13,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  Plus,
   Clock,
   Play,
   LayoutGrid,
@@ -21,6 +20,8 @@ import {
   Redo,
   Download,
   ArrowLeft,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
 import { CopyWorkflowButton } from "./CopyWorkflowButton";
@@ -29,8 +30,8 @@ import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
 import { ResponseNode } from "./ResponseNode";
-import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
+import { WorkflowChatBar } from "./WorkflowChatBar";
 import {
   Tooltip,
   TooltipTrigger,
@@ -96,11 +97,11 @@ export function WorkflowCanvas({
     redo,
   } = useWorkflowStore();
 
-  const [showPicker, setShowPicker] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
   const [isEditingName, setIsEditingName] = React.useState(false);
+  const [isDeletingWorkflow, setIsDeletingWorkflow] = React.useState(false);
   const [localName, setLocalName] = React.useState(workflowName);
   const [prevWorkflowName, setPrevWorkflowName] = React.useState(workflowName);
 
@@ -111,6 +112,41 @@ export function WorkflowCanvas({
 
   const [reactFlowInstance, setReactFlowInstance] =
     React.useState<ReactFlowInstance | null>(null);
+
+  const handleDeleteWorkflow = React.useCallback(async () => {
+    if (isSystem || isDeletingWorkflow) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${workflowName}"? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingWorkflow(true);
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete workflow");
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Error deleting workflow:", err);
+      alert("Failed to delete workflow. Please try again.");
+      setIsDeletingWorkflow(false);
+    }
+  }, [isSystem, isDeletingWorkflow, workflowName, workflowId, router]);
+
+  const handleWorkflowUpdated = React.useCallback(
+    (newNodes: Node[], newEdges: Edge[]) => {
+      takeSnapshot();
+      setNodes(newNodes);
+      setEdges(newEdges);
+    },
+    [takeSnapshot, setNodes, setEdges],
+  );
 
   const autoLayout = React.useCallback(() => {
     takeSnapshot();
@@ -702,6 +738,26 @@ export function WorkflowCanvas({
     handleRunWorkflow,
   ]);
 
+  const resolvedEdges = React.useMemo(() => {
+    const seenIds = new Set<string>();
+    const validEdges: Edge[] = [];
+    (edges || []).forEach((edge) => {
+      if (!edge || !edge.source || !edge.target) return;
+      const baseId =
+        edge.id ||
+        `edge_${edge.source}_${edge.sourceHandle || "default"}_to_${edge.target}_${edge.targetHandle || "default"}`;
+      let finalId = baseId;
+      let counter = 1;
+      while (seenIds.has(finalId)) {
+        finalId = `${baseId}_dup${counter}`;
+        counter++;
+      }
+      seenIds.add(finalId);
+      validEdges.push(finalId === edge.id ? edge : { ...edge, id: finalId });
+    });
+    return validEdges;
+  }, [edges]);
+
   const isValidConnection = React.useCallback(
     (connection: Connection | Edge) => {
       if (!connection.source || !connection.target) return false;
@@ -1013,6 +1069,29 @@ export function WorkflowCanvas({
             </TooltipTrigger>
             <TooltipContent>Runs History</TooltipContent>
           </Tooltip>
+
+          {/* Delete Workflow Button (Red) */}
+          {!isSystem && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleDeleteWorkflow}
+                  disabled={isDeletingWorkflow || activeRunId !== null}
+                  className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-red-500 hover:text-red-600 transition-colors cursor-pointer border-0 bg-transparent flex items-center justify-center disabled:opacity-50"
+                >
+                  {isDeletingWorkflow ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-red-500 hover:text-red-600" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-red-600 font-medium">
+                {isDeletingWorkflow ? "Deleting..." : "Delete Workflow"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
 
@@ -1020,7 +1099,7 @@ export function WorkflowCanvas({
         <div className="flex-1 h-full relative">
           <ReactFlow
             nodes={resolvedNodes}
-            edges={edges}
+            edges={resolvedEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
@@ -1035,8 +1114,6 @@ export function WorkflowCanvas({
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
             deleteKeyCode={null}
-            onPaneClick={() => setShowPicker(false)}
-            onNodeClick={() => setShowPicker(false)}
           >
             <DotField />
             <Controls className="bg-white! border-zinc-200! shadow-md! rounded-lg! overflow-hidden [&_button]:border-b-zinc-100!">
@@ -1078,31 +1155,18 @@ export function WorkflowCanvas({
           </ReactFlow>
 
           {!isSystem && (
-            <div
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-4 z-40"
-              onMouseLeave={() => setShowPicker(false)}
-            >
-              <button
-                id="add-node-button"
-                onClick={() => setShowPicker(!showPicker)}
-                className={cn(
-                  "p-3.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
-                  showPicker &&
-                    "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45",
-                )}
-                title="Add New Node"
-              >
-                <Plus className="w-5 h-5 transition-transform" />
-              </button>
-
-              {showPicker && (
-                <NodePicker
-                  onSelect={(type) => addNode(type)}
-                  onClose={() => setShowPicker(false)}
-                  className="static translate-x-0 bottom-auto left-auto animate-in fade-in slide-in-from-bottom-2 duration-150"
-                />
-              )}
-            </div>
+            <WorkflowChatBar
+              workflowId={workflowId}
+              onAddNode={addNode}
+              onWorkflowUpdated={handleWorkflowUpdated}
+              onNameUpdated={(newName) => {
+                setLocalName(newName);
+              }}
+              onRunWorkflow={(runId) => {
+                setActiveRunId(runId);
+                setHistoryOpen(true);
+              }}
+            />
           )}
         </div>
 

@@ -122,11 +122,14 @@ export function ResponseNode({ id, data }: NodeProps<Node<ResponseNodeData>>) {
           </div>
         ) : (
           <div className="flex flex-col gap-3 max-h-90 overflow-y-auto pr-1">
-            {results.map((item) => {
+            {results.map((item, index) => {
               const type = detectType(item);
+              const uniqueKey = item.edgeId
+                ? `${item.edgeId}-${index}`
+                : `result-${item.nodeId || "node"}-${item.sourceHandleId || index}-${index}`;
               return (
                 <div
-                  key={item.edgeId}
+                  key={uniqueKey}
                   className="border border-zinc-200 rounded-xl p-3 bg-white hover:border-zinc-300 transition-all shadow-xs flex flex-col gap-2.5 group/result"
                 >
                   <div className="flex items-center justify-between border-b border-zinc-50 pb-1.5 select-none">

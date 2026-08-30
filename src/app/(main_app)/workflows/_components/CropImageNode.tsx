@@ -21,7 +21,17 @@ import {
   Download,
   Trash2,
   Image as ImageIcon,
+  X,
 } from "lucide-react";
+import {
+  Attachment,
+  AttachmentMedia,
+  AttachmentContent,
+  AttachmentTitle,
+  AttachmentDescription,
+  AttachmentActions,
+  AttachmentAction,
+} from "@/components/ui/attachment";
 
 export function CropImageNode({
   id,
@@ -177,32 +187,34 @@ export function CropImageNode({
                 Linked to upstream source...
               </div>
             ) : inputImage ? (
-              <div className="border border-zinc-200 rounded-lg p-3 flex items-center justify-between bg-zinc-50/50">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-10 h-10 rounded border border-zinc-155 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center relative">
-                    <Image
-                      src={inputImage}
-                      alt="input preview"
-                      fill
-                      unoptimized
-                      sizes="40px"
-                      loading="lazy"
-                      className="object-cover"
-                    />
-                  </div>
-                  <span className="text-[11px] font-medium text-zinc-650 truncate max-w-44">
+              <Attachment size="sm" state="done" className="w-full bg-zinc-50/70 dark:bg-zinc-800/60 border-zinc-200">
+                <AttachmentMedia variant="image">
+                  <img
+                    src={inputImage}
+                    alt="input preview"
+                    className="w-full h-full object-cover"
+                  />
+                </AttachmentMedia>
+                <AttachmentContent>
+                  <AttachmentTitle className="text-zinc-700 dark:text-zinc-200">
                     Attached Image
-                  </span>
-                </div>
+                  </AttachmentTitle>
+                  <AttachmentDescription>
+                    Ready for crop processing
+                  </AttachmentDescription>
+                </AttachmentContent>
                 {!isLocked && !data.isSystem && (
-                  <button
-                    onClick={() => updateData({ inputImage: "" })}
-                    className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors border-0 bg-transparent nodrag"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <AttachmentActions>
+                    <AttachmentAction
+                      onClick={() => updateData({ inputImage: "" })}
+                      title="Remove image"
+                      className="hover:text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </AttachmentAction>
+                  </AttachmentActions>
                 )}
-              </div>
+              </Attachment>
             ) : data.isSystem ? (
               <div className="border border-dashed border-zinc-200 rounded-lg p-3 text-center bg-zinc-50/50 text-xs text-zinc-400">
                 Image source locked for system flow

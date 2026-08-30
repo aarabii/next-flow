@@ -4,9 +4,10 @@ import { Transloadit } from "@transloadit/node";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { R2_URL_PREFIX } from "@/lib/constants";
+import { rateLimit } from "@/lib/rate-limit";
 
-const R2_URL_PREFIX =
-  "https://pub-9fa6062fc2e84197b79b0f5a74aafa86.r2.dev/";
+const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 });
 
 function buildSteps(fileType: string) {
   const isImage = fileType.startsWith("image/");
@@ -48,10 +49,20 @@ function buildSteps(fileType: string) {
 }
 
 export async function POST(req: Request) {
+  let tempFilePath: string | null = null;
+
   try {
     const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAllowed = await limiter.check(20, `upload_${user.id}`);
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Too many upload requests. Please wait a minute before uploading again." },
+        { status: 429 },
+      );
     }
 
     const formData = await req.formData();
@@ -97,7 +108,9 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     const tempDir = os.tmpdir();
-    const tempFilePath = path.join(tempDir, `${Date.now()}-${file.name}`);
+    // Sanitize filename for local storage
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    tempFilePath = path.join(tempDir, `${Date.now()}-${sanitizedFileName}`);
     fs.writeFileSync(tempFilePath, buffer);
 
     const transloadit = new Transloadit({
@@ -121,12 +134,6 @@ export async function POST(req: Request) {
       options as Parameters<Transloadit["createAssembly"]>[0],
     );
 
-    try {
-      fs.unlinkSync(tempFilePath);
-    } catch (e) {
-      console.error("Failed to delete temp file:", e);
-    }
-
     // Extract the R2 URL from whichever step produced the result
     const fileUrl =
       status.results?.store?.[0]?.ssl_url ||
@@ -146,6 +153,13 @@ export async function POST(req: Request) {
     console.error("Transloadit upload error:", error);
     const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (e) {
+        console.error("Failed to delete temp file:", e);
+      }
+    }
   }
 }
-

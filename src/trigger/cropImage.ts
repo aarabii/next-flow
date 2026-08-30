@@ -1,6 +1,8 @@
-import { task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 import { db } from "@/lib/prisma";
 import { Transloadit } from "@transloadit/node";
+import { validateExternalUrl } from "@/lib/validation";
+import { R2_URL_PREFIX } from "@/lib/constants";
 
 export interface CropImagePayload {
   nodeRunId: string;
@@ -9,48 +11,6 @@ export interface CropImagePayload {
   y: number;
   width: number;
   height: number;
-}
-
-const R2_URL_PREFIX =
-  "https://pub-9fa6062fc2e84197b79b0f5a74aafa86.r2.dev/";
-
-function validateExternalUrl(rawUrl: string): string {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    throw new Error(`Invalid URL: ${rawUrl}`);
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new Error(`Only HTTPS URLs are allowed: ${rawUrl}`);
-  }
-
-  const hostname = parsed.hostname;
-  const privatePatterns = [
-    /^localhost$/i,
-    /^127\./,
-    /^10\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^192\.168\./,
-    /^169\.254\./,
-    /^0\./,
-    /^\[::1\]$/,
-    /^\[fc/i,
-    /^\[fd/i,
-    /^\[fe80/i,
-    /\.local$/i,
-    /\.internal$/i,
-    /\.localhost$/i,
-  ];
-
-  for (const pattern of privatePatterns) {
-    if (pattern.test(hostname)) {
-      throw new Error(`Private/internal URLs are not allowed: ${hostname}`);
-    }
-  }
-
-  return rawUrl;
 }
 
 async function cropWithTransloadit(
@@ -126,9 +86,6 @@ export const cropImageTask = task({
     });
 
     try {
-      // 30s artificial delay
-      await new Promise((resolve) => setTimeout(resolve, 31000));
-
       if (!imageUrl) {
         throw new Error("No input image URL provided");
       }

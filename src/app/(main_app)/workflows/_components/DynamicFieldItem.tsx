@@ -19,6 +19,15 @@ import { RequestInputField } from "@/types/node.type";
 import { AudioPlayer } from "./AudioPlayer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Attachment,
+  AttachmentMedia,
+  AttachmentContent,
+  AttachmentTitle,
+  AttachmentDescription,
+  AttachmentActions,
+  AttachmentAction,
+} from "@/components/ui/attachment";
 
 interface DynamicFieldItemProps {
   field: RequestInputField;
@@ -229,70 +238,70 @@ export function DynamicFieldItem({
               </div>
             ) : field.value ? (
               <div className="flex flex-col gap-2">
-                <div className="border border-zinc-200 rounded-lg p-2 flex items-center justify-between bg-zinc-50/50">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-10 h-10 rounded border border-zinc-155 bg-zinc-100 shrink-0 overflow-hidden flex items-center justify-center relative">
-                      {field.type === "image_field" ? (
-                        <Image
-                          src={field.value}
-                          alt="Uploaded thumbnail"
-                          fill
-                          unoptimized
-                          sizes="40px"
-                          loading="lazy"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <MusicIcon className="w-4 h-4 text-amber-500 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="flex flex-col overflow-hidden text-left">
-                      <span className="text-[11px] font-medium text-zinc-650 truncate max-w-44">
-                        {field.fileName || "Uploaded File"}
-                      </span>
-                      {field.fileSize && (
-                        <span className="text-[9px] text-zinc-400 select-none">
-                          {field.fileSize}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                <Attachment size="sm" state="done" className="w-full bg-zinc-50/70 dark:bg-zinc-800/60 border-zinc-200">
+                  <AttachmentMedia variant={field.type === "image_field" ? "image" : "icon"}>
+                    {field.type === "image_field" ? (
+                      <img
+                        src={field.value}
+                        alt="Uploaded preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <MusicIcon className="w-3.5 h-3.5 text-amber-500" />
+                    )}
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle className="text-zinc-700 dark:text-zinc-200">
+                      {field.fileName || "Uploaded File"}
+                    </AttachmentTitle>
+                    <AttachmentDescription>
+                      {field.fileSize || (field.type === "image_field" ? "Image file attached" : "Audio file attached")}
+                    </AttachmentDescription>
+                  </AttachmentContent>
                   {!isLocked && (
-                    <button
-                      type="button"
-                      onClick={handleClearFile}
-                      className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded text-zinc-400 cursor-pointer transition-colors border-0 bg-transparent nodrag"
-                      title="Clear file"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <AttachmentActions>
+                      <AttachmentAction
+                        onClick={handleClearFile}
+                        title="Clear file"
+                        className="hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </AttachmentAction>
+                    </AttachmentActions>
                   )}
-                </div>
+                </Attachment>
 
                 {field.type === "audio_field" && <AudioPlayer url={field.value} />}
               </div>
             ) : (
               <div>
-                <div
-                  onClick={() => !isLocked && document.getElementById(`file-input-${field.id}`)?.click()}
+                <Attachment
+                  size="sm"
+                  state={isUploading ? "uploading" : "idle"}
+                  onClick={() => !isLocked && !isUploading && document.getElementById(`file-input-${field.id}`)?.click()}
                   className={cn(
-                    "border border-dashed border-zinc-200 rounded-lg p-3.5 flex flex-col items-center justify-center gap-1.5 bg-zinc-50/30 hover:bg-zinc-50/70 transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600 nodrag select-none",
-                    isLocked && "opacity-50 cursor-not-allowed hover:bg-zinc-50/30"
+                    "w-full cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-colors",
+                    isLocked && "opacity-50 cursor-not-allowed pointer-events-none"
                   )}
                 >
-                  {isUploading ? (
-                    <Loader2 className="w-4.5 h-4.5 animate-spin text-purple-600" />
-                  ) : field.type === "image_field" ? (
-                    <ImageIcon className="w-4.5 h-4.5 text-zinc-400" />
-                  ) : (
-                    <MusicIcon className="w-4.5 h-4.5 text-zinc-400" />
-                  )}
-                  <span className="text-[10px] font-medium">
-                    {isUploading
-                      ? "Uploading..."
-                      : `Upload ${field.type === "image_field" ? "Image" : "Audio"}`}
-                  </span>
-                </div>
+                  <AttachmentMedia variant="icon">
+                    {isUploading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                    ) : field.type === "image_field" ? (
+                      <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
+                    ) : (
+                      <MusicIcon className="w-3.5 h-3.5 text-zinc-400" />
+                    )}
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle className="text-zinc-600">
+                      {isUploading ? "Uploading file..." : `Upload ${field.type === "image_field" ? "Image" : "Audio"}`}
+                    </AttachmentTitle>
+                    <AttachmentDescription>
+                      {isUploading ? "Please wait a moment" : "Click to browse"}
+                    </AttachmentDescription>
+                  </AttachmentContent>
+                </Attachment>
                 <input
                   type="file"
                   id={`file-input-${field.id}`}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { CandidateLogger } from "@/components/CandidateLogger";
+import { AuthorLogger } from "@/components/AuthorLogger";
 
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
@@ -40,7 +40,7 @@ export default function RootLayout({
     >
       <body className="antialiased">
         <ClerkProvider>
-          <CandidateLogger />
+          <AuthorLogger />
           {children}
         </ClerkProvider>
       </body>

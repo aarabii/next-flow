@@ -1,7 +1,7 @@
-import { task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 import { db } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
-
+import { validateExternalUrl } from "@/lib/validation";
 
 export interface GeminiPayload {
   nodeRunId: string;
@@ -15,47 +15,6 @@ export interface GeminiPayload {
   maxTokens?: number;
   topK?: number;
   reasoning?: string;
-}
-
-function validateExternalUrl(rawUrl: string): string {
-  const cleaned = rawUrl.split("?")[0];
-  let parsed: URL;
-  try {
-    parsed = new URL(cleaned);
-  } catch {
-    throw new Error(`Invalid URL: ${cleaned}`);
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new Error(`Only HTTPS URLs are allowed: ${cleaned}`);
-  }
-
-  const hostname = parsed.hostname;
-
-  const privatePatterns = [
-    /^localhost$/i,
-    /^127\./,
-    /^10\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^192\.168\./,
-    /^169\.254\./,
-    /^0\./,
-    /^\[::1\]$/,
-    /^\[fc/i,
-    /^\[fd/i,
-    /^\[fe80/i,
-    /\.local$/i,
-    /\.internal$/i,
-    /\.localhost$/i,
-  ];
-
-  for (const pattern of privatePatterns) {
-    if (pattern.test(hostname)) {
-      throw new Error(`Private/internal URLs are not allowed: ${hostname}`);
-    }
-  }
-
-  return cleaned;
 }
 
 async function fetchFileAsInlineData(url: string) {
@@ -74,8 +33,6 @@ async function fetchFileAsInlineData(url: string) {
   };
 }
 
-
-
 export const geminiTask = task({
   id: "gemini-execution",
   retry: {
@@ -88,7 +45,6 @@ export const geminiTask = task({
     const {
       nodeRunId,
       model,
-      nodeType,
       prompt,
       systemPrompt,
       images,
@@ -145,8 +101,6 @@ export const geminiTask = task({
         }
       }
 
-
-
       const config: {
         systemInstruction?: string;
         temperature?: number;
@@ -169,8 +123,6 @@ export const geminiTask = task({
         config.thinkingConfig = { thinkingBudget: budget };
       }
 
-      let outputResponse = "";
-
       const response = await ai.models.generateContent({
         model: actualModel,
         contents,
@@ -178,14 +130,16 @@ export const geminiTask = task({
       });
 
       const responseText = response.text || "No response received";
-      outputResponse = responseText;
+      const outputResponse = responseText;
 
       const usageMetadata = response.usageMetadata;
-      const usage = usageMetadata ? {
-        prompt_tokens: usageMetadata.promptTokenCount,
-        completion_tokens: usageMetadata.candidatesTokenCount,
-        total_tokens: usageMetadata.totalTokenCount,
-      } : undefined;
+      const usage = usageMetadata
+        ? {
+            prompt_tokens: usageMetadata.promptTokenCount,
+            completion_tokens: usageMetadata.candidatesTokenCount,
+            total_tokens: usageMetadata.totalTokenCount,
+          }
+        : undefined;
 
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -194,7 +148,7 @@ export const geminiTask = task({
         where: { id: nodeRunId },
         data: {
           status: "SUCCESS",
-          output: { 
+          output: {
             response: outputResponse,
             usage,
           },

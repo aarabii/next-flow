@@ -2,33 +2,11 @@ import { NewWorkflowButton } from "../dashboard/_components/NewWorkflowButton";
 import { ImportButton } from "../dashboard/_components/ImportButton";
 import { UserWorkflowsContainer } from "../dashboard/_components/UserWorkflowsContainer";
 import { checkAndSyncUser } from "@/lib/auth";
-import { db } from "@/lib/prisma";
-import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
-import { timeAgo, GRADIENTS } from "@/lib/utils";
+import { getUserWorkflowCards } from "@/lib/queries/workflows";
 
 export default async function FlowsPage() {
   const user = await checkAndSyncUser();
-
-  const dbWorkflows = await db.workflow.findMany({
-    where: {
-      userId: user.id,
-      NOT: {
-        id: {
-          in: SYSTEM_WORKFLOW_IDS.map((sysId) => `${user.id}-${sysId}`),
-        },
-      },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  const workflows = dbWorkflows.map((w, idx) => ({
-    id: w.id,
-    title: w.name,
-    href: `/workflows/${w.id}`,
-    editedAt: timeAgo(w.updatedAt),
-    gradient: GRADIENTS[idx % GRADIENTS.length],
-    backgroundImage: w.backgroundImage,
-  }));
+  const workflows = await getUserWorkflowCards(user.id);
 
   return (
     <div className="w-full pb-space-08 px-4 sm:px-6 md:px-12 lg:px-16 pt-space-08">
