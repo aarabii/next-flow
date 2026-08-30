@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Prisma } from "../../../../../generated/prisma/client";
 import { GEMINI_MODEL_CONFIG } from "@/config/modelConfig";
 import type { Node, Edge } from "@xyflow/react";
+import type { CSSProperties } from "react";
 
 const ImportWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     if (!result.success) {
       return NextResponse.json(
         { error: "Invalid request payload", details: result.error.format() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
           };
         }) : [
           { id: "text_field", type: "text_field", label: "Text Field", value: "" },
-          { id: "image_field", type: "image_field", label: "Image Field", value: "" }
+          { id: "image_field", type: "image_field", label: "Image Field", value: "" },
         ];
       } else if (type === "response") {
         data.results = [];
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
         targetHandle: typeof edge.targetHandle === "string" ? edge.targetHandle : undefined,
         type: typeof edge.type === "string" ? edge.type : "smoothstep",
         animated: typeof edge.animated === "boolean" ? edge.animated : true,
-        style: (edge.style && typeof edge.style === "object" ? edge.style : { stroke: "#a855f7", strokeWidth: 2 }) as React.CSSProperties,
+        style: (edge.style && typeof edge.style === "object" ? edge.style : { stroke: "#a855f7", strokeWidth: 2 }) as CSSProperties,
       });
     }
 
@@ -178,7 +179,7 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "Failed to import workflow";
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

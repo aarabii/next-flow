@@ -1,4 +1,4 @@
-import { task, wait } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 import { db } from "@/lib/prisma";
 import { cropImageTask } from "./cropImage";
 import { geminiTask } from "./gemini";
@@ -43,7 +43,7 @@ interface ResolvedInputs {
 
 type NodeExecutionState =
   | "PENDING"
-  | "TRIGGERED"
+  | "RUNNING"
   | "SUCCESS"
   | "FAILED"
   | "SKIPPED";
@@ -69,8 +69,8 @@ export const workflowOrchestratorTask = task({
     });
 
     const workflow = workflowRun.workflow;
-    let nodes = workflow.nodes as unknown as Node[];
-    const edges = workflow.edges as unknown as Edge[];
+    let nodes = (workflow.nodes as unknown as Node[]) || [];
+    const edges = (workflow.edges as unknown as Edge[]) || [];
 
     const nodeRuns = await db.nodeRun.findMany({
       where: { workflowRunId },
@@ -80,7 +80,6 @@ export const workflowOrchestratorTask = task({
     const executionNodeIds = pendingNodeRuns.map((nr) => nr.nodeId);
 
     const nodeOutputs: { [nodeId: string]: unknown } = {};
-
     const nodeState: { [nodeId: string]: NodeExecutionState } = {};
     for (const nodeId of executionNodeIds) {
       nodeState[nodeId] = "PENDING";
@@ -226,51 +225,6 @@ export const workflowOrchestratorTask = task({
       return resolved;
     };
 
-    const triggerNode = async (nodeId: string) => {
-      const node = nodes.find((n) => n.id === nodeId);
-      const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
-
-      if (!node || !nodeRun) return;
-
-      const inputs = await resolveInputs(nodeId, node);
-
-      await db.nodeRun.update({
-        where: { id: nodeRun.id },
-        data: {
-          inputs: inputs as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      if (node.type === "cropImage") {
-        await cropImageTask.trigger({
-          nodeRunId: nodeRun.id,
-          imageUrl: inputs.imageUrl || "",
-          x: inputs.x || 0,
-          y: inputs.y || 0,
-          width: inputs.width || 100,
-          height: inputs.height || 100,
-        });
-      } else if (node.type === "textNode") {
-        const defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
-
-        const nodeModel =
-          (node.data as { model?: string }).model || defaultModelId;
-        await geminiTask.trigger({
-          nodeRunId: nodeRun.id,
-          model: inputs.model || nodeModel,
-          nodeType: node.type,
-          prompt: inputs.prompt,
-          systemPrompt: inputs.systemPrompt,
-          images: inputs.images,
-          temperature: inputs.temperature,
-          topP: inputs.topP,
-          maxTokens: inputs.maxTokens,
-          topK: inputs.topK,
-          reasoning: inputs.reasoning,
-        });
-      }
-    };
-
     const processCompletedNode = (nodeId: string, output: unknown) => {
       nodeOutputs[nodeId] = output;
 
@@ -307,10 +261,9 @@ export const workflowOrchestratorTask = task({
     };
 
     try {
-      const MAX_POLL_ITERATIONS = 300; // ~10 minutes at 2s intervals
-      let pollIteration = 0;
-
-      while (pollIteration++ < MAX_POLL_ITERATIONS) {
+      // Loop while there are still PENDING nodes
+      while (true) {
+        // 1. Check for blocked nodes (upstream failed or skipped)
         const blockedNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
@@ -334,97 +287,87 @@ export const workflowOrchestratorTask = task({
           }
         }
 
+        // 2. Find nodes whose upstream dependencies are all successfully completed
         const readyNodes = executionNodeIds.filter((nodeId) => {
           if (nodeState[nodeId] !== "PENDING") return false;
           const deps = getUpstreamDependencies(nodeId);
-
           const executionDeps = deps.filter((depId) =>
             executionNodeIds.includes(depId),
           );
           return executionDeps.every((depId) => nodeState[depId] === "SUCCESS");
         });
 
-        for (const nodeId of readyNodes) {
-          await triggerNode(nodeId);
-          nodeState[nodeId] = "TRIGGERED";
-        }
-
-        const allDone = executionNodeIds.every(
-          (nodeId) =>
-            nodeState[nodeId] === "SUCCESS" ||
-            nodeState[nodeId] === "FAILED" ||
-            nodeState[nodeId] === "SKIPPED",
-        );
-        if (allDone) break;
-
-        const hasInFlight = executionNodeIds.some(
-          (nodeId) => nodeState[nodeId] === "TRIGGERED",
-        );
-        if (!hasInFlight && readyNodes.length === 0) {
-          console.error(
-            "Orchestrator deadlock detected — breaking execution loop",
-          );
+        if (readyNodes.length === 0) {
+          // No more nodes ready to run. Either all done or deadlock
           break;
         }
 
-        if (hasInFlight) {
-          await wait.for({ seconds: 2 });
+        // 3. Execute ready nodes sequentially using durable triggerAndWait
+        for (const nodeId of readyNodes) {
+          const node = nodes.find((n) => n.id === nodeId);
+          const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
 
-          const latestNodeRuns = await db.nodeRun.findMany({
-            where: { workflowRunId },
+          if (!node || !nodeRun) continue;
+
+          nodeState[nodeId] = "RUNNING";
+          const inputs = await resolveInputs(nodeId, node);
+
+          await db.nodeRun.update({
+            where: { id: nodeRun.id },
+            data: {
+              inputs: inputs as unknown as Prisma.InputJsonValue,
+            },
           });
 
-          let nodesUpdated = false;
+          let taskResult: { ok: boolean; output?: unknown; error?: unknown };
 
-          for (const nr of latestNodeRuns) {
-            if (!executionNodeIds.includes(nr.nodeId)) continue;
+          if (node.type === "cropImage") {
+            taskResult = await cropImageTask.triggerAndWait({
+              nodeRunId: nodeRun.id,
+              imageUrl: inputs.imageUrl || "",
+              x: inputs.x || 0,
+              y: inputs.y || 0,
+              width: inputs.width || 100,
+              height: inputs.height || 100,
+            });
+          } else if (node.type === "textNode") {
+            const defaultModelId = GEMINI_MODEL_CONFIG.textNode.defaultModelId;
+            const nodeModel =
+              (node.data as { model?: string }).model || defaultModelId;
 
-            if (
-              nr.status === "SUCCESS" &&
-              nodeState[nr.nodeId] === "TRIGGERED"
-            ) {
-              processCompletedNode(nr.nodeId, nr.output);
-              nodeState[nr.nodeId] = "SUCCESS";
-              nodesUpdated = true;
-            } else if (
-              nr.status === "FAILED" &&
-              nodeState[nr.nodeId] === "TRIGGERED"
-            ) {
-              nodeState[nr.nodeId] = "FAILED";
-              nodesUpdated = true;
-            }
+            taskResult = await geminiTask.triggerAndWait({
+              nodeRunId: nodeRun.id,
+              model: inputs.model || nodeModel,
+              nodeType: node.type,
+              prompt: inputs.prompt,
+              systemPrompt: inputs.systemPrompt,
+              images: inputs.images,
+              temperature: inputs.temperature,
+              topP: inputs.topP,
+              maxTokens: inputs.maxTokens,
+              topK: inputs.topK,
+              reasoning: inputs.reasoning,
+            });
+          } else {
+            taskResult = { ok: true, output: {} };
           }
 
-          if (nodesUpdated) {
+          if (taskResult.ok) {
+            nodeState[nodeId] = "SUCCESS";
+            processCompletedNode(nodeId, taskResult.output);
+
             await db.workflow.update({
               where: { id: workflow.id },
               data: { nodes: nodes as unknown as Prisma.InputJsonValue },
             });
-          }
-        }
-      }
-
-      // If the loop exhausted iterations, mark remaining in-flight nodes as timed out
-      if (pollIteration >= MAX_POLL_ITERATIONS) {
-        console.error("Orchestrator timed out after max poll iterations");
-        for (const nodeId of executionNodeIds) {
-          if (nodeState[nodeId] === "TRIGGERED" || nodeState[nodeId] === "PENDING") {
+          } else {
             nodeState[nodeId] = "FAILED";
-            const nodeRun = pendingNodeRuns.find((nr) => nr.nodeId === nodeId);
-            if (nodeRun) {
-              await db.nodeRun.update({
-                where: { id: nodeRun.id },
-                data: {
-                  status: "FAILED",
-                  error: "Execution timed out",
-                  completedAt: new Date(),
-                },
-              });
-            }
+            console.error(`Node ${nodeId} execution failed:`, taskResult.error);
           }
         }
       }
 
+      // Final step: update response node results if one exists
       const responseNode = nodes.find((n) => n.type === "response");
       if (responseNode) {
         const incomingToResponse = edges.filter(

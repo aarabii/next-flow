@@ -1,78 +1,61 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "./prisma";
+import type { User } from "../../generated/prisma/client";
 
-export async function checkAndSyncUser() {
+async function findOrCreateUser(clerkUserId: string): Promise<User | null> {
+  const existingUser = await db.user.findUnique({
+    where: { clerkId: clerkUserId },
+  });
+  if (existingUser) return existingUser;
+
+  const clerkUser = await currentUser();
+  if (!clerkUser) return null;
+
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  if (!email) return null;
+
+  const fullName = [clerkUser.firstName, clerkUser.lastName]
+    .filter(Boolean)
+    .join(" ");
+
+  return db.user.upsert({
+    where: { clerkId: clerkUserId },
+    update: {},
+    create: {
+      clerkId: clerkUserId,
+      email,
+      name: fullName || null,
+      imageUrl: clerkUser.imageUrl || null,
+    },
+  });
+}
+
+/**
+ * Ensures user is authenticated and synced to the database.
+ * Redirects to home page if not authenticated.
+ */
+export async function checkAndSyncUser(): Promise<User> {
   const { userId } = await auth();
 
   if (!userId) {
     redirect("/");
   }
 
-  let dbUser = await db.user.findUnique({
-    where: { clerkId: userId },
-  });
-
+  const dbUser = await findOrCreateUser(userId);
   if (!dbUser) {
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
-      redirect("/");
-    }
-
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!email) {
-      throw new Error("Clerk user has no associated email address");
-    }
-
-    const fullName = [clerkUser.firstName, clerkUser.lastName]
-      .filter(Boolean)
-      .join(" ");
-
-    dbUser = await db.user.upsert({
-      where: { clerkId: userId },
-      update: {},
-      create: {
-        clerkId: userId,
-        email: email,
-        name: fullName || null,
-        imageUrl: clerkUser.imageUrl || null,
-      },
-    });
+    redirect("/");
   }
 
   return dbUser;
 }
 
-export async function getAuthenticatedUser() {
+/**
+ * Returns the currently authenticated and synced user, or null if unauthenticated.
+ */
+export async function getAuthenticatedUser(): Promise<User | null> {
   const { userId } = await auth();
   if (!userId) return null;
 
-  let dbUser = await db.user.findUnique({
-    where: { clerkId: userId },
-  });
-
-  if (!dbUser) {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return null;
-
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!email) return null;
-
-    const fullName = [clerkUser.firstName, clerkUser.lastName]
-      .filter(Boolean)
-      .join(" ");
-
-    dbUser = await db.user.upsert({
-      where: { clerkId: userId },
-      update: {},
-      create: {
-        clerkId: userId,
-        email: email,
-        name: fullName || null,
-        imageUrl: clerkUser.imageUrl || null,
-      },
-    });
-  }
-
-  return dbUser;
+  return findOrCreateUser(userId);
 }

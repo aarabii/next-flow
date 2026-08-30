@@ -3,45 +3,13 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
 import { SYSTEM_WORKFLOW_IDS } from "@/config/systemWorkflows";
+import { DEFAULT_INITIAL_NODES } from "@/config/defaults";
+import { Prisma } from "../../../../generated/prisma/client";
 
 const CreateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").default("Untitled Workflow"),
   description: z.string().optional(),
 });
-
-const initialNodes = [
-  {
-    id: "request_inputs",
-    type: "requestInput",
-    position: { x: 50, y: 150 },
-    data: {
-      fields: [
-        {
-          id: "text_field",
-          type: "text_field",
-          label: "Text Field",
-          value: "",
-        },
-        {
-          id: "image_field",
-          type: "image_field",
-          label: "Image Field",
-          value: "",
-        },
-      ],
-    },
-    deletable: false,
-  },
-  {
-    id: "response",
-    type: "response",
-    position: { x: 900, y: 250 },
-    data: {
-      results: [],
-    },
-    deletable: false,
-  },
-];
 
 export async function GET() {
   try {
@@ -58,6 +26,14 @@ export async function GET() {
             in: SYSTEM_WORKFLOW_IDS.map((sysId) => `${user.id}-${sysId}`),
           },
         },
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        updatedAt: true,
+        createdAt: true,
+        backgroundImage: true,
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -98,7 +74,7 @@ export async function POST(req: Request) {
         userId: user.id,
         name,
         description: description || null,
-        nodes: initialNodes,
+        nodes: DEFAULT_INITIAL_NODES as unknown as Prisma.InputJsonValue,
         edges: [],
       },
     });

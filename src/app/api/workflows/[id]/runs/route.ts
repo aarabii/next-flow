@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -13,6 +13,18 @@ export async function GET(
     }
 
     const { id: workflowId } = await params;
+    const url = new URL(req.url);
+    const limit = Math.min(
+      Math.max(parseInt(url.searchParams.get("limit") || "50", 10), 1),
+      100,
+    );
+
+    const totalCount = await db.workflowRun.count({
+      where: {
+        workflowId,
+        userId: user.id,
+      },
+    });
 
     const runs = await db.workflowRun.findMany({
       where: {
@@ -20,15 +32,20 @@ export async function GET(
         userId: user.id,
       },
       include: {
-        nodeRuns: true,
+        nodeRuns: {
+          orderBy: {
+            startedAt: "asc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       },
+      take: limit,
     });
 
-    const formattedRuns = runs.map((run, index, arr) => {
-      const runNumber = arr.length - index;
+    const formattedRuns = runs.map((run, index) => {
+      const runNumber = totalCount - index;
       return {
         id: run.id,
         runNumber,
@@ -57,10 +74,8 @@ export async function GET(
     return NextResponse.json(formattedRuns);
   } catch (error) {
     console.error("GET /api/workflows/[id]/runs error:", error);
-    const message = error instanceof Error ? error.message : "Failed to fetch runs history";
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch runs history";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

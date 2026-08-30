@@ -13,7 +13,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  Plus,
   Clock,
   Play,
   LayoutGrid,
@@ -29,8 +28,8 @@ import { RequestInputNode } from "./RequestInputNode";
 import { CropImageNode } from "./CropImageNode";
 import { TextNode } from "./TextNode";
 import { ResponseNode } from "./ResponseNode";
-import { NodePicker } from "./NodePicker";
 import { HistoryPanel } from "./HistoryPanel";
+import { WorkflowChatBar } from "./WorkflowChatBar";
 import {
   Tooltip,
   TooltipTrigger,
@@ -96,7 +95,6 @@ export function WorkflowCanvas({
     redo,
   } = useWorkflowStore();
 
-  const [showPicker, setShowPicker] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null);
   const [runningNodeIds, setRunningNodeIds] = React.useState<string[]>([]);
@@ -111,6 +109,15 @@ export function WorkflowCanvas({
 
   const [reactFlowInstance, setReactFlowInstance] =
     React.useState<ReactFlowInstance | null>(null);
+
+  const handleWorkflowUpdated = React.useCallback(
+    (newNodes: Node[], newEdges: Edge[]) => {
+      takeSnapshot();
+      setNodes(newNodes);
+      setEdges(newEdges);
+    },
+    [takeSnapshot, setNodes, setEdges],
+  );
 
   const autoLayout = React.useCallback(() => {
     takeSnapshot();
@@ -1035,8 +1042,6 @@ export function WorkflowCanvas({
             nodesConnectable={!isSystem}
             edgesFocusable={!isSystem}
             deleteKeyCode={null}
-            onPaneClick={() => setShowPicker(false)}
-            onNodeClick={() => setShowPicker(false)}
           >
             <DotField />
             <Controls className="bg-white! border-zinc-200! shadow-md! rounded-lg! overflow-hidden [&_button]:border-b-zinc-100!">
@@ -1078,31 +1083,18 @@ export function WorkflowCanvas({
           </ReactFlow>
 
           {!isSystem && (
-            <div
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-4 z-40"
-              onMouseLeave={() => setShowPicker(false)}
-            >
-              <button
-                id="add-node-button"
-                onClick={() => setShowPicker(!showPicker)}
-                className={cn(
-                  "p-3.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white shadow-lg border border-zinc-700/50 cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0",
-                  showPicker &&
-                    "bg-purple-600 hover:bg-purple-700 border-purple-500 rotate-45",
-                )}
-                title="Add New Node"
-              >
-                <Plus className="w-5 h-5 transition-transform" />
-              </button>
-
-              {showPicker && (
-                <NodePicker
-                  onSelect={(type) => addNode(type)}
-                  onClose={() => setShowPicker(false)}
-                  className="static translate-x-0 bottom-auto left-auto animate-in fade-in slide-in-from-bottom-2 duration-150"
-                />
-              )}
-            </div>
+            <WorkflowChatBar
+              workflowId={workflowId}
+              onAddNode={addNode}
+              onWorkflowUpdated={handleWorkflowUpdated}
+              onNameUpdated={(newName) => {
+                setLocalName(newName);
+              }}
+              onRunWorkflow={(runId) => {
+                setActiveRunId(runId);
+                setHistoryOpen(true);
+              }}
+            />
           )}
         </div>
 

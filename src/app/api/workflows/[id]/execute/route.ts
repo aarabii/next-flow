@@ -3,7 +3,10 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { db } from "@/lib/prisma";
 import { z } from "zod";
 import type { Node } from "@xyflow/react";
-import { Prisma } from "../../../../../../generated/prisma/client";
+import { createAndTriggerWorkflowRun } from "@/lib/services/workflow-execution";
+import { rateLimit } from "@/lib/rate-limit";
+
+const limiter = rateLimit({ interval: 60 * 1000, uniqueTokenPerInterval: 500 });
 
 const ExecutePayloadSchema = z.object({
   scope: z.enum(["FULL", "PARTIAL", "SINGLE"]),
@@ -18,6 +21,14 @@ export async function POST(
     const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isAllowed = await limiter.check(15, `exec_${user.id}`);
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Too many execution requests. Please wait a minute before triggering again." },
+        { status: 429 },
+      );
     }
 
     const { id: workflowId } = await params;
@@ -38,6 +49,9 @@ export async function POST(
         id: workflowId,
         userId: user.id,
       },
+      select: {
+        nodes: true,
+      },
     });
 
     if (!workflow) {
@@ -47,86 +61,15 @@ export async function POST(
       );
     }
 
-    const run = await db.workflowRun.create({
-      data: {
-        workflowId,
-        userId: user.id,
-        status: "RUNNING",
-        scope,
-        targetNodes: targetNodeIds || [],
-      },
+    const runResult = await createAndTriggerWorkflowRun({
+      workflowId,
+      userId: user.id,
+      nodes: (workflow.nodes as unknown as Node[]) || [],
+      scope,
+      targetNodeIds,
     });
 
-    const VALID_NODE_TYPES = ["requestInput", "response", "cropImage", "textNode"];
-    const nodes = (workflow.nodes as unknown as Node[]).filter(
-      (n) => n && typeof n === "object" && VALID_NODE_TYPES.includes(n.type || ""),
-    );
-
-    let nodesToExecute = nodes.filter(
-      (n) =>
-        n.type === "cropImage" ||
-        n.type === "textNode",
-    );
-
-    if (scope === "SINGLE" && targetNodeIds && targetNodeIds.length > 0) {
-      nodesToExecute = nodesToExecute.filter((n) =>
-        targetNodeIds.includes(n.id),
-      );
-    } else if (
-      scope === "PARTIAL" &&
-      targetNodeIds &&
-      targetNodeIds.length > 0
-    ) {
-      nodesToExecute = nodesToExecute.filter((n) =>
-        targetNodeIds.includes(n.id),
-      );
-    }
-
-    const localNodes = nodes.filter(
-      (n) => n.type === "requestInput" || n.type === "response",
-    );
-
-    for (const node of localNodes) {
-      const label =
-        node.id === "request_inputs" ? "Request Inputs" : "Response";
-      await db.nodeRun.create({
-        data: {
-          workflowRunId: run.id,
-          nodeId: node.id,
-          nodeType: node.type || "",
-          nodeLabel: label,
-          status: "SUCCESS",
-          inputs: {},
-          output: node.data as Prisma.InputJsonValue,
-          duration: 0.1,
-          startedAt: new Date(),
-          completedAt: new Date(),
-        },
-      });
-    }
-
-    for (const node of nodesToExecute) {
-      const label =
-        node.type === "cropImage"
-          ? "Crop Image"
-          : "Text Generation";
-      await db.nodeRun.create({
-        data: {
-          workflowRunId: run.id,
-          nodeId: node.id,
-          nodeType: node.type || "",
-          nodeLabel: label,
-          status: "PENDING",
-        },
-      });
-    }
-
-    const { workflowOrchestratorTask } = await import("@/trigger/orchestrator");
-    await workflowOrchestratorTask.trigger({
-      workflowRunId: run.id,
-    });
-
-    return NextResponse.json({ success: true, runId: run.id });
+    return NextResponse.json({ success: true, runId: runResult.runId });
   } catch (error) {
     console.error("POST /api/workflows/[id]/execute error:", error);
     const message =

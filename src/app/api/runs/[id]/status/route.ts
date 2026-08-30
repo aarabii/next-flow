@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthenticatedUser();
@@ -19,8 +19,14 @@ export async function GET(
         id: runId,
         userId: user.id,
       },
-      include: {
-        nodeRuns: true,
+      select: {
+        status: true,
+        nodeRuns: {
+          select: {
+            nodeId: true,
+            status: true,
+          },
+        },
       },
     });
 
@@ -42,7 +48,7 @@ export async function GET(
     const message = error instanceof Error ? error.message : "Failed to fetch run status";
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
